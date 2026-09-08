@@ -1,0 +1,39 @@
+# Dependências e builds locais
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.cache/
+
+# Credenciais e configurações privadas (exemplos sem segredos são permitidos)
+.env
+.env.*
+*.env
+!.env.example
+!*.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+
+# Dados, backups e logs locais; migrações SQL continuam versionadas
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+backups/
+dumps/
+logs/
+*.log
+
+# Arquivos da máquina e ferramentas
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.codex/
+.agents/

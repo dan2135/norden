@@ -1,0 +1,29 @@
+const { erroHttp } = require('./projetos');
+const segmentos = { marcenaria:'Marcenaria', comercio:'Comércio', servicos:'Prestação de serviços', outros:'Outros ramos' };
+function validarSegmento(valor='outros') {
+  if(!Object.hasOwn(segmentos,valor)) throw erroHttp(400,'Escolha um ramo de atividade válido.');
+  return valor;
+}
+function analisarSolicitacao(texto, projeto, cliente) {
+  const estado={...projeto.coleta, medidas:{}, duvidas:[], geral:{...projeto.coleta?.geral}};
+  const simples=texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const saudacao=/^(oi|ola|bom dia|boa tarde|boa noite)[.!\s]*$/.test(simples)||/\b(quem e voce|seu nome|se apresente)\b/.test(simples);
+  let nome=null;
+  if(!saudacao) {
+    if(estado.pergunta==='nome'&&!cliente.nome) {
+      if(/^[\p{L}][\p{L} '-]{1,99}$/u.test(texto.trim())) nome=texto.trim();
+    } else if(!estado.geral.solicitacao) estado.geral.solicitacao=texto.trim();
+    else if(estado.pergunta==='detalhes_gerais') estado.geral.detalhes=texto.trim();
+  }
+  return {dados:Object.fromEntries(['movel','uso','largura_cm','altura_cm','profundidade_cm','acabamento','detalhes'].map(c=>[c,null])),estado,nome,pendencias:[],descartados:[],texto,saudacao};
+}
+function responderSolicitacao(a,cliente,empresa,primeiroContato) {
+  let resposta;
+  if(!a.estado.geral.solicitacao) {a.estado.pergunta='solicitacao';resposta=empresa.segmento==='comercio'?'Qual produto você procura?':'Qual serviço ou pedido você gostaria de solicitar?';}
+  else if(!a.estado.geral.detalhes){a.estado.pergunta='detalhes_gerais';resposta='Pode me contar mais detalhes do que você precisa?';}
+  else if(!(cliente.nome||a.nome)){a.estado.pergunta='nome';resposta='Como posso chamar você?';}
+  else {a.estado.pergunta=null;resposta='Seu pedido está registrado para avaliação da equipe. Preços, disponibilidade e prazos precisam ser confirmados pela empresa.';}
+  if(primeiroContato||a.saudacao)resposta=`Oi, eu sou a Suzy, assistente virtual da ${empresa.nome}. ${resposta}`;
+  return resposta;
+}
+module.exports={segmentos,validarSegmento,analisarSolicitacao,responderSolicitacao};

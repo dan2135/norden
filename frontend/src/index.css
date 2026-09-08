@@ -1,0 +1,23 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #243247;
+  background: #f5f7fb;
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+#root { width: 100%; min-height: 100dvh; }
+h2 { margin: 0; font-size: 22px; color: inherit; }
+p { margin: 6px 0; }
+input, select, button { font: inherit; }
+button:disabled { opacity: .55; cursor: not-allowed !important; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid #315de8 !important;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  body { font-size: 14px; }
+  h2 { font-size: 18px; }
+}
