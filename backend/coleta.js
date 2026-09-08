@@ -1,3 +1,4 @@
+const { validarTextoAnalise } = require('./seguranca');
 const { validarExtracao } = require('./dados-projeto');
 const normalizar = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const dimensoes = { largura_cm: 'largura', altura_cm: 'altura', profundidade_cm: 'profundidade' };
@@ -13,6 +14,7 @@ function medida(valor, unidade) {
 }
 
 function analisarMensagem(texto, projeto = {}, cliente = {}) {
+  validarTextoAnalise(texto);
   texto = texto.trim();
   const s = normalizar(texto.trim());
   const dados = Object.fromEntries(campos.map(c => [c, null]));
@@ -44,10 +46,8 @@ function analisarMensagem(texto, projeto = {}, cliente = {}) {
   const medidasTexto = s.replace(/\blarguda\b/g, 'largura').replace(/\bcentimetros?\b/g, 'cm').replace(/\bmilimetros?\b/g, 'mm').replace(/\bmetros?\b/g, 'm');
   const unidadeGeral = s.match(/(?:tudo|todas as medidas|medidas)\s+em\s+(mm|cm|m)\b/)?.[1];
   const intervalo = /\d\s*(?:mm|cm|m)?\s*(?:a|ate|[-–])\s*\d/.test(s);
-  const numero = '(-?\\d+(?:[.,]\\d+)?)';
-  const rotulos = '(largura|altura|profundidade)';
   // Varre da esquerda para a direita: um número nunca pertence a duas dimensões.
-  const pares = [...medidasTexto.matchAll(new RegExp(`\\b${rotulos}\\s*(?:de|e|:|=)?\\s*(?:uns?|umas?)?\\s*${numero}\\s*(mm|cm|m)?\\b|${numero}\\s*(mm|cm|m)?\\s*(?:de\\s+)?${rotulos}\\b`, 'g'))]
+  const pares = [...medidasTexto.matchAll(/\b(largura|altura|profundidade)\s{0,8}(?:de|e|:|=)?\s{0,8}(?:uns?|umas?)?\s{0,8}(-?\d{1,8}(?:[.,]\d{1,6})?)\s{0,8}(mm|cm|m)?\b|(?<![\d.,])(-?\d{1,8}(?:[.,]\d{1,6})?)\s{0,8}(mm|cm|m)?\s{0,8}(?:de\s{1,8})?(largura|altura|profundidade)\b/g)]
     .map(m => ({ rotulo: m[1] || m[6], valor: m[2] || m[4], unidade: m[3] || m[5] || unidadeGeral }));
   for (const [campo, rotulo] of Object.entries(dimensoes)) {
     let valores = pares.filter(p => p.rotulo === rotulo).map(p => ({ valor: p.valor, unidade: p.unidade }));
@@ -95,6 +95,7 @@ function analisarMensagem(texto, projeto = {}, cliente = {}) {
 }
 
 function complementarComIA(analise, extraido, historico, projeto) {
+  validarTextoAnalise(analise.texto);
   const validado = validarExtracao(extraido, historico);
   analise.descartados = validado.pendencias;
   // A IA é apoio, não decide a pergunta nem substitui campos já conhecidos.

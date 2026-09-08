@@ -1,3 +1,4 @@
+const { validarTextoAnalise } = require('./seguranca');
 const { validarId, erroHttp } = require('./projetos');
 
 const tipos = new Set(['chapa', 'fita', 'dobradica', 'corredica', 'puxador', 'outro']);
@@ -24,8 +25,9 @@ function gerarConsumo(projeto) {
   const w = Number(projeto.largura_cm), h = Number(projeto.altura_cm), d = Number(projeto.profundidade_cm);
   if (![w, h, d].every(v => Number.isFinite(v) && v > 0)) throw erroHttp(400, 'Confirme largura, altura e profundidade antes de estimar.');
   const movel = `${projeto.movel || ''} ${projeto.detalhes || ''}`.toLowerCase();
-  const gavetas = movel.match(/(\d+)\s*gaveta/)?.[1] ? Math.min(20, Number(movel.match(/(\d+)\s*gaveta/)[1])) : /gavet/.test(movel) ? 3 : 0;
-  const portas = movel.match(/(\d+)\s*porta/)?.[1] ? Math.min(20, Number(movel.match(/(\d+)\s*porta/)[1])) : /arm[aá]rio|guarda.?roupa|gabinete/.test(movel) ? 2 : 0;
+  validarTextoAnalise(movel);
+  const gavetas = movel.match(/(?<!\d)(\d{1,8})\s{0,8}gaveta/)?.[1] ? Math.min(20, Number(movel.match(/(?<!\d)(\d{1,8})\s{0,8}gaveta/)[1])) : /gavet/.test(movel) ? 3 : 0;
+  const portas = movel.match(/(?<!\d)(\d{1,8})\s{0,8}porta/)?.[1] ? Math.min(20, Number(movel.match(/(?<!\d)(\d{1,8})\s{0,8}porta/)[1])) : /arm[aá]rio|guarda.?roupa|gabinete/.test(movel) ? 2 : 0;
   const areaCaixa = (2*h*d + 2*w*d + w*h) / 10000;
   const areaInterna = (gavetas * (2*d*15 + 2*Math.max(10, w-6)*15 + Math.max(10, w-6)*Math.max(10, d-5)) + portas*w*h/Math.max(1, portas)) / 10000;
   const chapa = Math.round((areaCaixa + areaInterna) * 1.15 * 1000);

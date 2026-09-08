@@ -1,3 +1,4 @@
+const { validarTextoAnalise } = require('./seguranca');
 const camposTexto = ['movel', 'uso', 'acabamento', 'detalhes'];
 const camposMedida = ['largura_cm', 'altura_cm', 'profundidade_cm'];
 const campos = [...camposTexto, ...camposMedida];
@@ -9,9 +10,24 @@ function saudacao(texto) {
 }
 
 function complementoExplicito(texto) {
+  validarTextoAnalise(texto);
   // Regra gramatical para continuação de um móvel: local + característica.
   // Copia os trechos originais, inclusive erros de digitação, sem inferir nomes.
-  const partes = texto.match(/^\s*(?:no|na|nos|nas)\s+(?:(?:meu|minha|meus|minhas)\s+)?(.+?)\s+(?:e\s+)?quero\s+que\s+(?:ele|ela)\s+tenha\s+(.+?)\s*[.!]?\s*$/i);
+  const tokens = texto.trim().split(/\s+/u);
+  if (!['no','na','nos','nas'].includes(tokens[0]?.toLowerCase())) return null;
+  let inicio = ['meu','minha','meus','minhas'].includes(tokens[1]?.toLowerCase()) ? 2 : 1;
+  let separador = -1;
+  for (let i = inicio; i < tokens.length - 4; i++) {
+    if (tokens[i].toLowerCase() === 'quero' && tokens[i+1].toLowerCase() === 'que'
+      && ['ele','ela'].includes(tokens[i+2].toLowerCase()) && tokens[i+3].toLowerCase() === 'tenha') { separador = i; break; }
+  }
+  if (separador <= inicio) return null;
+  const fim = tokens[separador-1].toLowerCase() === 'e' ? separador-1 : separador;
+  // Mantém evidência literal quando o texto usa espaços comuns.
+  const uso = tokens.slice(inicio,fim).join(' ');
+  const detalhes = tokens.slice(separador+4).join(' ').replace(/[.!]$/, '');
+  if (!uso || !detalhes || !texto.includes(uso) || !texto.includes(detalhes)) return null;
+  const partes = [null,uso,detalhes];
   if (!partes || /\b(n[aã]o|talvez|acho|ou|entre)\b/i.test(texto)) return null;
   const dados = vazio();
   dados.uso = { valor: partes[1], trecho: partes[1] };
@@ -60,6 +76,7 @@ Saída: {"movel":null,"uso":null,"acabamento":null,"detalhes":null,"largura_cm":
 async function extrairDadosProjeto(historico, consultar = fetch) {
   const ultima = historico.at(-1);
   if (ultima?.role !== 'user') return null;
+  validarTextoAnalise(ultima.content);
   if (saudacao(ultima.content)) return vazio();
   const complemento = complementoExplicito(ultima.content);
   if (complemento) return complemento;

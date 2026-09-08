@@ -1,3 +1,4 @@
+const { validarTextoAnalise } = require('./seguranca');
 const campos = ['movel', 'uso', 'largura_cm', 'altura_cm', 'profundidade_cm', 'acabamento', 'detalhes'];
 const dimensoes = { largura_cm: 'largura', altura_cm: 'altura', profundidade_cm: 'profundidade' };
 const normalizar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -11,14 +12,18 @@ function converterMedida(valor, unidade) {
 
 function medidaExplicita(texto, campo, perguntaAnterior) {
   const nome = dimensoes[campo];
-  const numero = '(?<![\\d.,+−-])(\\d+(?:[.,]\\d+)?)\\s*(mm|cm|m)\\b';
+  validarTextoAnalise(texto);
+  if (!Object.hasOwn(dimensoes, campo)) return null;
   const s = normalizar(texto);
   if (/\d\s*(?:mm|cm|m)?\s*(?:a|ate|[-–])\s*\d/.test(s)) return null;
   // Não adivinha intervalos, dimensões sem unidade ou ordem de pares/triplas.
-  const matches = [...s.matchAll(new RegExp(`\\b${nome}\\s*(?:de|e|:|=)?\\s*${numero}`, 'g')),
-    ...s.matchAll(new RegExp(`${numero}\\s*(?:de\\s+)?${nome}\\b`, 'g'))];
+  const matches = [...s.matchAll(/\b(largura|altura|profundidade)\s{0,8}(?:de|e|:|=)?\s{0,8}(?<![\d.,+−-])(\d{1,8}(?:[.,]\d{1,6})?)\s{0,8}(mm|cm|m)\b/g)]
+    .filter(m => m[1] === nome).map(m => [m[0],m[2],m[3]]);
+  for (const m of s.matchAll(/(?<![\d.,+−-])(\d{1,8}(?:[.,]\d{1,6})?)\s{0,8}(mm|cm|m)\b\s{0,8}(?:de\s{1,8})?(largura|altura|profundidade)\b/g)) {
+    if (m[3] === nome) matches.push(m);
+  }
   if (matches.length === 1) return converterMedida(matches[0][1], matches[0][2]);
-  const simples = s.trim().match(new RegExp(`^${numero}[.!]?$`));
+  const simples = s.trim().match(/^(\d{1,8}(?:[.,]\d{1,6})?)\s{0,8}(mm|cm|m)\b[.!]?$/);
   const pergunta = normalizar(perguntaAnterior || '');
   const citadas = Object.values(dimensoes).filter(d => pergunta.includes(d));
   if (simples && citadas.length === 1 && citadas[0] === nome && pergunta.includes('?')) {
@@ -34,7 +39,7 @@ function validarExtracao(extraido, historico) {
   if (!extraido || typeof extraido !== 'object' || Array.isArray(extraido) || ultima?.role !== 'user') {
     return { dados, pendencias: ['extração inválida; confirme os dados antes de registrá-los'] };
   }
-  const mensagem = ultima.content;
+  const mensagem = validarTextoAnalise(ultima.content);
   const incerta = /\b(nao|talvez|acho|ou|entre|corrigir|esqueca|cancele)\b/.test(normalizar(mensagem));
   for (const campo of campos) {
     const item = extraido[campo];

@@ -1,3 +1,4 @@
+const { emailValido } = require('./seguranca');
 function configuracaoEmail(env = process.env) {
   const modo = env.EMAIL_MODE || (env.NODE_ENV === 'production' ? 'smtp' : 'simulado');
   if (!['smtp', 'simulado'].includes(modo)) throw new Error('EMAIL_MODE deve ser smtp ou simulado.');
@@ -10,7 +11,7 @@ function configuracaoEmail(env = process.env) {
   }
   const port = Number(env.SMTP_PORT || 587);
   if (![465,587].includes(port)) throw new Error('Use SMTP_PORT 465 ou 587 com TLS.');
-  if (!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(env.EMAIL_FROM)) throw new Error('EMAIL_FROM deve conter apenas o endereço de e-mail.');
+  if (!emailValido(env.EMAIL_FROM)) throw new Error('EMAIL_FROM deve conter apenas o endereço de e-mail.');
   const url = new URL(env.FRONTEND_URL);
   if (!['http:','https:'].includes(url.protocol) || (env.NODE_ENV === 'production' && (url.protocol !== 'https:' || ['localhost','127.0.0.1','[::1]'].includes(url.hostname)))) throw new Error('Configure a URL pública HTTPS do painel.');
   return { modo, from:env.EMAIL_FROM, transporte: {

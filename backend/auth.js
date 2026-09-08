@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { emailValido } = require('./seguranca');
 const { promisify } = require('node:util');
 const { validarSegmento } = require('./segmentos');
 const { erroHttp } = require('./projetos');
@@ -14,12 +15,13 @@ function validarCadastro(body = {}) {
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const senha = typeof body.senha === 'string' ? body.senha : '';
   if (!nome || nome.length > 120) throw erroHttp(400, 'Informe seu nome (até 120 caracteres).');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw erroHttp(400, 'Informe um e-mail válido.');
+  if (!emailValido(email)) throw erroHttp(400, 'Informe um e-mail válido.');
   if (senha.length < 10 || senha.length > 200) throw erroHttp(400, 'A senha deve ter entre 10 e 200 caracteres.');
   return { nome, email, senha };
 }
 
 function validarDocumento(valor) {
+  if (typeof valor !== 'string' || valor.length > 32) throw erroHttp(400, 'Documento inválido.');
   const documento = String(valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (![11,14].includes(documento.length) || /^(.)\1+$/.test(documento)) throw erroHttp(400, 'Informe um CPF ou CNPJ válido.');
   const valorCaractere = caractere => caractere.charCodeAt(0)-48;
