@@ -1,5 +1,7 @@
 # Norden no Render
 
+Nesta branch de demonstração, seguir primeiro DEMO-GRATUITA.md: branch codex/demo-gratuita, EMAIL_MODE=brevo e banco exclusivo DEMO_DB_*. As instruções abaixo documentam a versão principal e os comandos comuns.
+
 Preparação local concluída; publicação e teste online ainda pendentes.
 O mesmo Web Service entrega o frontend e a API, mantendo cookies de login no mesmo endereço.
 

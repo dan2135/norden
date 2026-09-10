@@ -5,19 +5,21 @@ const { emailValido } = require('./seguranca');
 // Escolhe modo simulado ou SMTP e valida os parâmetros antes de permitir envio real.
 function configuracaoEmail(env = process.env) {
   const modo = env.EMAIL_MODE || (env.NODE_ENV === 'production' ? 'smtp' : 'simulado');
-  if (!['smtp', 'simulado'].includes(modo)) throw new Error('EMAIL_MODE deve ser smtp ou simulado.');
+  if (!['smtp', 'brevo', 'simulado'].includes(modo)) throw new Error('EMAIL_MODE deve ser smtp, brevo ou simulado.');
   if (modo === 'simulado') {
     if (env.NODE_ENV === 'production') throw new Error('E-mail simulado não é permitido em produção.');
     return { modo };
   }
-  for (const chave of ['SMTP_HOST','SMTP_USER','SMTP_PASS','EMAIL_FROM','FRONTEND_URL']) {
+  const obrigatorias = modo === 'brevo' ? ['BREVO_API_KEY','EMAIL_FROM','FRONTEND_URL'] : ['SMTP_HOST','SMTP_USER','SMTP_PASS','EMAIL_FROM','FRONTEND_URL'];
+  for (const chave of obrigatorias) {
     if (!env[chave]?.trim()) throw new Error(`Configure ${chave} para ativar os e-mails.`);
   }
-  const port = Number(env.SMTP_PORT || 587);
-  if (![465,587].includes(port)) throw new Error('Use SMTP_PORT 465 ou 587 com TLS.');
   if (!emailValido(env.EMAIL_FROM)) throw new Error('EMAIL_FROM deve conter apenas o endereço de e-mail.');
   const url = new URL(env.FRONTEND_URL);
   if (!['http:','https:'].includes(url.protocol) || (env.NODE_ENV === 'production' && (url.protocol !== 'https:' || ['localhost','127.0.0.1','[::1]'].includes(url.hostname)))) throw new Error('Configure a URL pública HTTPS do painel.');
+  if (modo === 'brevo') return { modo, from: env.EMAIL_FROM, apiKey: env.BREVO_API_KEY.trim() };
+  const port = Number(env.SMTP_PORT || 587);
+  if (![465,587].includes(port)) throw new Error('Use SMTP_PORT 465 ou 587 com TLS.');
   return { modo, from:env.EMAIL_FROM, transporte: {
     host:env.SMTP_HOST, port, secure:port===465, requireTLS:true,
     auth:{user:env.SMTP_USER,pass:env.SMTP_PASS},
@@ -31,9 +33,9 @@ async function enviarEmail(banco, { destinatario, assunto, texto }, env = proces
   const { modo } = configuracaoEmail(env);
   // O worker só vê mensagens após o COMMIT do cadastro.
   await banco.query('INSERT INTO emails_saida (destinatario,assunto,texto,status) VALUES ($1,$2,$3,$4)',
-    [destinatario,assunto,texto,modo === 'smtp' ? 'pendente' : 'simulado']);
+    [destinatario,assunto,texto,modo === 'simulado' ? 'simulado' : 'pendente']);
   // Não registrar tokens, destinatários ou credenciais no terminal.
-  return { simulado:modo === 'simulado', enfileirado:modo === 'smtp' };
+  return { simulado:modo === 'simulado', enfileirado:modo !== 'simulado' };
 }
 
 // Reserva uma mensagem elegível, tenta entregá-la e atualiza tentativas e situação.
@@ -60,7 +62,9 @@ async function processarEmail(banco, transporte, from) {
 function iniciarEmails(banco, env = process.env) {
   const config = configuracaoEmail(env);
   if(config.modo === 'simulado') return ()=>{};
-  const transporte = require('nodemailer').createTransport(config.transporte);
+  const transporte = config.modo === 'brevo'
+    ? require('./email-brevo').criarTransporteBrevo(config.apiKey)
+    : require('nodemailer').createTransport(config.transporte);
   let ocupado=false;
   async function executar() {
     if(ocupado) return;
