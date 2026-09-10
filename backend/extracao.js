@@ -1,5 +1,5 @@
 /**
- * Consulta o modelo local do Ollama para extrair campos estruturados da última mensagem. O JSON retornado ainda precisa passar pela validação de dados-projeto.js.
+ * Extrai campos pelo Ollama ou pela OpenAI conforme IA_PROVIDER. O JSON retornado ainda precisa passar pela validação de dados-projeto.js.
  */
 const { validarTextoAnalise } = require('./seguranca');
 const camposTexto = ['movel', 'uso', 'acabamento', 'detalhes'];
@@ -78,7 +78,7 @@ Saída: {"movel":null,"uso":null,"acabamento":{"valor":"madeirado","trecho":"que
 Exemplo de entrada: {"mensagem_cliente":"largura de 1,20 m"}
 Saída: {"movel":null,"uso":null,"acabamento":null,"detalhes":null,"largura_cm":{"valor":120,"trecho":"largura de 1,20 m"},"altura_cm":null,"profundidade_cm":null}`;
 
-// Consulta o Ollama com prazo máximo e formato JSON; uma resposta inválida não vira dado confirmado.
+// Consulta o provedor configurado com prazo máximo e formato JSON; a evidência é validada depois.
 async function extrairDadosProjeto(historico, consultar = fetch) {
   const ultima = historico.at(-1);
   if (ultima?.role !== 'user') return null;
@@ -87,6 +87,12 @@ async function extrairDadosProjeto(historico, consultar = fetch) {
   const complemento = complementoExplicito(ultima.content);
   if (complemento) return complemento;
   const anterior = historico.at(-2);
+  if (process.env.IA_PROVIDER === 'openai') {
+    return require('./openai').consultarOpenAI({instrucao:instrucao,entrada:{
+      pergunta_anterior:anterior?.role==='assistant'?anterior.content:null,
+      mensagem_cliente:ultima.content
+    },schema:formatoExtracao,limite:1200},consultar);
+  }
   const resposta = await consultar('http://localhost:11434/api/chat', {
     method: 'POST', signal: AbortSignal.timeout(30000),
     headers: { 'Content-Type': 'application/json' },

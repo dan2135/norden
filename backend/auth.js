@@ -171,8 +171,12 @@ function registrarAuth(app, banco, rota) {
     const usuario = (await banco.query('SELECT id,nome,email,usuario,senha_hash,superadministrador,trocar_senha,email_confirmado,ultimo_ip FROM usuarios WHERE (lower(usuario)=$1 OR lower(email)=$1) AND ativo=TRUE', [identificador])).rows[0];
     if (!usuario || !(await conferirSenha(senha, usuario.senha_hash))) throw erroHttp(401, 'E-mail ou senha incorretos.');
     if (!usuario.email_confirmado) throw erroHttp(403,'Confirme seu e-mail antes de entrar.');
-    if (process.env.NODE_ENV === 'production' && usuario.trocar_senha) throw erroHttp(403, 'Troque a senha temporária antes de usar este acesso em produção.');
     const csrf_token = await criarSessao(banco, usuario.id, res);
+    // Senha temporária libera apenas a troca, nunca os dados das empresas.
+    if (usuario.trocar_senha) {
+      delete usuario.senha_hash;
+      return res.json({ usuario, marcenarias: [], csrf_token, trocar_senha: true });
+    }
     const ipAtual=obterIp(req); const ipDiferente=Boolean(usuario.ultimo_ip&&usuario.ultimo_ip!==ipAtual);
     await banco.query('UPDATE usuarios SET ultimo_ip=$1,ultimo_login_em=CURRENT_TIMESTAMP WHERE id=$2',[ipAtual,usuario.id]);
     if(ipDiferente) await enviarEmail(banco,{destinatario:usuario.email,assunto:'Novo acesso à Norden',texto:`Detectamos um login em um endereço de rede diferente (${ipAtual}). Se não foi você, redefina sua senha.`});
@@ -190,6 +194,7 @@ function registrarAuth(app, banco, rota) {
       if (!token) throw erroHttp(401, 'Faça login para continuar.');
       const sessao = (await banco.query(`SELECT s.token_hash,s.csrf_token,s.usuario_id,u.nome,u.email,u.usuario,u.superadministrador,u.trocar_senha FROM sessoes s JOIN usuarios u ON u.id=s.usuario_id WHERE s.token_hash=$1 AND s.expira_em>CURRENT_TIMESTAMP AND u.ativo=TRUE`, [hashToken(token)])).rows[0];
       if (!sessao) { res.clearCookie(COOKIE, opcoesCookie()); throw erroHttp(401, 'Sua sessão expirou. Faça login novamente.'); }
+      if (sessao.trocar_senha && !['/api/auth/sessao','/api/auth/logout','/api/auth/trocar-senha'].includes(req.originalUrl.split('?')[0])) throw erroHttp(403, 'Troque a senha temporária para acessar o painel.');
       if (!['GET','HEAD','OPTIONS'].includes(req.method) && req.get('x-csrf-token') !== sessao.csrf_token) throw erroHttp(403, 'Sessão inválida. Atualize a página e tente novamente.');
       req.usuario = { id: sessao.usuario_id, nome: sessao.nome, email: sessao.email, usuario: sessao.usuario, superadministrador: sessao.superadministrador, trocar_senha: sessao.trocar_senha };
       req.csrfToken = sessao.csrf_token;
@@ -199,10 +204,28 @@ function registrarAuth(app, banco, rota) {
   }
 
   app.get('/api/auth/sessao', autenticar, rota(async (req, res) => {
+    if (req.usuario.trocar_senha) return res.json({usuario:req.usuario,marcenarias:[],csrf_token:req.csrfToken,trocar_senha:true});
     const marcenarias = req.usuario.superadministrador
       ? (await banco.query("SELECT id,nome,slug,segmento,'superadministrador' AS papel FROM marcenarias WHERE ativa=TRUE ORDER BY nome,id")).rows
       : (await banco.query(`SELECT m.id,m.nome,m.slug,m.segmento,mm.papel FROM membros_marcenaria mm JOIN marcenarias m ON m.id=mm.marcenaria_id WHERE mm.usuario_id=$1 AND mm.ativo=TRUE AND m.ativa=TRUE ORDER BY m.nome,m.id`, [req.usuario.id])).rows;
     res.json({ usuario: req.usuario, marcenarias, csrf_token: req.csrfToken });
+  }));
+  app.post('/api/auth/trocar-senha', autenticar, rota(async (req, res) => {
+    const { senha_atual: atual, nova_senha: nova } = req.body || {};
+    if (typeof atual !== 'string' || atual.length > 200 || typeof nova !== 'string' || nova.length < 10 || nova.length > 200) throw erroHttp(400,'Informe a senha atual e uma nova senha entre 10 e 200 caracteres.');
+    if (nova === atual) throw erroHttp(400,'Escolha uma senha diferente da temporária.');
+    const db = await banco.connect();
+    try {
+      await db.query('BEGIN');
+      const usuario = (await db.query('SELECT senha_hash FROM usuarios WHERE id=$1 AND ativo=TRUE FOR UPDATE',[req.usuario.id])).rows[0];
+      if (!usuario || !(await conferirSenha(atual,usuario.senha_hash))) throw erroHttp(403,'Senha atual incorreta.');
+      await db.query('UPDATE usuarios SET senha_hash=$1,trocar_senha=FALSE WHERE id=$2',[await criarHashSenha(nova),req.usuario.id]);
+      await db.query('DELETE FROM sessoes WHERE usuario_id=$1',[req.usuario.id]);
+      await db.query('UPDATE tokens_usuario SET usado_em=CURRENT_TIMESTAMP WHERE usuario_id=$1 AND usado_em IS NULL',[req.usuario.id]);
+      await db.query('COMMIT');
+    } catch (erro) { await db.query('ROLLBACK'); throw erro; } finally { db.release(); }
+    res.clearCookie(COOKIE,opcoesCookie());
+    res.json({mensagem:'Senha atualizada. Entre novamente com a nova senha.'});
   }));
   app.post('/api/auth/logout', autenticar, rota(async (req, res) => {
     const token = lerCookies(req)[COOKIE];

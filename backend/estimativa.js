@@ -61,17 +61,11 @@ function montarEstimativa(projeto, catalogo) {
   return { itens, faltantes: [...new Set(faltantes)], suposicoes, aviso: 'Estimativa de referência. Confirme plano de corte, estoque, frete e preços antes de enviar ao cliente.' };
 }
 
-// Restringe origens de navegador às máquinas locais; revisar essa regra antes da publicação na nuvem.
-function somenteLocal(req, res, next) {
-  const origem = req.get('origin');
-  if (!origem) return next();
-  try { const url = new URL(origem); if (['http:', 'https:'].includes(url.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return next(); } catch { /* bloqueia */ }
-  return res.status(403).json({ mensagem: 'O catálogo está disponível apenas pela aplicação local.' });
-}
+const { protegerOrigemPainel } = require('./seguranca');
 
 // Registra manutenção do catálogo e geração da estimativa para projetos de marcenaria.
 function registrarEstimativa(app, banco, rota) {
-  app.use('/api/catalogo', somenteLocal);
+  app.use('/api/catalogo', protegerOrigemPainel);
   app.get('/api/catalogo', rota(async (req, res) => res.json({ materiais: (await banco.query('SELECT * FROM catalogo_materiais WHERE marcenaria_id=$1 ORDER BY ativo DESC, tipo, descricao, id', [req.marcenaria.id])).rows })));
   app.post('/api/catalogo', rota(async (req, res) => {
     const m = validarMaterial(req.body);

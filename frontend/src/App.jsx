@@ -8,6 +8,7 @@ import TelaLogin from './TelaLogin';
 import Rodape from './Rodape';
 import LandingPage from './LandingPage';
 import BotaoTema from './BotaoTema';
+import TrocarSenha from './TrocarSenha';
 import './Empresa.css';
 
 // Cliente de demonstração já utilizado pelo atendimento local.
@@ -310,6 +311,7 @@ function Aplicacao() {
   }
   if (iniciando) return <div className="tela-carregamento"><span>N</span><p>Preparando seu painel…</p></div>;
   if (!sessao) return <TelaLogin onEntrar={entrar} />;
+  if (sessao.trocar_senha) return <TrocarSenha aoSair={sair} aoConcluir={()=>{definirCsrf(null);definirMarcenaria(null);setSessao(null);setMarcenarias([]);setMarcenariaId('');}} />;
   return <div className="app-shell">
     <aside className="app-navegacao">
       <div className="app-marca"><span>N</span><strong>Norden</strong></div>

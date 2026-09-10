@@ -1,42 +1,41 @@
-# Onde definir o acesso administrativo
+# Acesso administrativo
 
-## Acesso pelo painel
+O cadastro público e o primeiro acesso criam proprietários de empresa, não administradores globais.
 
-Abra `http://127.0.0.1:5176/?tela=login`.
-Se o banco ainda não tiver usuários, a tela pede nome, e-mail e senha de pelo menos 10 caracteres.
-Esse primeiro cadastro cria o **proprietário da empresa principal**, não o administrador de todas as empresas.
-No login comum, preencha os campos **Usuário ou e-mail** e **Senha**. Não escreva credenciais no React.
+## Criar o administrador de todas as empresas
 
-## Administrador geral (todas as empresas)
-
-O ponto de configuração já existente é `backend/.env`, arquivo privado ignorado pelo Git:
+Preencha no arquivo privado `backend/.env`:
 
 ```dotenv
-ADMIN_USUARIO=""
-ADMIN_SENHA=""
+ADMIN_USUARIO="seu_usuario"
+ADMIN_EMAIL="seu_email_real"
+ADMIN_SENHA="sua_senha_temporaria_forte"
+ADMIN_REDEFINIR=false
 ```
 
-Preencha o nome de usuário entre as primeiras aspas e uma senha forte entre as segundas.
-Essas variáveis são lidas por `backend/provisionar-admin.js`; não são usadas automaticamente quando o servidor inicia.
-`DB_PASSWORD` e a senha de `backend/.env.supabase` são do banco PostgreSQL, NÃO do administrador do painel.
-O `.env.example` é apenas um modelo sem segredos, não o arquivo ativo.
+A senha deve ter entre 10 e 200 caracteres. O usuário aceita letras, números, ponto, hífen e sublinhado (3 a 80 caracteres).
+O operador atesta que o e-mail pertence ao administrador ao executar este comando confiável; cadastros públicos continuam exigindo confirmação por link.
+Não use DB_PASSWORD: essa é a senha do PostgreSQL, não do painel.
 
-### Limitações encontradas no provisionamento atual
+Na pasta `backend`, execute manualmente `node provisionar-admin.js`.
+O comando altera o banco selecionado por DB_TARGET; confira o destino antes de executá-lo.
+Não o coloque na inicialização automática do servidor.
 
-Não execute o provisionador esperando um login novo pronto antes de revisar estes pontos:
+Depois abra `http://127.0.0.1:5176/?tela=login`, entre com o usuário e a senha temporária e defina uma nova senha na tela obrigatória.
+A sessão temporária não permite consultar empresas ou projetos. A troca encerra todas as sessões e exige novo login.
+Retire ADMIN_SENHA do .env após concluir. Nunca envie esse arquivo ao GitHub.
 
-- Para uma conta nova, ele cria endereço `usuario@local.invalid` e deixa `email_confirmado` no padrão falso. O login exige confirmação de e-mail.
-- Ele marca `trocar_senha=true`; o login em produção bloqueia contas nessa condição. O script não implementa a tela de troca.
-- Se o usuário já existir, executar novamente **substitui sua senha e concede acesso global**.
-- A validação de senha deste script não é a mesma validação do formulário de cadastro.
+## Administrador existente
 
-Nesta tarefa somente a documentação foi alterada: nenhuma conta foi criada, promovida ou teve senha modificada.
-Não use a senha antiga curta de demonstração em produção. Não envie senhas em prints, chat ou commits.
+Por padrão, o script recusa sobrescrever um administrador existente. Para redefinir conscientemente, use ADMIN_REDEFINIR=true; depois volte a false.
+A redefinição invalida sessões e tokens antigos. Uma conta comum nunca é promovida automaticamente pelo script.
+E-mail já usado por outra conta causa conflito e reverte a operação; não apaga a conta existente.
 
-## Onde entender o fluxo
+## Arquivos envolvidos
 
-- `frontend/src/TelaLogin.jsx`: campos e envio dos formulários.
-- `backend/auth.js`: validação, hashes de senha, confirmação e sessões.
-- `backend/provisionar-admin.js`: criação manual do administrador geral.
-- `backend/marcenarias.js`: verifica quais empresas o usuário pode acessar.
-- `backend/database.js`: escolhe banco local ou Supabase; não define o usuário do painel.
+- `backend/admin.js`: valida e provisiona o administrador em transação.
+- `backend/provisionar-admin.js`: comando manual que lê a configuração privada.
+- `backend/auth.js`: login, sessão restrita e troca da senha.
+- `frontend/src/TrocarSenha.jsx`: formulário de senha definitiva, compatível com claro/escuro.
+
+Esta implementação não cria uma conta automaticamente nem altera credenciais reais. Configure e execute o provisionamento somente quando desejar ativar o acesso.

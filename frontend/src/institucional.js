@@ -1,10 +1,11 @@
 /**
  * Conteúdo institucional e canais de contato apresentados no rodapé. Não é configuração de autenticação nem contém credenciais.
  */
-// Preencher com os canais oficiais da Norden antes da publicação.
+// Canais oficiais compartilhados pelo painel e pela página pública.
 export const contatoNorden = {
-  email: '',
-  whatsapp: '', // Número completo com código do país, somente dígitos.
+  email: 'norden0910@gmail.com',
+  whatsapp: '5511919988939', // Número completo com código do país, somente dígitos.
+  whatsappFormatado: '+55 (11) 91998-8939',
 };
 
 export const paginasInstitucionais = {

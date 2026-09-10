@@ -58,17 +58,11 @@ async function carregarOrcamento(db, projetoId, marcenariaId) {
   return { ...cabecalho.rows[0], itens, subtotal_centavos: subtotal, total_centavos: subtotal - Number(cabecalho.rows[0].desconto_centavos) };
 }
 
-// Restringe origens de navegador às máquinas locais; revisar essa regra antes da publicação na nuvem.
-function somenteLocal(req, res, next) {
-  const origem = req.get('origin');
-  if (!origem) return next();
-  try { const url = new URL(origem); if (['http:', 'https:'].includes(url.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return next(); } catch { /* bloqueia */ }
-  return res.status(403).json({ mensagem: 'Os orçamentos estão disponíveis apenas pela aplicação local.' });
-}
+const { protegerOrigemPainel } = require('./seguranca');
 
 // Registra leitura e salvamento do orçamento; as alterações relacionadas usam uma transação.
 function registrarOrcamentos(app, banco, rota) {
-  app.use(['/api/orcamentos', '/api/projetos'], somenteLocal);
+  app.use(['/api/orcamentos', '/api/projetos'], protegerOrigemPainel);
   app.get('/api/projetos/:id/orcamento', rota(async (req, res) => {
     const projetoId = validarId(req.params.id);
     const projeto = (await banco.query(`SELECT p.id, p.movel, p.uso, c.nome AS cliente_nome, c.telefone

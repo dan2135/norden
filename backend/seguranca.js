@@ -38,4 +38,11 @@ function protegerOrigem(origens) {
     next();
   };
 }
-module.exports = { validarTextoAnalise, emailValido, protegerOrigem };
+// Também restringe leituras do painel à origem configurada, preservando autenticação e CSRF.
+function protegerOrigemPainel(req, res, next) {
+  const origem = req.get('origin');
+  const origens = req.app.locals.origensPermitidas || require('./hospedagem').configuracaoHospedagem().origens;
+  if (!origem || origens.includes(origem)) return next();
+  return res.status(403).json({ mensagem: 'Origem da requisição não autorizada.' });
+}
+module.exports = { validarTextoAnalise, emailValido, protegerOrigem, protegerOrigemPainel };

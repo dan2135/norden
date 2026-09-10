@@ -7,7 +7,7 @@ const path = require('node:path');
 require("dotenv").config({ path: require('node:path').join(__dirname, '.env'), quiet: true });
 
 // O arquivo separado permite voltar ao banco local sem perder sua configuração.
-const config = process.env.DB_TARGET === 'supabase'
+const config = process.env.DB_TARGET === 'supabase' && process.env.NODE_ENV !== 'production'
   ? require('dotenv').parse(fs.readFileSync(path.join(__dirname, '.env.supabase')))
   : process.env;
 

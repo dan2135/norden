@@ -3,6 +3,8 @@
  */
 const express = require("express");
 const cors = require("cors");
+const path = require('node:path');
+const { configuracaoHospedagem } = require('./hospedagem');
 const { protegerOrigem } = require('./seguranca');
 const pool = require("./database");
 const { extrairDadosProjeto } = require("./extracao");
@@ -21,10 +23,17 @@ function criarApp({ banco = pool, extrair, logger = console, autenticar: autenti
 extrair ??= extrairDadosProjeto;
 const app = express();
 
-const origens = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://127.0.0.1:5176').split(',').map(origem => origem.trim());
+const { origens } = configuracaoHospedagem();
+app.locals.origensPermitidas = origens;
+if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
 app.use(cors({ credentials: true, origin: (origem, callback) => callback(null, !origem || origens.includes(origem)) }));
 app.use('/api', protegerOrigem(origens));
 app.use(express.json({ limit: '100kb' }));
+
+// Expõe somente o build público; arquivos privados permanecem fora desta pasta.
+if (process.env.SERVE_FRONTEND === 'true') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist'), { dotfiles: 'deny' }));
+}
 
 app.get("/api/status", (req, res) => {
   res.json({
@@ -143,7 +152,17 @@ const historico = historicoBanco.rows.map((item) => ({
   const dadosProjeto = analise.dados;
   const pendencias = analise.pendencias;
   const primeiroContato = !historicoBanco.rows.some(item => item.remetente === 'sistema');
-  const respostaSistema = geral ? responderSolicitacao(analise,cliente,req.marcenaria,primeiroContato) : responder(analise, projetoSelecionado, cliente, { marcenaria: req.marcenaria.nome, primeiroContato });
+  let respostaSistema = geral ? responderSolicitacao(analise,cliente,req.marcenaria,primeiroContato) : responder(analise, projetoSelecionado, cliente, { marcenaria: req.marcenaria.nome, primeiroContato });
+  let modoIA = 'regras';
+  if (process.env.IA_PROVIDER === 'openai') {
+    try {
+      respostaSistema = await require('./openai').responderComOpenAI({historico,empresa:req.marcenaria,respostaBase:respostaSistema});
+      modoIA = 'openai';
+    } catch (erro) {
+      modoIA = 'contingencia';
+      logger.warn('[IA] Resposta guiada utilizada:', erro.message);
+    }
+  }
 
 
   await db.query(
@@ -185,12 +204,14 @@ await db.query(
 const clienteAtual = (await db.query("UPDATE clientes SET ultima_mensagem = $1, nome = COALESCE($3, nome) WHERE id = $2 AND marcenaria_id=$4 RETURNING *",
   [mensagem.trim(), cliente.id, analise.nome,req.marcenaria.id])).rows[0];
 await db.query("COMMIT");
-logger.log("[ATENDIMENTO]", JSON.stringify({
+logger.log("[ATENDIMENTO]", JSON.stringify(process.env.NODE_ENV === 'production' ? {
+  projeto_id: projeto.id, modo_ia: modoIA,
+} : {
   cliente_id: cliente.id, nome: clienteAtual.nome || "não informado", projeto_id: projeto.id,
   mensagem: mensagem.trim(), dados_salvos: dadosProjeto, pendencias, descartados_ia: analise.descartados,
   aguardando: analise.estado, resposta: respostaSistema,
 }));
-res.json({ resposta: respostaSistema, cliente: clienteAtual, projeto, pendencias });
+res.json({ resposta: respostaSistema, cliente: clienteAtual, projeto, pendencias, modo_ia: modoIA });
   } catch (erro) {
     await db.query("ROLLBACK");
     throw erro;
@@ -209,13 +230,14 @@ if (require.main === module) {
   // Só abre a porta ao executar este arquivo diretamente; importar criarApp não inicia o servidor.
   const { configuracaoEmail, iniciarEmails } = require('./email');
   configuracaoEmail();
-  const servidor = criarApp().listen(3000, "127.0.0.1", () => console.log("Norden [coleta-v2] rodando na porta 3000 — logs do atendimento ativos"));
+  const { porta, host } = configuracaoHospedagem();
+  const servidor = criarApp().listen(porta, host, () => console.log(`Norden rodando na porta ${porta}`));
   servidor.once('listening', () => {
     const pararEmails = iniciarEmails(pool);
     servidor.once('close', pararEmails);
   });
   servidor.on("error", erro => {
-    console.error(erro.code === "EADDRINUSE" ? "A porta 3000 já está em uso. Encerre o backend antigo com Ctrl+C antes de iniciar." : erro.message);
+    console.error(erro.code === "EADDRINUSE" ? `A porta ${porta} já está em uso. Encerre o backend antigo antes de iniciar.` : erro.message);
     process.exitCode = 1;
   });
 }

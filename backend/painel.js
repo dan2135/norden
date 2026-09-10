@@ -45,16 +45,7 @@ function resumoPainel(clientes, projetos) {
 
 // Registra as rotas de leitura das listas e da ficha de projeto.
 function registrarPainel(app, banco, rota) {
-  // Restrição local adicional à autenticação e ao isolamento por marcenaria.
-  app.use('/api/painel', (req, res, next) => {
-    const origem = req.get('origin');
-    if (!origem) return next();
-    try {
-      const url = new URL(origem);
-      if (['http:', 'https:'].includes(url.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return next();
-    } catch { /* Origem inválida não recebe dados do painel. */ }
-    return res.status(403).json({ mensagem: 'O painel está disponível apenas pela aplicação local.' });
-  });
+  app.use('/api/painel', require('./seguranca').protegerOrigemPainel);
   app.get('/api/painel', rota(async (req, res) => {
     const resultado = await banco.query(`
       SELECT c.id AS cliente_id, c.nome AS cliente_nome, c.telefone,
