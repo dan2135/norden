@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: API persiste pedidos gerais, preserva marcenarias e isola empresas. Casos com TEST_DATABASE precisam de banco de testes isolado; não habilitar no banco de produção.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');

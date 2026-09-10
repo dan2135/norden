@@ -1,8 +1,12 @@
+/**
+ * Confere a evidência da extração antes de aceitar dados do modelo. Medidas precisam de dimensão e unidade; campos ausentes não devem apagar informações já salvas.
+ */
 const { validarTextoAnalise } = require('./seguranca');
 const campos = ['movel', 'uso', 'largura_cm', 'altura_cm', 'profundidade_cm', 'acabamento', 'detalhes'];
 const dimensoes = { largura_cm: 'largura', altura_cm: 'altura', profundidade_cm: 'profundidade' };
 const normalizar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
+// Converte m, cm ou mm para centímetros e rejeita resultados fora do limite.
 function converterMedida(valor, unidade) {
   const numero = Number(valor.replace(',', '.'));
   const fator = unidade === 'm' ? 100 : unidade === 'mm' ? 0.1 : 1;
@@ -10,6 +14,7 @@ function converterMedida(valor, unidade) {
   return Number.isFinite(cm) && cm > 0 && cm <= 10000 ? cm : null;
 }
 
+// Só reconhece medida quando o texto ou a pergunta anterior identifica a dimensão sem ambiguidade.
 function medidaExplicita(texto, campo, perguntaAnterior) {
   const nome = dimensoes[campo];
   validarTextoAnalise(texto);
@@ -32,6 +37,7 @@ function medidaExplicita(texto, campo, perguntaAnterior) {
   return null;
 }
 
+// Compara cada valor sugerido pela IA com um trecho literal da mensagem e separa pendências.
 function validarExtracao(extraido, historico) {
   const dados = Object.fromEntries(campos.map(c => [c, null]));
   const pendencias = [];
@@ -67,6 +73,7 @@ function validarExtracao(extraido, historico) {
   return { dados, pendencias };
 }
 
+// Transforma a primeira pendência em uma pergunta específica para o cliente.
 function pedirConfirmacao(pendencias) {
   const campo = pendencias[0];
   if (campo in dimensoes) return `Não confirmei a ${dimensoes[campo]} informada. Qual é a ${dimensoes[campo]}, com a unidade (cm, m ou mm)?`;

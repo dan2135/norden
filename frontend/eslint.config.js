@@ -1,3 +1,6 @@
+/**
+ * Regras de análise estática do JavaScript e dos hooks React. A pasta de compilação não deve ser analisada como código-fonte.
+ */
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'

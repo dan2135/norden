@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: configuração segura e sem simulação silenciosa em produção; enfileira somente; mensagens simuladas nunca viram pendentes; envio aceito remove conteúdo e falha agenda nova tentativa sem expor erro SMTP.
+ */
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {configuracaoEmail,enviarEmail,processarEmail}=require('../email');

@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: fila SQL envia pendentes, preserva simulações e repete falhas. Casos com TEST_DATABASE precisam de banco de testes isolado; não habilitar no banco de produção.
+ */
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const pool=require('../database');

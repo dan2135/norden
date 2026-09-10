@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: extração impõe valor e evidência pelo schema e não reapresenta dados antigos; saudação não solicita extração nem produz pendências; local e característica em continuação preservam literal e não renomeiam móvel. Casos com TEST_OLLAMA usam o modelo local real.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { extrairDadosProjeto } = require('./extracao');

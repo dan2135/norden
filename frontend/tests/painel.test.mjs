@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: busca ignora acentos e encontra nome, telefone, móvel e ambiente; combina filtros sem misturar clientes; clientes sem nome ou projetos continuam consultáveis pelo telefone.
+ */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { filtrarProjetos, filtrarClientes, formatarMedida, formatarData } from '../src/painel-utils.js';

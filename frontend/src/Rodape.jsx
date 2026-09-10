@@ -1,3 +1,6 @@
+/**
+ * Rodapé do painel com contatos e seções institucionais. Os textos ficam separados em institucional.js para facilitar manutenção.
+ */
 import { useRef, useState } from 'react';
 import { contatoNorden, paginasInstitucionais } from './institucional';
 import './Rodape.css';

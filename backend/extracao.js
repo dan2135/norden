@@ -1,14 +1,19 @@
+/**
+ * Consulta o modelo local do Ollama para extrair campos estruturados da última mensagem. O JSON retornado ainda precisa passar pela validação de dados-projeto.js.
+ */
 const { validarTextoAnalise } = require('./seguranca');
 const camposTexto = ['movel', 'uso', 'acabamento', 'detalhes'];
 const camposMedida = ['largura_cm', 'altura_cm', 'profundidade_cm'];
 const campos = [...camposTexto, ...camposMedida];
 const vazio = () => Object.fromEntries(campos.map(c => [c, null]));
 
+// Reconhece cumprimentos simples para evitar uma chamada desnecessária ao modelo.
 function saudacao(texto) {
   return /^(?:oi|ola|bom dia|boa tarde|boa noite|obrigad[oa]|valeu)[\s!.,?]*$/i.test(
     texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim());
 }
 
+// Extrai ambiente e característica de uma continuação explícita, sem depender da IA.
 function complementoExplicito(texto) {
   validarTextoAnalise(texto);
   // Regra gramatical para continuação de um móvel: local + característica.
@@ -73,6 +78,7 @@ Saída: {"movel":null,"uso":null,"acabamento":{"valor":"madeirado","trecho":"que
 Exemplo de entrada: {"mensagem_cliente":"largura de 1,20 m"}
 Saída: {"movel":null,"uso":null,"acabamento":null,"detalhes":null,"largura_cm":{"valor":120,"trecho":"largura de 1,20 m"},"altura_cm":null,"profundidade_cm":null}`;
 
+// Consulta o Ollama com prazo máximo e formato JSON; uma resposta inválida não vira dado confirmado.
 async function extrairDadosProjeto(historico, consultar = fetch) {
   const ultima = historico.at(-1);
   if (ultima?.role !== 'user') return null;

@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: conversa completa: saudação, gaveteiro e escritório com rodinha (IA e PostgreSQL reais). Casos com TEST_DATABASE precisam de banco de testes isolado; não habilitar no banco de produção. Casos com TEST_OLLAMA usam o modelo local real.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');

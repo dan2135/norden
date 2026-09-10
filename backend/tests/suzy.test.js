@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: Suzy usa a empresa do atendimento e preserva a coleta; primeiro pedido recebe apresentação; continuação não repete.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { analisarMensagem, responder } = require('../coleta');

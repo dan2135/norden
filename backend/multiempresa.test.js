@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: gera identificador legível e seguro para a marcenaria; API isola telefone, projeto e histórico entre duas marcenarias. Casos com TEST_DATABASE precisam de banco de testes isolado; não habilitar no banco de produção.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');

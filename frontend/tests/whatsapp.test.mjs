@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: normaliza celular brasileiro e não aceita telefone incompleto; mensagem usa valores fixos do orçamento salvo; link codifica mensagem e nunca existe sem telefone válido.
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { telefoneWhatsApp, mensagemOrcamento, linkWhatsApp } from '../src/whatsapp.js';

@@ -1,14 +1,19 @@
+/**
+ * Valida e persiste propostas e seus itens. Valores são representados em centavos e quantidades em milésimos; o orçamento salvo não depende de preços futuros do catálogo.
+ */
 const { validarId, erroHttp } = require('./projetos');
 
 const categorias = new Set(['material', 'ferragem', 'mao_de_obra', 'transporte', 'outro']);
 const unidades = new Set(['un', 'm', 'm2', 'm3', 'h', 'servico']);
 const statusPermitidos = new Set(['rascunho', 'pronto', 'aprovado', 'recusado']);
 
+// Rejeita valores negativos, fracionários ou grandes demais para a operação monetária.
 function validarInteiro(valor, nome, maximo = Number.MAX_SAFE_INTEGER) {
   if (!Number.isSafeInteger(valor) || valor < 0 || valor > maximo) throw erroHttp(400, `${nome} inválido.`);
   return valor;
 }
 
+// Valida a data de validade antes de enviá-la ao PostgreSQL.
 function validarData(valor) {
   if (valor === null || valor === '') return null;
   if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) throw erroHttp(400, 'Validade inválida.');
@@ -17,6 +22,7 @@ function validarData(valor) {
   return valor;
 }
 
+// Verifica campos e itens da proposta e prepara valores para persistência.
 function validarOrcamento(body) {
   const status = body?.status;
   if (!statusPermitidos.has(status)) throw erroHttp(400, 'Situação do orçamento inválida.');
@@ -41,6 +47,7 @@ function validarOrcamento(body) {
   return { status, desconto_centavos: desconto, validade: validarData(body.validade), observacoes, itens, subtotal_centavos: subtotal, total_centavos: subtotal - desconto };
 }
 
+// Carrega o orçamento e seus itens respeitando o projeto e a empresa.
 async function carregarOrcamento(db, projetoId, marcenariaId) {
   const cabecalho = await db.query(`SELECT o.*, p.movel, p.uso, c.nome AS cliente_nome, c.telefone
     FROM orcamentos o JOIN projetos p ON p.id = o.projeto_id JOIN clientes c ON c.id = p.cliente_id
@@ -51,6 +58,7 @@ async function carregarOrcamento(db, projetoId, marcenariaId) {
   return { ...cabecalho.rows[0], itens, subtotal_centavos: subtotal, total_centavos: subtotal - Number(cabecalho.rows[0].desconto_centavos) };
 }
 
+// Restringe origens de navegador às máquinas locais; revisar essa regra antes da publicação na nuvem.
 function somenteLocal(req, res, next) {
   const origem = req.get('origin');
   if (!origem) return next();
@@ -58,6 +66,7 @@ function somenteLocal(req, res, next) {
   return res.status(403).json({ mensagem: 'Os orçamentos estão disponíveis apenas pela aplicação local.' });
 }
 
+// Registra leitura e salvamento do orçamento; as alterações relacionadas usam uma transação.
 function registrarOrcamentos(app, banco, rota) {
   app.use(['/api/orcamentos', '/api/projetos'], somenteLocal);
   app.get('/api/projetos/:id/orcamento', rota(async (req, res) => {

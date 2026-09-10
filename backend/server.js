@@ -1,3 +1,6 @@
+/**
+ * Entrada da API Express: conecta autenticação, seleção da empresa, atendimento e rotas do painel. A ordem dos middlewares mantém as consultas dentro da empresa autorizada.
+ */
 const express = require("express");
 const cors = require("cors");
 const { protegerOrigem } = require('./seguranca');
@@ -57,6 +60,7 @@ const rota = (fn) => async (req, res) => {
 };
 
 const autenticar = registrarAuth(app, banco, rota);
+// A partir daqui as rotas exigem sessão. A seleção da empresa vem antes das consultas de negócio.
 app.use('/api', autenticarInjetado || autenticar);
 registrarMarcenarias(app, banco, rota);
 app.use('/api', (req,res,next) => resolverMarcenaria(req,res,next,banco));
@@ -100,6 +104,7 @@ app.get("/api/projetos/:id/mensagens", rota(async (req, res) => {
 }));
 
 app.post("/api/mensagem", rota(async (req, res) => {
+  // Grava entrada, coleta e resposta na mesma transação: erro reverte o atendimento incompleto.
   const telefone = validarTelefone(req.body?.telefone);
   const { mensagem, projeto_id } = req.body;
   if (typeof mensagem !== "string" || !mensagem.trim() || mensagem.length > 10000) {
@@ -122,6 +127,7 @@ const historico = historicoBanco.rows.map((item) => ({
 
 
   const geral = (req.marcenaria.segmento || 'marcenaria') !== 'marcenaria';
+  // Outros ramos usam perguntas gerais; marcenaria usa campos técnicos e extração opcional.
   const analise = geral ? analisarSolicitacao(mensagem.trim(), projetoSelecionado, cliente) : analisarMensagem(mensagem.trim(), projetoSelecionado, cliente);
   // Só consulta o modelo quando as regras não identificam nenhum dado.
   const precisaIA = !Object.values(analise.dados).some(v => v !== null) && !analise.nome
@@ -200,6 +206,7 @@ return app;
 }
 
 if (require.main === module) {
+  // Só abre a porta ao executar este arquivo diretamente; importar criarApp não inicia o servidor.
   const { configuracaoEmail, iniciarEmails } = require('./email');
   configuracaoEmail();
   const servidor = criarApp().listen(3000, "127.0.0.1", () => console.log("Norden [coleta-v2] rodando na porta 3000 — logs do atendimento ativos"));

@@ -1,3 +1,6 @@
+/**
+ * Interface do catálogo de materiais e da estimativa. Permite revisar preços e aplicar os itens estimados ao formulário do orçamento.
+ */
 import { useEffect, useState } from 'react';
 import { requisicao } from './api';
 import { campoParaCentavos, campoParaMilesimos, centavosParaCampo, formatarDinheiro, milesimosParaCampo } from './orcamento-utils';

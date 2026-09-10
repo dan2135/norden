@@ -1,3 +1,6 @@
+/**
+ * Prepara o compartilhamento manual de um orçamento salvo. Abrir o link não equivale a enviar automaticamente uma mensagem.
+ */
 import { useState } from 'react';
 import { linkWhatsApp, mensagemOrcamento, telefoneWhatsApp } from './whatsapp';
 

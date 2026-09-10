@@ -1,3 +1,6 @@
+/**
+ * Estilos globais: fonte, dimensões básicas e estados de foco usados em toda a interface.
+ */
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #243247;

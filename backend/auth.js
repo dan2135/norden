@@ -1,3 +1,6 @@
+/**
+ * Controla cadastro, login, confirmação de e-mail, recuperação de senha e sessões. Credenciais vêm dos formulários; o banco recebe hashes, nunca a senha em texto puro.
+ */
 const crypto = require('node:crypto');
 const { emailValido } = require('./seguranca');
 const { promisify } = require('node:util');
@@ -5,12 +8,14 @@ const { validarSegmento } = require('./segmentos');
 const { erroHttp } = require('./projetos');
 const { slugify } = require('./marcenarias');
 const { enviarEmail } = require('./email');
+const { reenviarConfirmacao } = require('./reenviar-confirmacao');
 
 const scrypt = promisify(crypto.scrypt);
 const COOKIE = 'marceneiro_session';
 const DURACAO_SESSAO_MS = 7 * 24 * 60 * 60 * 1000;
 
 function validarCadastro(body = {}) {
+  // Regras do cadastro comum e do primeiro proprietário; não concede acesso global.
   const nome = typeof body.nome === 'string' ? body.nome.trim() : '';
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const senha = typeof body.senha === 'string' ? body.senha : '';
@@ -43,12 +48,14 @@ function urlFrontend(caminho) { return `${(process.env.FRONTEND_URL || 'http://l
 function obterIp(req) { return String(req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/,'').slice(0,64); }
 
 async function criarHashSenha(senha) {
+  // Salt aleatório evita hashes iguais para senhas iguais. Não há operação de "descriptografar".
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = await scrypt(senha, salt, 64, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
   return `scrypt$16384$8$1$${salt}$${hash.toString('hex')}`;
 }
 
 async function conferirSenha(senha, registro) {
+  // Recalcula a derivação e compara em tempo constante; a senha original não fica armazenada no banco.
   try {
     const [algoritmo, n, r, p, salt, esperadoHex] = String(registro).split('$');
     if (algoritmo !== 'scrypt') return false;
@@ -67,6 +74,8 @@ function lerCookies(req) {
 function opcoesCookie() { return { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/api', maxAge: DURACAO_SESSAO_MS }; }
 
 async function criarSessao(db, usuarioId, res) {
+  // O navegador recebe o token em cookie HttpOnly; o banco guarda apenas seu hash.
+  // O token CSRF é separado e protege requisições que modificam dados.
   const token = crypto.randomBytes(32).toString('hex');
   const csrf = crypto.randomBytes(32).toString('hex');
   await db.query('DELETE FROM sessoes WHERE expira_em <= CURRENT_TIMESTAMP');
@@ -83,6 +92,8 @@ function registrarAuth(app, banco, rota) {
   }));
 
   app.post('/api/auth/configurar', rota(async (req, res) => {
+    // Primeiro acesso do banco vazio: cria PROPRIETÁRIO da empresa principal,
+    // não superadministrador. O bloqueio impede dois cadastros iniciais simultâneos.
     const dados = validarCadastro(req.body);
     const db = await banco.connect();
     try {
@@ -101,6 +112,7 @@ function registrarAuth(app, banco, rota) {
   }));
 
   app.post('/api/auth/cadastro', rota(async (req,res) => {
+    // Cadastro público cria empresa e vínculo próprios; a confirmação libera o login.
     const dados=validarCadastro(req.body); const documento=validarDocumento(req.body?.documento);
     const segmento=validarSegmento(req.body?.segmento);
     const empresa=typeof req.body?.empresa==='string'?req.body.empresa.trim():'';
@@ -130,6 +142,10 @@ function registrarAuth(app, banco, rota) {
     if(!resultado.rows[0]) throw erroHttp(400,'Link de confirmação inválido ou expirado.');
     await banco.query("UPDATE tokens_usuario SET usado_em=CURRENT_TIMESTAMP WHERE token_hash=$1",[hashToken(token)]);
     res.json({mensagem:'E-mail confirmado. Você já pode entrar.'});
+  }));
+
+  app.post('/api/auth/reenviar-confirmacao', rota(async(req,res)=>{
+    res.json(await reenviarConfirmacao(banco,req.body?.email));
   }));
 
   app.post('/api/auth/esqueci-senha', rota(async(req,res)=>{
@@ -168,6 +184,7 @@ function registrarAuth(app, banco, rota) {
   }));
 
   async function autenticar(req, res, next) {
+    // Todas as rotas privadas dependem de sessão válida; a empresa é verificada depois.
     try {
       const token = lerCookies(req)[COOKIE];
       if (!token) throw erroHttp(401, 'Faça login para continuar.');

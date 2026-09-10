@@ -1,14 +1,20 @@
+/**
+ * Escolhe a landing page ou a área autenticada. Na área interna coordena sessão, empresa ativa, painel e conversa da Suzy.
+ */
 import { useEffect, useRef, useState } from "react";
 import { definirCsrf, definirMarcenaria, requisicao } from './api';
 import Painel from './Painel';
 import TelaLogin from './TelaLogin';
 import Rodape from './Rodape';
+import LandingPage from './LandingPage';
+import BotaoTema from './BotaoTema';
 import './Empresa.css';
 
 // Cliente de demonstração já utilizado pelo atendimento local.
 const telefone = import.meta.env.VITE_TELEFONE || "119888444445";
 
 function Atendimento({ segmento }) {
+  // Estado da conversa exibida; os registros definitivos continuam no backend/banco.
   const [mensagem, setMensagem] = useState("");
   const [conversa, setConversa] = useState([]);
   const [projetos, setProjetos] = useState([]);
@@ -151,10 +157,10 @@ function Atendimento({ segmento }) {
 }
 
 const styles = {
-  resumo: { padding: '10px 16px', fontSize: '14px', background: '#f5faf5', color: '#24402b', borderBottom: '1px solid #ddd', overflowWrap: 'anywhere' },
+  resumo: { padding: '10px 16px', fontSize: '14px', background: 'var(--chat-soft, #f5faf5)', color: 'var(--chat-text, #24402b)', borderBottom: '1px solid var(--chat-soft, #ddd)', overflowWrap: 'anywhere' },
   pagina: {
     minHeight: "100vh",
-    background: "#f1f1f1",
+    background: "var(--chat-bg, #f1f1f1)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -164,7 +170,7 @@ const styles = {
   chat: {
     width: "min(820px, 100%)",
     height: "min(1050px, 100dvh)",
-    background: "white",
+    background: "var(--chat-surface, white)",
     borderRadius: "12px",
     display: "flex",
     flexDirection: "column",
@@ -186,7 +192,7 @@ const styles = {
     minHeight: 0,
     padding: "20px",
     overflowY: "auto",
-    background: "#efeae2",
+    background: "var(--chat-bg, #efeae2)",
     display: "flex",
     flexDirection: "column",
     gap: "10px",
@@ -194,11 +200,11 @@ const styles = {
 
   vazio: {
     textAlign: "center",
-    color: "#fa0000",
+    color: "var(--chat-error, #fa0000)",
   },
 
   balao: {
-    color: '#202c33',
+    color: 'var(--chat-text, #202c33)',
     textAlign: 'left',
     overflowWrap: 'anywhere',
     padding: "10px 14px",
@@ -208,24 +214,24 @@ const styles = {
 
   cliente: {
     alignSelf: "flex-end",
-    background: "#9cf88c",
+    background: "var(--chat-client, #9cf88c)",
   },
 
   ia: {
     alignSelf: "flex-start",
-    background: "white",
+    background: "var(--chat-surface, white)",
   },
 
   formulario: {
     padding: "12px",
     display: "flex",
     gap: "10px",
-    background: "#f0f2f5",
+    background: "var(--chat-soft, #f0f2f5)",
   },
 
   input: {
-    background: '#fff',
-    color: '#202c33',
+    background: 'var(--chat-surface, #fff)',
+    color: 'var(--chat-text, #202c33)',
     flex: 1,
     minWidth: 0,
     padding: "12px",
@@ -235,8 +241,8 @@ const styles = {
   },
 
   botao: {
-    background: '#d8e8dc',
-    color: '#202c33',
+    background: 'var(--chat-client, #d8e8dc)',
+    color: 'var(--chat-text, #202c33)',
     padding: "10px 18px",
     border: "none",
     borderRadius: "20px",
@@ -245,6 +251,14 @@ const styles = {
 };
 
 export default function App() {
+  // A página pública não exige sessão; login, cadastro e links de recuperação abrem a aplicação.
+  const parametros = new URLSearchParams(window.location.search);
+  const acessar = ['login','cadastro','painel'].includes(parametros.get('tela')) || parametros.has('confirmar') || parametros.has('redefinir');
+  return acessar ? <><Aplicacao /><BotaoTema flutuante /></> : <LandingPage />;
+}
+
+function Aplicacao() {
+  // Coordena o usuário autenticado e a empresa ativa; trocar empresa recarrega seu contexto.
   const [versaoClientes, setVersaoClientes] = useState(0);
   useEffect(() => {
     const atualizarClientes = () => setVersaoClientes(v => v + 1);

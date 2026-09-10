@@ -1,3 +1,6 @@
+/**
+ * Entrega listas, indicadores e fichas de projeto ao painel. O estado da coleta é calculado a partir das informações existentes e das pendências.
+ */
 const { validarId, erroHttp, historicoProjeto } = require('./projetos');
 
 const campos = {
@@ -5,6 +8,7 @@ const campos = {
   profundidade_cm: 'Profundidade', acabamento: 'Acabamento', cliente_nome: 'Nome do cliente',
 };
 
+// Classifica o projeto pelo que falta coletar ou confirmar, sem gravar essa classificação.
 function situacaoColeta(projeto) {
   if (projeto.segmento && projeto.segmento !== 'marcenaria') {
     const faltantes = [['Solicitação', projeto.coleta?.geral?.solicitacao], ['Detalhes', projeto.coleta?.geral?.detalhes], ['Nome do cliente', projeto.cliente_nome]].filter(([,v])=>!v?.trim()).map(([k])=>k);
@@ -29,6 +33,7 @@ function situacaoColeta(projeto) {
   };
 }
 
+// Conta clientes e categorias dos projetos para os indicadores do painel.
 function resumoPainel(clientes, projetos) {
   return {
     clientes: clientes.length, projetos: projetos.length,
@@ -38,6 +43,7 @@ function resumoPainel(clientes, projetos) {
   };
 }
 
+// Registra as rotas de leitura das listas e da ficha de projeto.
 function registrarPainel(app, banco, rota) {
   // Restrição local adicional à autenticação e ao isolamento por marcenaria.
   app.use('/api/painel', (req, res, next) => {

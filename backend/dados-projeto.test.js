@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: converte metros, centímetros e milímetros com decimal brasileiro; rejeita dimensões ambíguas, intervalos, números negativos e unidades ausentes; valida dimensão correta e conversão, sem aceitar número inventado.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { validarExtracao, medidaExplicita } = require('./dados-projeto');

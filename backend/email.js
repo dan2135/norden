@@ -1,4 +1,8 @@
+/**
+ * Valida SMTP e administra a fila de e-mails. O envio ocorre após a gravação no banco, com tentativas limitadas e remoção do conteúdo após envio ou expiração.
+ */
 const { emailValido } = require('./seguranca');
+// Escolhe modo simulado ou SMTP e valida os parâmetros antes de permitir envio real.
 function configuracaoEmail(env = process.env) {
   const modo = env.EMAIL_MODE || (env.NODE_ENV === 'production' ? 'smtp' : 'simulado');
   if (!['smtp', 'simulado'].includes(modo)) throw new Error('EMAIL_MODE deve ser smtp ou simulado.');
@@ -22,6 +26,7 @@ function configuracaoEmail(env = process.env) {
   }};
 }
 
+// Insere a mensagem na fila; não envia diretamente durante a transação do cadastro.
 async function enviarEmail(banco, { destinatario, assunto, texto }, env = process.env) {
   const { modo } = configuracaoEmail(env);
   // O worker só vê mensagens após o COMMIT do cadastro.
@@ -31,6 +36,7 @@ async function enviarEmail(banco, { destinatario, assunto, texto }, env = proces
   return { simulado:modo === 'simulado', enfileirado:modo === 'smtp' };
 }
 
+// Reserva uma mensagem elegível, tenta entregá-la e atualiza tentativas e situação.
 async function processarEmail(banco, transporte, from) {
   const resultado = await banco.query(`UPDATE emails_saida SET status='enviando',
     tentativas=tentativas+1, proxima_tentativa_em=NOW()+INTERVAL '5 minutes'
@@ -50,6 +56,7 @@ async function processarEmail(banco, transporte, from) {
   return true;
 }
 
+// Inicia o processamento periódico e devolve uma função para encerrá-lo.
 function iniciarEmails(banco, env = process.env) {
   const config = configuracaoEmail(env);
   if(config.modo === 'simulado') return ()=>{};

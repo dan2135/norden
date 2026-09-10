@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: valida telefone e identificador de projeto; não escolhe silenciosamente entre vários projetos; projeto explícito precisa pertencer ao cliente.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { validarId, validarTelefone, selecionarProjeto, historicoProjeto } = require('./projetos');

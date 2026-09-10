@@ -1,0 +1,36 @@
+/**
+ * Ajustes globais de contraste para o modo escuro e botão de alternância. O tema escuro fica limitado à tela, preservando a impressão clara.
+ */
+.tema-botao{display:grid;place-items:center;width:44px;height:44px;border:1px solid #ccd7ec;border-radius:50%;background:#f5f7fc;color:#243b74;cursor:pointer;font-size:24px;line-height:1}
+.tema-flutuante{position:fixed;right:20px;bottom:20px;z-index:30;box-shadow:0 4px 20px #0003}
+.app-principal{padding-bottom:64px}.login-area{padding-bottom:80px}
+@media screen {
+html[data-theme="dark"]{color-scheme:dark;background:#101722;color:#eef2ff;--chat-bg:#101722;--chat-surface:#182334;--chat-text:#eef2ff;--chat-soft:#253246;--chat-client:#254d43;--chat-error:#ffb5a5}
+html[data-theme="dark"] :is(.app-shell,.app-topo,.tela-carregamento,.login-pagina){background:#101722;color:#eef2ff}
+html[data-theme="dark"] :is(.login-card,.app-navegacao,.nova-empresa,.indicador,.lista-painel,.ficha-projeto,.confirmar-exclusao,.rodape-norden){background:#182334;color:#eef2ff;border-color:#344156}
+html[data-theme="dark"] :is(.login-apresentacao,.login-icone,.login-recursos span:before,.app-usuario>span,.rodape-norden-marca>span){background:#25375c;color:#b8c9ff}
+html[data-theme="dark"] .login-apresentacao:after{border-color:#344975}
+html[data-theme="dark"] :is(.painel h1,.painel h2,.painel h3,.indicador strong,.painel td strong,.dados-ficha dd,.rodape-norden-marca strong,.rodape-pagina h2,.rodape-pagina h3,.rodape-norden-texto h2){color:#eef2ff}
+html[data-theme="dark"] :is(.login-ajuda,.login-seguranca,.login-card label,.login-chamada>p,.login-recursos,.login-apresentacao>small,.nova-empresa label,.app-usuario small,.app-topo small,.texto-suave,.nota,.indicador span,.filtros label,.contagem,.painel td small,.dados-ficha dt,.mensagem-painel header,.estado-vazio,.carregando-empresa){color:#b7c3d8}
+html[data-theme="dark"] :is(.sobretitulo,.titulo-orcamento p,.titulo-estimador p,.whatsapp-orcamento>div>p:not(.sobretitulo),.orcamento label){color:#b7c3d8!important}
+html[data-theme="dark"] :is(.login-card input,.login-card select,.nova-empresa input,.nova-empresa select,.filtros input,.filtros select,.orcamento input,.orcamento select,.orcamento textarea,.confirmar-exclusao input,.seletor-marcenaria select){background:#101b2b;color:#eef2ff;border-color:#50617c}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#a5b2c8}
+html[data-theme="dark"] .login-card input:focus{box-shadow:0 0 0 3px #344975}
+html[data-theme="dark"] :is(.botao-secundario,.paginacao button,.ficha-projeto>header button,.nova-empresa button,.seletor-marcenaria button){background:#253246;color:#b8c9ff;border-color:#50617c}
+html[data-theme="dark"] :is(.app-navegacao nav button,.app-usuario button,.abas-lista button,.botao-texto,.rodape-links button,.rodape-pagina button,.rodape-pagina a,.rodape-norden-sobre summary,.login-acoes button,.login-card>a,.etiqueta-tech,.login-chamada h1 em,.cabecalho-previa button,.resultado-estimativa summary){color:#aabdff!important}
+html[data-theme="dark"] :is(.app-navegacao nav button:hover,.app-navegacao nav button[aria-pressed=true],.painel tbody tr:hover,.painel tr.selecionado,.botao-secundario:hover,.seletor-marcenaria button:hover){background:#25375c;color:#eef2ff}
+html[data-theme="dark"] :is(.painel th,.mensagem-painel,.mensagem-painel.do-cliente,.selo){background:#253246;color:#c4cfe0;border-color:#344156}
+html[data-theme="dark"] :is(.catalogo-estimativa,.whatsapp-orcamento,.previa-whatsapp pre){background:#131e2d!important;color:#d7e2ff!important;border-color:#344156!important}
+html[data-theme="dark"] :is(.resultado-estimativa,.material-catalogo,.previa-whatsapp){background:#182334!important;border-color:#344156!important}
+html[data-theme="dark"] :is(.resultado-estimativa h4,.titulo-estimador h4,.novo-material h4,.whatsapp-orcamento h4,.cabecalho-previa h5){color:#eef2ff!important}
+html[data-theme="dark"] :is(.material-catalogo small,.linha-estimativa small,.itens-orcamento legend,.total-item,.fechamento-orcamento .total){color:#c4cfe0}
+html[data-theme="dark"] :is(.abas-lista,.painel td,.paginacao,.dados-ficha,.itens-orcamento fieldset,.fechamento-orcamento,.fechamento-orcamento .total,.novo-material,.linha-estimativa,.rodape-pagina,.app-usuario){border-color:#344156}
+html[data-theme="dark"] .orcamento{border-color:#344156!important}
+html[data-theme="dark"] :is(.aviso,.selo.pendente,.rodape-rascunho){background:#3a3020;color:#f4d193;border-color:#79633d}
+html[data-theme="dark"] :is(.aviso.erro,.login-erro,.erro-empresa,.botao-excluir-cliente){background:#402823;color:#ffb5a5;border-color:#815248}
+html[data-theme="dark"] .remover-item{color:#ffb5a5}
+html[data-theme="dark"] :is(.aviso.sucesso,.login-sucesso,.selo.completo){background:#203d33!important;color:#a8e3c4!important;border-color:#487a62}
+html[data-theme="dark"] .tema-botao{background:#253246;border-color:#50617c;color:#ffe1a0}
+html[data-theme="dark"] :is(button,input,select,textarea):focus-visible{outline-color:#aabdff!important}
+}
+@media print{.tema-botao{display:none!important}.app-principal{padding-bottom:0}}

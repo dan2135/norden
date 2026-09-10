@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: retorna JSON em sucesso; erro HTML orienta reiniciar em vez de mostrar Unexpected token; erro HTTP em JSON exibe mensagem legível.
+ */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // O cliente HTTP usa a origem do navegador; simula apenas essa origem no Node.

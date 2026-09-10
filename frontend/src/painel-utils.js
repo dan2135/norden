@@ -1,3 +1,6 @@
+/**
+ * Funções de apresentação e filtros do painel. Não consultam o banco nem alteram os registros.
+ */
 export const categorias = { em_coleta: 'Em coleta', pendente: 'Confirmar dados', completo: 'Dados completos' };
 
 export function normalizarBusca(texto) {

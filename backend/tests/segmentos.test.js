@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: valida ramo e rejeita valores desconhecidos; marcenaria mantém campos técnicos e dados gerais incompletos continuam em coleta.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { validarSegmento, analisarSolicitacao, responderSolicitacao } = require('../segmentos');

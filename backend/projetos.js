@@ -1,7 +1,12 @@
+/**
+ * Reúne validações e consultas do atendimento. Cliente, projeto e histórico são selecionados com o identificador da empresa para evitar mistura de dados.
+ */
+// Cria um erro com status HTTP para que a rota devolva uma mensagem de validação ao cliente.
 function erroHttp(status, mensagem) {
   return Object.assign(new Error(mensagem), { status });
 }
 
+// Normaliza o telefone e rejeita formatos que não identificam um cliente válido.
 function validarTelefone(telefone) {
   if (typeof telefone !== 'string' || !/^\d{10,15}$/.test(telefone)) {
     throw erroHttp(400, 'Informe um telefone com 10 a 15 dígitos.');
@@ -9,6 +14,7 @@ function validarTelefone(telefone) {
   return telefone;
 }
 
+// Aceita somente identificadores inteiros positivos antes de consultar o banco.
 function validarId(id) {
   if (!/^[1-9]\d*$/.test(String(id)) || !Number.isSafeInteger(Number(id))) {
     throw erroHttp(400, 'Projeto inválido.');
@@ -16,6 +22,7 @@ function validarId(id) {
   return Number(id);
 }
 
+// Valida o projeto solicitado e evita escolher silenciosamente entre vários projetos do cliente.
 async function selecionarProjeto(db, clienteId, projetoId, marcenariaId) {
   if (projetoId !== undefined && projetoId !== null) {
     const resultado = await db.query(
@@ -31,6 +38,7 @@ async function selecionarProjeto(db, clienteId, projetoId, marcenariaId) {
   return (await db.query('INSERT INTO projetos (cliente_id,marcenaria_id) VALUES ($1,$2) RETURNING *', [clienteId,marcenariaId])).rows[0];
 }
 
+// Localiza ou cria o cliente pelo telefone dentro da empresa selecionada.
 async function obterCliente(db, telefone, marcenariaId) {
   // Serializa operações do mesmo cliente, inclusive quando ainda não existe.
   await db.query("SELECT pg_advisory_xact_lock(hashtext($1 || ':' || $2::text))", [telefone,marcenariaId]);
@@ -41,6 +49,7 @@ async function obterCliente(db, telefone, marcenariaId) {
   )).rows[0];
 }
 
+// Busca mensagens somente do cliente, projeto e empresa indicados, em ordem estável.
 async function historicoProjeto(db, clienteId, projetoId, marcenariaId) {
   return (await db.query(
     'SELECT id, remetente, texto, criado_em FROM mensagens WHERE cliente_id = $1 AND projeto_id = $2 AND marcenaria_id=$3 ORDER BY criado_em ASC, id ASC',

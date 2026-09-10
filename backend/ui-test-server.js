@@ -1,3 +1,6 @@
+/**
+ * Servidor auxiliar de teste da interface. Usa uma transação externa para reverter os registros; não deve substituir o servidor normal de produção.
+ */
 // Servidor isolado para QA da interface. Tudo é revertido ao encerrar.
 const pool = require('./database');
 const { criarApp } = require('./server');

@@ -1,3 +1,4 @@
+-- Relaciona mensagens a projetos e cria índices; só vincula histórico antigo quando o cliente tem um único projeto.
 BEGIN;
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS projeto_id INTEGER REFERENCES projetos(id);
 CREATE INDEX IF NOT EXISTS mensagens_projeto_historico_idx ON mensagens (cliente_id, projeto_id, criado_em, id);

@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: converte valor brasileiro para centavos sem usar ponto flutuante na API; converte quantidade para milésimos e rejeita zero; calcula item e formata moeda.
+ */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { campoParaCentavos, campoParaMilesimos, formatarDinheiro, totalItem } from '../src/orcamento-utils.js';

@@ -1,3 +1,6 @@
+/**
+ * Diálogo de confirmação da exclusão definitiva. A senha digitada autoriza a operação no backend, sem ser exibida no painel.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { requisicao } from './api';
 

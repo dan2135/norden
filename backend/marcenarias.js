@@ -1,10 +1,15 @@
+/**
+ * Controla as empresas, ainda chamadas marcenarias no esquema legado. Verifica o vínculo do usuário ou o papel de superadministrador antes de liberar a empresa.
+ */
 const { validarSegmento } = require('./segmentos');
 const { erroHttp, validarId } = require('./projetos');
 
+// Transforma o nome da empresa em um identificador legível para URLs e unicidade.
 function slugify(nome) {
   return nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
 }
 
+// Confere o acesso à empresa informada no cabeçalho e anexa seu contexto à requisição.
 async function resolverMarcenaria(req, res, next, banco) {
   try {
     const informado = req.get('x-marcenaria-id');
@@ -20,6 +25,7 @@ async function resolverMarcenaria(req, res, next, banco) {
   } catch (erro) { next(erro); }
 }
 
+// Registra listagem e criação das empresas visíveis ao usuário.
 function registrarMarcenarias(app, banco, rota) {
   app.get('/api/marcenarias', rota(async (req, res) => {
     const resultado = req.usuario.superadministrador

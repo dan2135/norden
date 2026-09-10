@@ -1,3 +1,6 @@
+/**
+ * Organiza a conversa de marcenaria por regras: interpreta informações explícitas, guarda pendências e escolhe a próxima pergunta. A IA é apenas um complemento validado.
+ */
 const { validarTextoAnalise } = require('./seguranca');
 const { validarExtracao } = require('./dados-projeto');
 const normalizar = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -7,12 +10,14 @@ const moveis = /\b(gaveteiro|giverteiro|gaverteiro|guarda[ -]roupa|armario|mesa|
 const locais = /\b(?:no|na|nos|nas|para o|para a)\s+(?:(?:meu|minha|meus|minhas)\s+)?(quarto|sala(?: de jantar| de estar)?|cozinha|banheiro|escritorio|ecritorio|escrtorio|lavanderia|area de servico|varanda)\b/;
 const cores = /\b(madeirado|branco|branca|preto|preta|cinza|azul|verde|bege|fosco|fosca|brilhante)\b/g;
 
+// Converte a medida para centímetros quando a unidade é conhecida.
 function medida(valor, unidade) {
   const n = Number(String(valor).replace(',', '.'));
   const cm = Math.round(n * ({ m: 100, cm: 1, mm: 0.1 }[unidade]) * 100) / 100;
   return Number.isFinite(cm) && cm > 0 && cm <= 10000 ? cm : null;
 }
 
+// Combina o texto atual com o estado da coleta e identifica dados, dúvidas e respostas curtas.
 function analisarMensagem(texto, projeto = {}, cliente = {}) {
   validarTextoAnalise(texto);
   texto = texto.trim();
@@ -94,6 +99,7 @@ function analisarMensagem(texto, projeto = {}, cliente = {}) {
   return { dados, estado, nome, pendencias: estado.duvidas, descartados: [], texto };
 }
 
+// Aproveita apenas sugestões validadas do modelo, preservando a análise determinística.
 function complementarComIA(analise, extraido, historico, projeto) {
   validarTextoAnalise(analise.texto);
   const validado = validarExtracao(extraido, historico);
@@ -111,6 +117,7 @@ function complementarComIA(analise, extraido, historico, projeto) {
   return analise;
 }
 
+// Escolhe a próxima pergunta sem pedir novamente campos já confirmados.
 function responder(analise, projeto, cliente, contexto = {}) {
   const p = { ...projeto };
   for (const [c, v] of Object.entries(analise.dados)) if (v !== null) p[c] = v;

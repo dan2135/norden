@@ -1,3 +1,6 @@
+/**
+ * Diagnóstico manual do servidor SMTP: verifica conexão e autenticação, sem enviar mensagem ao cliente.
+ */
 require('dotenv').config({path:require('node:path').join(__dirname,'.env'),quiet:true});
 const { configuracaoEmail } = require('./email');
 async function main() {

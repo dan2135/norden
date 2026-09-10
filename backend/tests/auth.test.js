@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: senha é armazenada com scrypt e validada sem texto puro; hash adulterado é rejeitado sem derrubar a autenticação; valida CPF e CNPJ pelos dígitos verificadores.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { criarHashSenha, conferirSenha, validarDocumento } = require('../auth');

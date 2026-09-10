@@ -1,3 +1,4 @@
+-- Cria o catálogo de materiais cadastrados manualmente e seus preços de referência.
 CREATE TABLE IF NOT EXISTS catalogo_materiais (
   id BIGSERIAL PRIMARY KEY,
   tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('chapa', 'fita', 'dobradica', 'corredica', 'puxador', 'outro')),

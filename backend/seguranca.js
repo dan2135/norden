@@ -1,5 +1,9 @@
+/**
+ * Proteções de entrada e de origem das requisições. Limita textos antes da análise e restringe submissões de autenticação a JSON.
+ */
 const { erroHttp } = require('./projetos');
 
+// Rejeita entradas excessivas antes de executar a análise de texto.
 function validarTextoAnalise(texto) {
   if (typeof texto !== 'string' || texto.length > 10000) throw erroHttp(400, 'Mensagem inválida ou muito longa (máximo de 10000 caracteres).');
   // Varredura linear antes dos parsers: impede sequências patológicas sem truncar dados.
@@ -12,6 +16,7 @@ function validarTextoAnalise(texto) {
   return texto;
 }
 
+// Verifica formato e tamanho do endereço; não comprova que a caixa de e-mail existe.
 function emailValido(email) {
   if (typeof email !== 'string' || email.length > 254 || email.length < 3) return false;
   const partes = email.split('@');
@@ -20,6 +25,7 @@ function emailValido(email) {
   return ponto > 0 && ponto < partes[1].length - 1 && !/[\s<>]/u.test(email);
 }
 
+// Cria o middleware que filtra origens nas operações de escrita e exige JSON na autenticação.
 function protegerOrigem(origens) {
   const permitidas = new Set(origens);
   return (req, res, next) => {

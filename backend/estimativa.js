@@ -1,17 +1,23 @@
+/**
+ * Calcula uma referência de consumo para marcenaria usando medidas e preços cadastrados. Não consulta preços da Léo em tempo real; as suposições precisam de revisão humana.
+ */
 const { validarTextoAnalise } = require('./seguranca');
 const { validarId, erroHttp } = require('./projetos');
 
 const tipos = new Set(['chapa', 'fita', 'dobradica', 'corredica', 'puxador', 'outro']);
 const unidades = new Set(['m2', 'm', 'un']);
 
+// Valida um campo textual obrigatório e limita seu tamanho.
 function texto(valor, nome, maximo) {
   if (typeof valor !== 'string' || !valor.trim() || valor.trim().length > maximo) throw erroHttp(400, `${nome} inválido.`);
   return valor.trim();
 }
+// Valida um inteiro não negativo dentro do limite aceito pelo catálogo.
 function inteiro(valor, nome, maximo = 9_000_000_000_000) {
   if (!Number.isSafeInteger(valor) || valor < 0 || valor > maximo) throw erroHttp(400, `${nome} inválido.`);
   return valor;
 }
+// Confere tipo, unidade, rendimento e preço antes de gravar um material.
 function validarMaterial(body) {
   if (!tipos.has(body?.tipo)) throw erroHttp(400, 'Tipo de material inválido.');
   if (!unidades.has(body?.unidade_consumo)) throw erroHttp(400, 'Unidade de consumo inválida.');
@@ -21,6 +27,7 @@ function validarMaterial(body) {
     unidade_consumo: body.unidade_consumo, rendimento_milesimos: rendimento, preco_centavos: inteiro(body.preco_centavos, 'Preço'), ativo: body.ativo !== false };
 }
 
+// Estima áreas e ferragens com margens e suposições explícitas; não substitui um plano de corte.
 function gerarConsumo(projeto) {
   const w = Number(projeto.largura_cm), h = Number(projeto.altura_cm), d = Number(projeto.profundidade_cm);
   if (![w, h, d].every(v => Number.isFinite(v) && v > 0)) throw erroHttp(400, 'Confirme largura, altura e profundidade antes de estimar.');
@@ -39,6 +46,7 @@ function gerarConsumo(projeto) {
     gavetas ? `${gavetas} gaveta(s) estimada(s).` : 'Nenhuma gaveta identificada.', portas ? `${portas} porta(s) estimada(s).` : 'Nenhuma porta identificada.'] };
 }
 
+// Cruza o consumo estimado com materiais ativos e informa os tipos ausentes no catálogo.
 function montarEstimativa(projeto, catalogo) {
   const { consumo, suposicoes } = gerarConsumo(projeto);
   const itens = [], faltantes = [];
@@ -53,6 +61,7 @@ function montarEstimativa(projeto, catalogo) {
   return { itens, faltantes: [...new Set(faltantes)], suposicoes, aviso: 'Estimativa de referência. Confirme plano de corte, estoque, frete e preços antes de enviar ao cliente.' };
 }
 
+// Restringe origens de navegador às máquinas locais; revisar essa regra antes da publicação na nuvem.
 function somenteLocal(req, res, next) {
   const origem = req.get('origin');
   if (!origem) return next();
@@ -60,6 +69,7 @@ function somenteLocal(req, res, next) {
   return res.status(403).json({ mensagem: 'O catálogo está disponível apenas pela aplicação local.' });
 }
 
+// Registra manutenção do catálogo e geração da estimativa para projetos de marcenaria.
 function registrarEstimativa(app, banco, rota) {
   app.use('/api/catalogo', somenteLocal);
   app.get('/api/catalogo', rota(async (req, res) => res.json({ materiais: (await banco.query('SELECT * FROM catalogo_materiais WHERE marcenaria_id=$1 ORDER BY ativo DESC, tipo, descricao, id', [req.marcenaria.id])).rows })));

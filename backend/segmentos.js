@@ -1,9 +1,14 @@
+/**
+ * Define os ramos aceitos e a coleta guiada para negócios fora da marcenaria. Reúne pedido, detalhes e nome sem prometer preço ou prazo.
+ */
 const { erroHttp } = require('./projetos');
 const segmentos = { marcenaria:'Marcenaria', comercio:'Comércio', servicos:'Prestação de serviços', outros:'Outros ramos' };
+// Aceita apenas os ramos cadastrados na lista de segmentos.
 function validarSegmento(valor='outros') {
   if(!Object.hasOwn(segmentos,valor)) throw erroHttp(400,'Escolha um ramo de atividade válido.');
   return valor;
 }
+// Atualiza o estado do pedido geral conforme a pergunta anterior, preservando dados já coletados.
 function analisarSolicitacao(texto, projeto, cliente) {
   const estado={...projeto.coleta, medidas:{}, duvidas:[], geral:{...projeto.coleta?.geral}};
   const simples=texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -17,6 +22,7 @@ function analisarSolicitacao(texto, projeto, cliente) {
   }
   return {dados:Object.fromEntries(['movel','uso','largura_cm','altura_cm','profundidade_cm','acabamento','detalhes'].map(c=>[c,null])),estado,nome,pendencias:[],descartados:[],texto,saudacao};
 }
+// Escolhe a próxima informação pendente e apresenta a Suzy com o nome da empresa.
 function responderSolicitacao(a,cliente,empresa,primeiroContato) {
   let resposta;
   if(!a.estado.geral.solicitacao) {a.estado.pergunta='solicitacao';resposta=empresa.segmento==='comercio'?'Qual produto você procura?':'Qual serviço ou pedido você gostaria de solicitar?';}

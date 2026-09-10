@@ -1,3 +1,6 @@
+/**
+ * Valida o telefone, monta o texto com os valores salvos e codifica o link de compartilhamento manual.
+ */
 import { formatarDinheiro } from './orcamento-utils.js';
 
 export function telefoneWhatsApp(telefone) {

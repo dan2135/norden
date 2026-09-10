@@ -1,3 +1,6 @@
+/**
+ * Conteúdo institucional e canais de contato apresentados no rodapé. Não é configuração de autenticação nem contém credenciais.
+ */
 // Preencher com os canais oficiais da Norden antes da publicação.
 export const contatoNorden = {
   email: '',

@@ -1,3 +1,6 @@
+/**
+ * Conversões entre campos brasileiros, centavos e milésimos. Centraliza formatação monetária e cálculo de totais na interface.
+ */
 export const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export function formatarDinheiro(centavos) { return moeda.format((Number(centavos) || 0) / 100); }

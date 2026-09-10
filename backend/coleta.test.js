@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: sequência das capturas: não volta ao móvel; confirma todas as medidas em uma resposta; ambiente e características separados; nome e acabamento persistem; medidas explícitas, conversões e correção de uma dimensão preservam as outras.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { analisarMensagem, complementarComIA, responder } = require('./coleta');

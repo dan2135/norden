@@ -1,3 +1,4 @@
+-- Adiciona documento, confirmação de e-mail, registro do último acesso, tokens e fila de mensagens.
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS documento VARCHAR(14);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email_confirmado BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_ip VARCHAR(64);

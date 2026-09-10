@@ -1,3 +1,4 @@
+-- Introduz empresas, associa registros legados à empresa principal e cria índices por empresa.
 CREATE TABLE IF NOT EXISTS marcenarias (
   id SERIAL PRIMARY KEY,
   nome VARCHAR(120) NOT NULL CHECK (length(trim(nome)) > 0),

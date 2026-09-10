@@ -1,3 +1,4 @@
+# Inicialização manual no Windows: desativa a seleção que pode pausar o terminal, entra na pasta backend e executa npm start.
 # Mantém o terminal visível sem pausar o Node ao selecionar texto com o mouse.
 $ErrorActionPreference = 'Stop'
 Add-Type @'

@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: gera consumo com perdas declaradas e ferragens coerentes; não estima projeto sem as três dimensões; usa preço do catálogo, arredonda para embalagens e aponta faltantes.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { validarMaterial, gerarConsumo, montarEstimativa } = require('../estimativa');

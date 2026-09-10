@@ -1,3 +1,6 @@
+/**
+ * Editor da proposta: converte dados salvos em campos editáveis, calcula a prévia e envia a versão ao backend para persistência.
+ */
 import { useEffect, useState } from 'react';
 import { requisicao } from './api';
 import { campoParaCentavos, campoParaMilesimos, centavosParaCampo, formatarDinheiro, milesimosParaCampo, totalItem } from './orcamento-utils';

@@ -1,3 +1,4 @@
+-- Cria orçamentos e itens com restrições de status, unidades e valores monetários.
 CREATE TABLE IF NOT EXISTS orcamentos (
   id BIGSERIAL PRIMARY KEY,
   projeto_id BIGINT NOT NULL UNIQUE REFERENCES projetos(id) ON DELETE CASCADE,

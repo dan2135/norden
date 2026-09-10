@@ -1,3 +1,6 @@
+/**
+ * Aparência do formulário de criação de empresa e seus campos.
+ */
 .nova-empresa{display:flex;align-items:end;flex-wrap:wrap;gap:16px;padding:20px;background:#fff;border:1px solid #d5dce8;border-radius:8px;margin:16px}
 .nova-empresa label{display:grid;gap:8px;flex:1;min-width:180px;color:#344054;font-size:14px}
 .nova-empresa input,.nova-empresa select,.nova-empresa button{padding:12px;border:1px solid #d5dce8;border-radius:6px;background:#fafbfe;color:#243247;font:inherit}

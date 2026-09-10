@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: total do orçamento é calculado no servidor; rejeita desconto maior que subtotal; rejeita preço, quantidade e categorias inválidos.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { validarOrcamento } = require('../orcamentos');

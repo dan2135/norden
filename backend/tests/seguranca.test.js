@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: validação de e-mail rejeita entradas longas antes da análise; entradas adversariais terminam sem bloquear o processo; API bloqueia CSRF em rotas públicas e mantém token por sessão.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');

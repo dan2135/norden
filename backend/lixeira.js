@@ -1,6 +1,10 @@
+/**
+ * Separa arquivamento recuperável de exclusão permanente. As operações mantêm o isolamento entre empresas e verificam a senha nas remoções definitivas.
+ */
 const { validarId, erroHttp } = require('./projetos');
 const { conferirSenha } = require('./auth');
 
+// Registra ações de arquivar, restaurar e remover definitivamente clientes e projetos.
 function registrarLixeira(app, banco, rota) {
   app.get('/api/projetos/lixeira', rota(async (req,res) => {
     const resultado = await banco.query(`SELECT p.id,p.movel,p.uso,p.excluido_em,c.nome AS cliente_nome,c.telefone,c.excluido_em AS cliente_excluido_em
@@ -78,6 +82,7 @@ function registrarLixeira(app, banco, rota) {
 }
 
 // Impede usar links antigos para trabalhar com projetos de clientes na lixeira.
+// Impede que registros arquivados continuem sendo usados pelas rotas normais de atendimento.
 async function bloquearArquivados(req, res, next, banco) {
   try {
     const projeto = req.path.match(/^\/(?:painel\/)?projetos\/(\d+)(?:\/|$)/);

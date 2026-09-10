@@ -1,3 +1,6 @@
+/**
+ * Tela de gestão: carrega clientes e projetos, filtra as listas, mostra a ficha selecionada e oferece as ações de lixeira e orçamento.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { requisicao } from './api';
 import { categorias, filtrarProjetos, filtrarClientes, formatarData, formatarMedida } from './painel-utils';

@@ -1,3 +1,6 @@
+/**
+ * Aplica os arquivos SQL na ordem necessária para criar e atualizar a estrutura do banco selecionado. Não é uma cópia dos dados de outro banco.
+ */
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const pool = require('./database');
@@ -5,6 +8,7 @@ const pool = require('./database');
 async function main() {
   const db = await pool.connect();
   try {
+    await db.query(await fs.readFile(path.join(__dirname, 'migrations/000-estrutura-inicial.sql'), 'utf8'));
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/001-multiplos-projetos.sql'), 'utf8'));
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/002-estado-coleta.sql'), 'utf8'));
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/003-orcamentos.sql'), 'utf8'));

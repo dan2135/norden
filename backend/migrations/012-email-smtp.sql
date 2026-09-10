@@ -1,3 +1,4 @@
+-- Acrescenta tentativas e agendamento da fila SMTP para controlar reenvios.
 ALTER TABLE emails_saida ADD COLUMN IF NOT EXISTS tentativas INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE emails_saida ADD COLUMN IF NOT EXISTS proxima_tentativa_em TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE emails_saida ADD COLUMN IF NOT EXISTS enviado_em TIMESTAMPTZ;

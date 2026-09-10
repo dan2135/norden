@@ -1,3 +1,6 @@
+/**
+ * Centraliza requisições ao backend com cookie de sessão, token CSRF e empresa ativa. Traduz falhas de rede e respostas inválidas em mensagens para a interface.
+ */
 const api = import.meta.env?.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api`;
 let marcenariaId = null;
 let csrfToken = null;

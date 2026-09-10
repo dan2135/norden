@@ -1,3 +1,6 @@
+/**
+ * Estilos auxiliares do aplicativo. Uma regra só tem efeito quando este arquivo é importado e seu seletor existe na página.
+ */
 .counter {
   font-size: 16px;
   padding: 5px 10px;

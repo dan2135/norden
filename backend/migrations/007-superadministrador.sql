@@ -1,3 +1,4 @@
+-- Adiciona nome de usuário e privilégios de superadministrador; não cria automaticamente uma conta administrativa.
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS usuario VARCHAR(80);
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS superadministrador BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS trocar_senha BOOLEAN NOT NULL DEFAULT FALSE;

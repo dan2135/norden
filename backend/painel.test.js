@@ -1,3 +1,6 @@
+/**
+ * Testes de regressão: coleta completa não exige detalhes opcionais nem altera status do projeto; pendência tem prioridade sobre campos completos; campos ausentes, sem nome e medidas inválidas aparecem como incompletos. Casos com TEST_DATABASE precisam de banco de testes isolado; não habilitar no banco de produção.
+ */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');

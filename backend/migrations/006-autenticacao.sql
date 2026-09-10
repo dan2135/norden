@@ -1,3 +1,4 @@
+-- Cria usuários, vínculos de acesso e sessões. senha_hash guarda a derivação da senha, não a senha original.
 CREATE TABLE IF NOT EXISTS usuarios (
   id BIGSERIAL PRIMARY KEY,
   nome VARCHAR(120) NOT NULL CHECK (length(trim(nome)) > 0),
