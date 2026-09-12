@@ -14,6 +14,14 @@ const config = process.env.NORDEN_DEMO === 'true'
   : process.env;
 
 // Conexões na nuvem validam o certificado; o banco local continua sem SSL.
+if (process.env.NODE_ENV === 'production') {
+  const faltantes = ['DB_HOST','DB_PORT','DB_DATABASE','DB_USER','DB_PASSWORD'].filter(chave => !config[chave]?.trim());
+  if (faltantes.length) {
+    const erro = new Error('Configuração do banco incompleta em produção.');
+    erro.code = 'DB_CONFIG_AUSENTE';
+    throw erro;
+  }
+}
 const usarSsl = config.DB_SSL === 'true';
 const certificado = config.DB_SSL_CA_FILE;
 

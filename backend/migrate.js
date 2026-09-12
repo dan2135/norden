@@ -3,9 +3,12 @@
  */
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const pool = require('./database');
+const { diagnosticarBanco } = require('./diagnostico-banco');
+let pool;
 
 async function main() {
+  pool = require('./database');
+  console.log('[BANCO] Iniciando preparação:', process.env.NORDEN_DEMO === 'true' ? 'demonstração' : 'principal');
   const db = await pool.connect();
   try {
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/000-estrutura-inicial.sql'), 'utf8'));
@@ -24,8 +27,8 @@ async function main() {
     const resultado = await db.query('SELECT COUNT(*) AS total FROM mensagens WHERE projeto_id IS NULL');
     console.log('Migração concluída. Mensagens antigas sem vínculo:', resultado.rows[0].total);
   } catch (erro) {
-    await db.query('ROLLBACK');
+    await db.query('ROLLBACK').catch(() => {});
     throw erro;
   } finally { db.release(); }
 }
-main().catch(erro => { console.error(erro.message); process.exitCode = 1; }).finally(() => pool.end());
+main().catch(erro => { console.error(diagnosticarBanco(erro)); process.exitCode = 1; }).finally(() => pool?.end());
