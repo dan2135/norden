@@ -26,6 +26,42 @@ function centavosParaReais(centavos) {
   return Math.round(centavos) / 100;
 }
 
+function somenteDigitos(valor) {
+  return String(valor || '').replace(/\D/g, '');
+}
+
+function validarFormaPagamento(body = {}) {
+  const billingType = body.billingType === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'PIX';
+  if (billingType === 'PIX') return { billingType };
+  const cartao = body.creditCard || {};
+  const titular = body.creditCardHolderInfo || {};
+  const dados = {
+    billingType,
+    creditCard: {
+      holderName: String(cartao.holderName || '').trim(),
+      number: somenteDigitos(cartao.number),
+      expiryMonth: somenteDigitos(cartao.expiryMonth).padStart(2, '0'),
+      expiryYear: somenteDigitos(cartao.expiryYear),
+      ccv: somenteDigitos(cartao.ccv),
+    },
+    creditCardHolderInfo: {
+      name: String(titular.name || cartao.holderName || '').trim(),
+      email: String(titular.email || '').trim().toLowerCase(),
+      cpfCnpj: somenteDigitos(titular.cpfCnpj),
+      postalCode: somenteDigitos(titular.postalCode),
+      addressNumber: String(titular.addressNumber || '').trim(),
+      phone: somenteDigitos(titular.phone),
+    },
+  };
+  if (!dados.creditCard.holderName || dados.creditCard.number.length < 13 || !dados.creditCard.expiryMonth || dados.creditCard.expiryYear.length < 4 || dados.creditCard.ccv.length < 3) {
+    throw erroHttp(400, 'Preencha os dados do cartão.');
+  }
+  if (!dados.creditCardHolderInfo.name || !dados.creditCardHolderInfo.email || !dados.creditCardHolderInfo.cpfCnpj || !dados.creditCardHolderInfo.postalCode || !dados.creditCardHolderInfo.addressNumber || !dados.creditCardHolderInfo.phone) {
+    throw erroHttp(400, 'Preencha os dados do titular do cartão.');
+  }
+  return dados;
+}
+
 function validarPlano(config) {
   if (!config.apiKey) throw erroHttp(503, 'Chave do Asaas não configurada no servidor.');
   if (!/^https:\/\/.+/i.test(config.baseUrl)) throw erroHttp(503, 'URL do Asaas precisa ser HTTPS.');
@@ -62,9 +98,10 @@ async function assinaturaAtual(banco, marcenariaId) {
   return assinatura;
 }
 
-async function iniciarAssinatura(banco, usuario, marcenaria) {
+async function iniciarAssinatura(banco, usuario, marcenaria, opcoes = {}) {
   const config = configurarAsaas();
   validarPlano(config);
+  const pagamento = validarFormaPagamento(opcoes);
   const db = await banco.connect();
   try {
     await db.query('BEGIN');
@@ -93,11 +130,17 @@ async function iniciarAssinatura(banco, usuario, marcenaria) {
         method: 'POST',
         body: JSON.stringify({
           customer: customerId,
-          billingType: 'UNDEFINED',
+          billingType: pagamento.billingType,
           value: centavosParaReais(config.valorCentavos),
           nextDueDate: dataFutura(config.trialDias),
           cycle: 'MONTHLY',
           description: 'Plano Norden Pro',
+          externalReference: `norden-marcenaria-${marcenaria.id}`,
+          ...(pagamento.billingType === 'CREDIT_CARD' ? {
+            creditCard: pagamento.creditCard,
+            creditCardHolderInfo: pagamento.creditCardHolderInfo,
+            remoteIp: opcoes.remoteIp || '127.0.0.1',
+          } : {}),
         }),
       }, config);
       subscriptionId = subscription.id;
@@ -105,8 +148,8 @@ async function iniciarAssinatura(banco, usuario, marcenaria) {
 
     assinatura = (await db.query(
       `UPDATE assinaturas SET asaas_customer_id=$1,asaas_subscription_id=$2,status=CASE WHEN status='cancelado' THEN 'ativo' ELSE status END,
-       valor_centavos=$3,proxima_cobranca_em=$4,atualizado_em=CURRENT_TIMESTAMP WHERE id=$5 RETURNING *`,
-      [customerId, subscriptionId, config.valorCentavos, dataFutura(config.trialDias), assinatura.id],
+       valor_centavos=$3,proxima_cobranca_em=$4,billing_type=$5,atualizado_em=CURRENT_TIMESTAMP WHERE id=$6 RETURNING *`,
+      [customerId, subscriptionId, config.valorCentavos, dataFutura(config.trialDias), pagamento.billingType, assinatura.id],
     )).rows[0];
     await db.query('COMMIT');
     return assinatura;
@@ -154,8 +197,8 @@ async function processarEventoAsaas(banco, payload) {
       if (assinatura) {
         const novoStatus = statusPago.has(evento) ? 'ativo' : statusProblema.has(evento) ? 'pendente' : assinatura.status;
         await db.query(
-          `UPDATE assinaturas SET status=$1,ultimo_evento=$2,proxima_cobranca_em=COALESCE($3,proxima_cobranca_em),atualizado_em=CURRENT_TIMESTAMP WHERE id=$4`,
-          [novoStatus, evento, payment.dueDate || null, assinatura.id],
+          `UPDATE assinaturas SET status=$1,ultimo_evento=$2,proxima_cobranca_em=COALESCE($3,proxima_cobranca_em),billing_type=COALESCE($4,billing_type),atualizado_em=CURRENT_TIMESTAMP WHERE id=$5`,
+          [novoStatus, evento, payment.dueDate || null, payment.billingType || null, assinatura.id],
         );
         if (paymentId) {
           await db.query(
@@ -193,9 +236,9 @@ function registrarAssinaturasAsaas(app, banco, rota) {
 
   app.post('/api/assinatura/iniciar', rota(async (req, res) => {
     if (!['proprietario', 'administrador', 'superadministrador'].includes(req.marcenaria.papel)) throw erroHttp(403, 'Somente administradores podem iniciar a assinatura.');
-    const assinatura = await iniciarAssinatura(banco, req.usuario, req.marcenaria);
+    const assinatura = await iniciarAssinatura(banco, req.usuario, req.marcenaria, { ...req.body, remoteIp: req.ip });
     res.json({ assinatura: resumoAssinatura(assinatura) });
   }));
 }
 
-module.exports = { configurarAsaas, iniciarAssinatura, processarEventoAsaas, resumoAssinatura, registrarWebhookAsaas, registrarAssinaturasAsaas };
+module.exports = { configurarAsaas, iniciarAssinatura, processarEventoAsaas, resumoAssinatura, registrarWebhookAsaas, registrarAssinaturasAsaas, validarFormaPagamento };

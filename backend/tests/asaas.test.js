@@ -3,7 +3,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { configurarAsaas, resumoAssinatura } = require('../asaas');
+const { configurarAsaas, resumoAssinatura, validarFormaPagamento } = require('../asaas');
 
 test('configuração do Asaas usa HTTPS, valor e trial padrão', () => {
   const config = configurarAsaas({ ASAAS_API_KEY:'chave', ASAAS_BASE_URL:'https://api.asaas.com/v3/', NORDEN_PLANO_VALOR:'9000', NORDEN_TRIAL_DIAS:'30' });
@@ -23,4 +23,20 @@ test('resumo mostra valor em reais e dias restantes do teste grátis', () => {
   assert.equal(resumo.valor_reais, 90);
   assert.equal(resumo.em_trial, true);
   assert.ok(resumo.dias_trial_restantes >= 1);
+});
+
+test('aceita Pix como forma padrão e valida cartão sem armazenar dados', () => {
+  assert.deepEqual(validarFormaPagamento({ billingType:'PIX' }), { billingType:'PIX' });
+  const pagamento = validarFormaPagamento({
+    billingType:'CREDIT_CARD',
+    creditCard:{ holderName:'Daniel', number:'4111 1111 1111 1111', expiryMonth:'9', expiryYear:'2030', ccv:'123' },
+    creditCardHolderInfo:{ name:'Daniel', email:'daniel@example.com', cpfCnpj:'12345678901', postalCode:'01001000', addressNumber:'10', phone:'11999999999' },
+  });
+  assert.equal(pagamento.billingType, 'CREDIT_CARD');
+  assert.equal(pagamento.creditCard.number, '4111111111111111');
+  assert.equal(pagamento.creditCard.expiryMonth, '09');
+});
+
+test('cartão exige dados do cartão e do titular', () => {
+  assert.throws(() => validarFormaPagamento({ billingType:'CREDIT_CARD', creditCard:{}, creditCardHolderInfo:{} }), /cartão/i);
 });

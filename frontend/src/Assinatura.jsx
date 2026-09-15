@@ -16,6 +16,8 @@ function statusTexto(assinatura) {
 export default function Assinatura({ podeEditar }) {
   const [assinatura, setAssinatura] = useState(null);
   const [configurado, setConfigurado] = useState(false);
+  const [billingType, setBillingType] = useState('PIX');
+  const [cartao, setCartao] = useState({ holderName:'', email:'', number:'', expiryMonth:'', expiryYear:'', ccv:'', cpfCnpj:'', postalCode:'', addressNumber:'', phone:'' });
   const [estado, setEstado] = useState({ carregando:true, processando:false, erro:'', sucesso:'' });
 
   async function carregar() {
@@ -31,7 +33,21 @@ export default function Assinatura({ podeEditar }) {
   async function iniciar() {
     setEstado({ carregando:false, processando:true, erro:'', sucesso:'' });
     try {
-      const resposta = await requisicao('/assinatura/iniciar', { method:'POST' });
+      const body = billingType === 'PIX'
+        ? { billingType:'PIX' }
+        : {
+          billingType:'CREDIT_CARD',
+          creditCard: { holderName:cartao.holderName, number:cartao.number, expiryMonth:cartao.expiryMonth, expiryYear:cartao.expiryYear, ccv:cartao.ccv },
+          creditCardHolderInfo: {
+            name:cartao.holderName,
+            email:cartao.email,
+            cpfCnpj:cartao.cpfCnpj,
+            postalCode:cartao.postalCode,
+            addressNumber:cartao.addressNumber,
+            phone:cartao.phone,
+          },
+        };
+      const resposta = await requisicao('/assinatura/iniciar', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       setAssinatura(resposta.assinatura);
       setEstado({ carregando:false, processando:false, erro:'', sucesso:'Assinatura criada no Asaas. As cobranças serão acompanhadas pelo webhook.' });
     } catch (erro) { setEstado({ carregando:false, processando:false, erro:erro.message, sucesso:'' }); }
@@ -44,9 +60,26 @@ export default function Assinatura({ podeEditar }) {
     {estado.carregando ? <p>Carregando plano…</p> : <div className="assinatura-card">
       <div><small>Plano</small><strong>Norden Pro</strong><p>Primeiro mês grátis e depois cobrança mensal automática pelo Asaas.</p></div>
       <div><small>Valor</small><strong>R$ {Number(assinatura?.valor_reais || 90).toLocaleString('pt-BR', { minimumFractionDigits:2 })}/mês</strong><p>Valor inicial de lançamento.</p></div>
-      <div><small>Próxima cobrança</small><strong>{assinatura?.proxima_cobranca_em ? new Date(`${assinatura.proxima_cobranca_em}T00:00:00`).toLocaleDateString('pt-BR') : 'Após o teste grátis'}</strong><p>O Asaas avisará o Norden quando o pagamento for confirmado.</p></div>
+      <div><small>Próxima cobrança</small><strong>{assinatura?.proxima_cobranca_em ? new Date(`${assinatura.proxima_cobranca_em}T00:00:00`).toLocaleDateString('pt-BR') : 'Após o teste grátis'}</strong><p>{assinatura?.billing_type === 'CREDIT_CARD' ? 'Cartão recorrente conectado.' : 'Pix de cobrança recorrente pelo Asaas.'}</p></div>
+      <fieldset className="formas-pagamento" disabled={Boolean(assinatura?.asaas_subscription_id)}>
+        <legend>Forma de pagamento</legend>
+        <label className={billingType === 'PIX' ? 'selecionado' : ''}><input type="radio" name="billingType" checked={billingType === 'PIX'} onChange={() => setBillingType('PIX')} /><span>Pix automático</span><small>O Asaas gera a cobrança recorrente e avisa o Norden quando receber.</small></label>
+        <label className={billingType === 'CREDIT_CARD' ? 'selecionado' : ''}><input type="radio" name="billingType" checked={billingType === 'CREDIT_CARD'} onChange={() => setBillingType('CREDIT_CARD')} /><span>Cartão de crédito</span><small>Cobrança recorrente no cartão. O Norden não salva o número do cartão.</small></label>
+      </fieldset>
+      {billingType === 'CREDIT_CARD' && !assinatura?.asaas_subscription_id && <div className="cartao-form">
+        <label>Nome no cartão<input required value={cartao.holderName} onChange={e=>setCartao({...cartao,holderName:e.target.value})} /></label>
+        <label>E-mail do titular<input required type="email" value={cartao.email} onChange={e=>setCartao({...cartao,email:e.target.value})} /></label>
+        <label>Número do cartão<input required inputMode="numeric" autoComplete="cc-number" value={cartao.number} onChange={e=>setCartao({...cartao,number:e.target.value})} /></label>
+        <label>Mês<input required inputMode="numeric" autoComplete="cc-exp-month" placeholder="MM" value={cartao.expiryMonth} onChange={e=>setCartao({...cartao,expiryMonth:e.target.value})} /></label>
+        <label>Ano<input required inputMode="numeric" autoComplete="cc-exp-year" placeholder="AAAA" value={cartao.expiryYear} onChange={e=>setCartao({...cartao,expiryYear:e.target.value})} /></label>
+        <label>CVV<input required inputMode="numeric" autoComplete="cc-csc" value={cartao.ccv} onChange={e=>setCartao({...cartao,ccv:e.target.value})} /></label>
+        <label>CPF/CNPJ do titular<input required inputMode="numeric" value={cartao.cpfCnpj} onChange={e=>setCartao({...cartao,cpfCnpj:e.target.value})} /></label>
+        <label>CEP<input required inputMode="numeric" value={cartao.postalCode} onChange={e=>setCartao({...cartao,postalCode:e.target.value})} /></label>
+        <label>Número do endereço<input required value={cartao.addressNumber} onChange={e=>setCartao({...cartao,addressNumber:e.target.value})} /></label>
+        <label>Telefone<input required inputMode="tel" value={cartao.phone} onChange={e=>setCartao({...cartao,phone:e.target.value})} /></label>
+      </div>}
       <button className="botao-principal" disabled={!podeEditar || !configurado || estado.processando || Boolean(assinatura?.asaas_subscription_id)} onClick={iniciar}>
-        {assinatura?.asaas_subscription_id ? 'Assinatura conectada' : estado.processando ? 'Conectando…' : 'Ativar assinatura no Asaas'}
+        {assinatura?.asaas_subscription_id ? 'Assinatura conectada' : estado.processando ? 'Conectando…' : billingType === 'PIX' ? 'Ativar com Pix automático' : 'Ativar com cartão'}
       </button>
       {!configurado && <p className="assinatura-alerta">Configure ASAAS_API_KEY e ASAAS_BASE_URL no Render para ativar assinaturas reais.</p>}
       {!podeEditar && <p className="assinatura-alerta">Somente administradores podem ativar ou alterar o plano.</p>}

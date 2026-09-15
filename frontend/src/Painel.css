@@ -48,3 +48,38 @@
 .filtros input,.filtros select{border-radius:6px;background:#fafbfe}
 .painel tbody tr:hover,.painel tr.selecionado{background:#f2f5ff}
 @media(max-width:760px){.app-navegacao{padding:14px;gap:12px;flex-wrap:wrap}.app-navegacao nav{margin-left:auto}.app-usuario{margin-left:0}.app-topo{height:auto}.painel h1{font-size:28px}}
+
+/* Tema claro renovado: superfícies limpas, contraste alto e azul suave como destaque. */
+:root{--norden-bg:#f8fbff;--norden-surface:#ffffff;--norden-surface-soft:#f2f7ff;--norden-line:#dce8f7;--norden-text:#172033;--norden-muted:#5d6b82;--norden-blue:#2f6fe4;--norden-blue-soft:#eaf2ff}
+.app-shell{background:var(--norden-bg)!important;color:var(--norden-text)!important}
+.app-navegacao{background:rgba(255,255,255,.94)!important;border-bottom:1px solid var(--norden-line)!important;box-shadow:0 8px 28px #2d5b9a0d!important}
+.app-marca>span{background:linear-gradient(135deg,#2f6fe4,#78a7ff)!important;color:#fff!important;border:0!important}
+.app-marca strong,.app-topo strong,.painel h1,.painel h2,.painel h3,.indicador strong,.painel td strong,.dados-ficha dd{color:var(--norden-text)!important}
+.app-navegacao nav button{color:#42526b!important;background:transparent!important;border-color:transparent!important}
+.app-navegacao nav button:hover{background:var(--norden-blue-soft)!important;color:#1f55bd!important}
+.app-navegacao nav button[aria-pressed=true]{background:#e7f0ff!important;color:#1f55bd!important;border-color:#cfe0ff!important}
+.app-topo{background:var(--norden-bg)!important;border-bottom:1px solid transparent!important}
+.app-topo small,.app-usuario small,.texto-suave,.nota,.indicador span,.filtros label,.contagem,.painel td small,.dados-ficha dt,.mensagem-painel header,.estado-vazio,.carregando-empresa{color:var(--norden-muted)!important}
+.seletor-marcenaria select,.seletor-marcenaria button,.filtros input,.filtros select,.orcamento input,.orcamento select,.orcamento textarea{background:#fff!important;color:var(--norden-text)!important;border-color:var(--norden-line)!important;box-shadow:0 1px 0 #ffffff inset}
+.seletor-marcenaria button,.botao-secundario,.paginacao button,.ficha-projeto>header button{background:#fff!important;color:#245dbf!important;border-color:#cfdef2!important}
+.seletor-marcenaria button:hover,.botao-secundario:hover,.paginacao button:hover{background:#edf5ff!important;border-color:#b9d2f5!important}
+.painel{background:transparent!important}
+.indicadores{gap:16px!important}
+.indicador,.lista-painel,.ficha-projeto,.confirmar-exclusao,.nova-empresa,.assinatura-card{background:var(--norden-surface)!important;border:1px solid var(--norden-line)!important;border-radius:18px!important;box-shadow:0 14px 40px #244d7d0d!important}
+.indicador{border-top:0!important}
+.indicador:first-child{border-top:0!important}
+.indicador strong{font-size:34px!important}
+.sobretitulo{color:var(--norden-blue)!important}
+.abas-lista{border-bottom-color:var(--norden-line)!important}
+.abas-lista button{color:var(--norden-muted)!important}
+.abas-lista button[aria-pressed=true]{color:var(--norden-blue)!important;border-bottom-color:var(--norden-blue)!important}
+.painel th{background:#f2f7ff!important;color:#526178!important}
+.painel td{border-top-color:var(--norden-line)!important}
+.painel tbody tr:hover,.painel tr.selecionado{background:#f5f9ff!important}
+.mensagem-painel,.mensagem-painel.do-cliente,.catalogo-estimativa,.whatsapp-orcamento{background:#f7fbff!important;border-color:var(--norden-line)!important}
+.resultado-estimativa,.material-catalogo,.previa-whatsapp{background:#fff!important;border-color:var(--norden-line)!important}
+.botao-principal,.botao-whatsapp{background:linear-gradient(135deg,#2f6fe4,#598ff2)!important;color:white!important;border:0!important;border-radius:10px!important;box-shadow:0 8px 18px #2f6fe433!important}
+.aviso.sucesso{background:#edf8f1!important;color:#2f6b43!important;border-color:#cce8d6!important}
+.aviso,.selo.pendente{background:#fff8e8!important;color:#7b571d!important;border-color:#f0dcae!important}
+.selo.completo{background:#edf8f1!important;color:#2f6b43!important;border-color:#cce8d6!important}
+.erro-empresa,.aviso.erro{background:#fff3ef!important;color:#903a2d!important;border-color:#edc9bf!important}
