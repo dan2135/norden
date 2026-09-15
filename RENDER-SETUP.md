@@ -40,6 +40,12 @@ Defina em Environment; não envie arquivos .env para o GitHub.
 | ASAAS_WEBHOOK_TOKEN | Mesmo token informado no webhook do Asaas |
 | NORDEN_PLANO_VALOR | `9000` para R$ 90,00 |
 | NORDEN_TRIAL_DIAS | `30` |
+| WHATSAPP_TOKEN | Token temporário/permanente da Meta WhatsApp Cloud API |
+| WHATSAPP_PHONE_NUMBER_ID | ID do número exibido na tela de teste da Meta |
+| WHATSAPP_BUSINESS_ACCOUNT_ID | ID da conta WhatsApp Business |
+| WHATSAPP_VERIFY_TOKEN | `norden_whatsapp_2026` ou outro valor igual ao cadastrado na Meta |
+| WHATSAPP_API_VERSION | `v25.0` |
+| WHATSAPP_MARCENARIA_SLUG ou WHATSAPP_MARCENARIA_ID | Empresa do Norden que receberá as mensagens do WhatsApp |
 
 Em produção, DB_* é lido das variáveis do Render, sem depender de .env.supabase. O certificado público prod-ca-2021.crt precisa acompanhar o código; nunca desabilite a validação TLS.
 Não configure ADMIN_SENHA no Render: a conta existente permanece no Supabase.
@@ -53,6 +59,16 @@ Cadastre no painel do Asaas:
 - Versão: v3
 - Token de autenticação: o mesmo valor de `ASAAS_WEBHOOK_TOKEN`
 - Eventos de cobranças: `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_UPDATED`, `PAYMENT_DELETED`, `PAYMENT_REFUNDED`
+
+## Webhook do WhatsApp
+
+Cadastre na Meta:
+
+- Callback URL: `https://SEU-DOMINIO.onrender.com/api/webhooks/whatsapp`
+- Verify token: mesmo valor de `WHATSAPP_VERIFY_TOKEN`
+- Campo de webhook: `messages`
+
+Na primeira versão, um número do WhatsApp atende uma empresa do Norden. Use `WHATSAPP_MARCENARIA_ID` quando quiser apontar explicitamente para uma empresa específica.
 
 ## Pendências antes de liberar para amigos
 
