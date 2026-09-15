@@ -29,6 +29,33 @@ function mensagensDoWebhook(payload = {}) {
   return mensagens;
 }
 
+function mascararTelefone(telefone = '') {
+  const limpo = String(telefone).replace(/\D/g, '');
+  if (!limpo) return 'desconhecido';
+  return `***${limpo.slice(-4)}`;
+}
+
+function resumoWebhook(payload = {}) {
+  const resumo = { entries: 0, changes: 0, campos: [], tipos: [], status: 0 };
+  for (const entry of payload.entry || []) {
+    resumo.entries += 1;
+    for (const change of entry.changes || []) {
+      resumo.changes += 1;
+      if (change.field) resumo.campos.push(change.field);
+      const value = change.value || {};
+      for (const msg of value.messages || []) if (msg.type) resumo.tipos.push(msg.type);
+      if (Array.isArray(value.statuses)) resumo.status += value.statuses.length;
+    }
+  }
+  return {
+    entries: resumo.entries,
+    changes: resumo.changes,
+    campos: [...new Set(resumo.campos)],
+    tipos: [...new Set(resumo.tipos)],
+    status: resumo.status,
+  };
+}
+
 async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp()) {
   const resultado = config.marcenariaId
     ? await banco.query("SELECT id,nome,slug,segmento,'administrador' AS papel FROM marcenarias WHERE id=$1 AND ativa=TRUE", [config.marcenariaId])
@@ -110,12 +137,22 @@ function registrarWhatsApp(app, banco, rota, { extrair, logger = console } = {})
   });
   app.post('/api/webhooks/whatsapp', rota(async (req, res) => {
     const config = configurarWhatsApp();
+    const mensagens = mensagensDoWebhook(req.body);
+    const resumo = resumoWebhook(req.body);
+    logger.log('[WHATSAPP] webhook recebido', JSON.stringify({ ...resumo, mensagens_texto: mensagens.length }));
+    if (!mensagens.length) {
+      logger.log('[WHATSAPP] sem mensagem de texto para processar', JSON.stringify(resumo));
+      return res.json({ recebido: true, mensagens: 0 });
+    }
     const empresa = await resolverEmpresaWhatsApp(banco, config);
-    for (const mensagem of mensagensDoWebhook(req.body)) {
+    logger.log('[WHATSAPP] empresa selecionada', JSON.stringify({ id: empresa.id, nome: empresa.nome, slug: empresa.slug }));
+    for (const mensagem of mensagens) {
+      logger.log('[WHATSAPP] processando mensagem', JSON.stringify({ de: mascararTelefone(mensagem.de), empresa_id: empresa.id }));
       const resposta = await responderMensagem({ banco, extrair, logger, telefone: mensagem.de, texto: mensagem.texto, empresa });
       await enviarWhatsApp(mensagem.de, resposta, config);
+      logger.log('[WHATSAPP] resposta enviada', JSON.stringify({ para: mascararTelefone(mensagem.de), empresa_id: empresa.id }));
     }
-    res.json({ recebido: true });
+    res.json({ recebido: true, mensagens: mensagens.length });
   }));
 }
 
