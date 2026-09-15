@@ -35,10 +35,24 @@ Defina em Environment; não envie arquivos .env para o GitHub.
 | DB_SSL_CA_FILE | ../prod-ca-2021.crt |
 | EMAIL_MODE | smtp, somente em hospedagem com SMTP liberado |
 | SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / EMAIL_FROM | Configuração privada já usada localmente |
+| ASAAS_API_KEY | Chave privada do Asaas |
+| ASAAS_BASE_URL | `https://api.asaas.com/v3` em produção ou `https://api-sandbox.asaas.com/v3` em testes |
+| ASAAS_WEBHOOK_TOKEN | Mesmo token informado no webhook do Asaas |
+| NORDEN_PLANO_VALOR | `9000` para R$ 90,00 |
+| NORDEN_TRIAL_DIAS | `30` |
 
 Em produção, DB_* é lido das variáveis do Render, sem depender de .env.supabase. O certificado público prod-ca-2021.crt precisa acompanhar o código; nunca desabilite a validação TLS.
 Não configure ADMIN_SENHA no Render: a conta existente permanece no Supabase.
 PORT é fornecida pelo Render. Não defina VITE_API_URL: o build usa /api no próprio domínio.
+
+## Webhook do Asaas
+
+Cadastre no painel do Asaas:
+
+- URL: `https://SEU-DOMINIO.onrender.com/api/webhooks/asaas`
+- Versão: v3
+- Token de autenticação: o mesmo valor de `ASAAS_WEBHOOK_TOKEN`
+- Eventos de cobranças: `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_UPDATED`, `PAYMENT_DELETED`, `PAYMENT_REFUNDED`
 
 ## Pendências antes de liberar para amigos
 

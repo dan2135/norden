@@ -16,6 +16,7 @@ const { registrarMarcenarias, resolverMarcenaria } = require('./marcenarias');
 const { registrarAuth } = require('./auth');
 const { analisarSolicitacao, responderSolicitacao } = require('./segmentos');
 const { registrarLixeira, bloquearArquivados } = require('./lixeira');
+const { registrarWebhookAsaas, registrarAssinaturasAsaas } = require('./asaas');
 
 const { validarTelefone, validarId, selecionarProjeto, obterCliente, historicoProjeto, erroHttp } = require("./projetos");
 
@@ -68,6 +69,7 @@ const rota = (fn) => async (req, res) => {
   }
 };
 
+registrarWebhookAsaas(app, banco, rota);
 const autenticar = registrarAuth(app, banco, rota);
 // A partir daqui as rotas exigem sessão. A seleção da empresa vem antes das consultas de negócio.
 app.use('/api', autenticarInjetado || autenticar);
@@ -79,6 +81,8 @@ app.use('/api', (req,res,next) => bloquearArquivados(req,res,next,banco));
 registrarPainel(app, banco, rota);
 registrarOrcamentos(app, banco, rota);
 registrarEstimativa(app, banco, rota);
+registrarAssinaturasAsaas(app, banco, rota);
+require('./configuracao-empresa').registrarConfiguracaoEmpresa(app, banco, rota);
 
 app.get("/api/projetos", rota(async (req, res) => {
   const telefone = validarTelefone(req.query.telefone);

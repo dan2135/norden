@@ -23,8 +23,10 @@ function validarMaterial(body) {
   if (!unidades.has(body?.unidade_consumo)) throw erroHttp(400, 'Unidade de consumo inválida.');
   const rendimento = inteiro(body.rendimento_milesimos, 'Rendimento', 1_000_000_000);
   if (!rendimento) throw erroHttp(400, 'Rendimento inválido.');
+  const especificacoes = body.especificacoes ?? '';
+  if (typeof especificacoes !== 'string' || especificacoes.length > 500) throw erroHttp(400, 'Medidas e especificações devem ter até 500 caracteres.');
   return { tipo: body.tipo, descricao: texto(body.descricao, 'Descrição', 200), fornecedor: texto(body.fornecedor, 'Fornecedor', 120),
-    unidade_consumo: body.unidade_consumo, rendimento_milesimos: rendimento, preco_centavos: inteiro(body.preco_centavos, 'Preço'), ativo: body.ativo !== false };
+    unidade_consumo: body.unidade_consumo, rendimento_milesimos: rendimento, preco_centavos: inteiro(body.preco_centavos, 'Preço'), ativo: body.ativo !== false, especificacoes: especificacoes.trim() };
 }
 
 // Estima áreas e ferragens com margens e suposições explícitas; não substitui um plano de corte.
@@ -69,14 +71,14 @@ function registrarEstimativa(app, banco, rota) {
   app.get('/api/catalogo', rota(async (req, res) => res.json({ materiais: (await banco.query('SELECT * FROM catalogo_materiais WHERE marcenaria_id=$1 ORDER BY ativo DESC, tipo, descricao, id', [req.marcenaria.id])).rows })));
   app.post('/api/catalogo', rota(async (req, res) => {
     const m = validarMaterial(req.body);
-    const r = await banco.query(`INSERT INTO catalogo_materiais (tipo,descricao,fornecedor,unidade_consumo,rendimento_milesimos,preco_centavos,ativo,marcenaria_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`, [m.tipo,m.descricao,m.fornecedor,m.unidade_consumo,m.rendimento_milesimos,m.preco_centavos,m.ativo,req.marcenaria.id]);
+    const r = await banco.query(`INSERT INTO catalogo_materiais (tipo,descricao,fornecedor,unidade_consumo,rendimento_milesimos,preco_centavos,ativo,marcenaria_id,especificacoes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`, [m.tipo,m.descricao,m.fornecedor,m.unidade_consumo,m.rendimento_milesimos,m.preco_centavos,m.ativo,req.marcenaria.id,m.especificacoes]);
     res.status(201).json({ material: r.rows[0] });
   }));
   app.put('/api/catalogo/:id', rota(async (req, res) => {
     const id = validarId(req.params.id), m = validarMaterial(req.body);
     const r = await banco.query(`UPDATE catalogo_materiais SET tipo=$1,descricao=$2,fornecedor=$3,unidade_consumo=$4,rendimento_milesimos=$5,
-      preco_centavos=$6,ativo=$7,atualizado_em=CURRENT_TIMESTAMP WHERE id=$8 AND marcenaria_id=$9 RETURNING *`, [m.tipo,m.descricao,m.fornecedor,m.unidade_consumo,m.rendimento_milesimos,m.preco_centavos,m.ativo,id,req.marcenaria.id]);
+      preco_centavos=$6,ativo=$7,especificacoes=$10,atualizado_em=CURRENT_TIMESTAMP WHERE id=$8 AND marcenaria_id=$9 RETURNING *`, [m.tipo,m.descricao,m.fornecedor,m.unidade_consumo,m.rendimento_milesimos,m.preco_centavos,m.ativo,id,req.marcenaria.id,m.especificacoes]);
     if (!r.rows[0]) throw erroHttp(404, 'Material não encontrado.'); res.json({ material: r.rows[0] });
   }));
   app.post('/api/projetos/:id/estimativa', rota(async (req, res) => {

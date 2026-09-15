@@ -30,6 +30,8 @@ test('usa preço do catálogo, arredonda para embalagens e aponta faltantes', ()
 test('valida preço e rendimento cadastrados', () => {
   const base = { tipo:'chapa', descricao:'MDF', fornecedor:'Léo', unidade_consumo:'m2', rendimento_milesimos:5087, preco_centavos:30000 };
   assert.deepEqual(validarMaterial(base).preco_centavos, 30000);
+  assert.equal(validarMaterial({ ...base, especificacoes:'  Chapa 2,75 × 1,85 m  ' }).especificacoes, 'Chapa 2,75 × 1,85 m');
   assert.throws(() => validarMaterial({ ...base, preco_centavos:-1 }), /preço inválido/i);
   assert.throws(() => validarMaterial({ ...base, rendimento_milesimos:0 }), /rendimento inválido/i);
+  assert.throws(() => validarMaterial({ ...base, especificacoes:'x'.repeat(501) }), /especificações/i);
 });

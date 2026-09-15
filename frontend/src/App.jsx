@@ -9,6 +9,8 @@ import Rodape from './Rodape';
 import LandingPage from './LandingPage';
 import BotaoTema from './BotaoTema';
 import TrocarSenha from './TrocarSenha';
+import ConfiguracaoEmpresa from './ConfiguracaoEmpresa';
+import Assinatura from './Assinatura';
 import './Empresa.css';
 
 // Cliente de demonstração já utilizado pelo atendimento local.
@@ -274,7 +276,9 @@ function Aplicacao() {
   const [erroEmpresa, setErroEmpresa] = useState('');
   const [novaEmpresa, setNovaEmpresa] = useState(null);
   const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
-  const segmento = marcenarias.find(m=>String(m.id)===marcenariaId)?.segmento || 'marcenaria';
+  const empresaAtiva = marcenarias.find(m=>String(m.id)===marcenariaId);
+  const segmento = empresaAtiva?.segmento || 'marcenaria';
+  const podeConfigurarEmpresa = ['proprietario','administrador','superadministrador'].includes(empresaAtiva?.papel);
   useEffect(() => {
     requisicao('/auth/sessao').then(entrar)
       .catch(erro => { if (erro.status !== 401) setErroEmpresa(erro.message); })
@@ -292,6 +296,14 @@ function Aplicacao() {
   function trocarMarcenaria(id) {
     definirMarcenaria(id); localStorage.setItem('marceneiro-ia:marcenaria', id); setMarcenariaId(id);
   }
+  useEffect(() => {
+    if (!sessao?.id || sessao?.trocar_senha || !marcenariaId) return;
+    let cancelado = false;
+    requisicao('/empresa-configuracao')
+      .then(({ empresa }) => { if (!cancelado && !empresa.configurada_em) setAba('empresa'); })
+      .catch(erro => { if (!cancelado) setErroEmpresa(erro.message); });
+    return () => { cancelado = true; };
+  }, [sessao?.id, sessao?.trocar_senha, marcenariaId]);
   async function criarMarcenaria(event) {
     event.preventDefault();
     if (salvandoEmpresa) return;
@@ -318,6 +330,8 @@ function Aplicacao() {
       <nav aria-label="Navegação principal">
         <button aria-pressed={aba === 'painel'} onClick={() => setAba('painel')}><span>⌁</span>Painel</button>
         <button aria-pressed={aba === 'atendimento'} onClick={() => setAba('atendimento')}><span>◇</span>Atendimento</button>
+        <button aria-pressed={aba === 'empresa'} onClick={() => setAba('empresa')}><span>▣</span>Minha empresa</button>
+        <button aria-pressed={aba === 'plano'} onClick={() => setAba('plano')}><span>◌</span>Meu plano</button>
       </nav>
       <div className="app-usuario"><span>{sessao.nome?.slice(0,1).toUpperCase()}</span><div><strong>{sessao.nome}</strong><small>{sessao.email}</small></div><button onClick={sair} title="Sair">↪</button></div>
     </aside>
@@ -336,6 +350,16 @@ function Aplicacao() {
       {marcenariaId && <div key={marcenariaId} className="app-conteudo">
         <div hidden={aba !== 'painel'}><Painel segmento={segmento} visivel={aba === 'painel'} /></div>
         <div hidden={aba !== 'atendimento'}><Atendimento segmento={segmento} key={versaoClientes} /></div>
+        <div hidden={aba !== 'empresa'}>
+          {aba === 'empresa' && <ConfiguracaoEmpresa
+            podeEditar={podeConfigurarEmpresa}
+            aoSalvar={empresa => {
+              setErroEmpresa('');
+              setMarcenarias(lista => lista.map(item => String(item.id) === String(empresa.id) ? { ...item, ...empresa } : item));
+            }}
+          />}
+        </div>
+        <div hidden={aba !== 'plano'}>{aba === 'plano' && <Assinatura podeEditar={podeConfigurarEmpresa} />}</div>
       </div>}
       <Rodape />
     </section>

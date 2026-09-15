@@ -1,0 +1,18 @@
+/**
+ * Visual enxuto da tela de plano, reaproveitando botões e cores do painel.
+ */
+.assinatura{max-width:1120px;margin:0 auto;padding:34px 24px;color:#243247}
+.assinatura header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px}
+.assinatura header p{margin:0;color:#667085;font-size:11px;letter-spacing:1.6px;font-weight:800}
+.assinatura h1{margin:5px 0 0;font-size:32px;letter-spacing:-1px}
+.assinatura header span{border:1px solid #d5deef;background:#edf2ff;color:#3154af;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:700}
+.assinatura-card{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;background:#fff;border:1px solid #e1e6ef;border-radius:10px;padding:22px}
+.assinatura-card>div{border:1px solid #e1e6ef;border-radius:10px;padding:18px;background:#f8faff}
+.assinatura-card small{display:block;color:#667085;text-transform:uppercase;font-size:10px;letter-spacing:1px;margin-bottom:8px}
+.assinatura-card strong{display:block;font-size:22px;color:#243247}
+.assinatura-card p{color:#667085;line-height:1.5;font-size:13px}
+.assinatura-card button{grid-column:1/-1;justify-self:start}
+.assinatura-alerta,.assinatura-sucesso{border-radius:8px;padding:12px 14px;font-size:13px}
+.assinatura-alerta{background:#fff1ec;border:1px solid #eccbc4;color:#983d2e}
+.assinatura-sucesso{background:#edf6e7;border:1px solid #d0e2c8;color:#466e35}
+@media(max-width:900px){.assinatura-card{grid-template-columns:1fr}.assinatura header{display:block}.assinatura header span{display:inline-block;margin-top:12px}}

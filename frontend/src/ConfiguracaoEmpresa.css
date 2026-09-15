@@ -1,0 +1,13 @@
+.configuracao-empresa { padding:clamp(18px,3vw,40px); max-width:1200px; margin:auto; color:var(--chat-text,#243247); }
+.configuracao-empresa header>p:first-child { font-size:12px; letter-spacing:.12em; }
+.configuracao-empresa h1 { font-size:30px; margin:10px 0; }
+.configuracao-empresa p { line-height:1.6; }
+.configuracao-empresa fieldset { border:1px solid #cbd5e1; border-radius:12px; padding:24px; display:grid; gap:18px; margin:24px 0; }
+.configuracao-empresa label { display:grid; gap:8px; font-size:14px; }
+.configuracao-empresa input,.configuracao-empresa select,.configuracao-empresa button { font:inherit; padding:12px; border:1px solid #cbd5e1; border-radius:7px; background:var(--chat-surface,#fff); color:inherit; min-width:0; }
+.configuracao-empresa button { cursor:pointer; }
+.configuracao-empresa button:disabled { opacity:.6; cursor:wait; }
+.configuracao-empresa .material-catalogo { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.configuracao-empresa .material-catalogo>div:first-child { grid-column:1/-1; }
+.configuracao-boas-vindas { padding:16px; border-left:4px solid #5175de; background:var(--chat-soft,#f1f5ff); }
+@media(max-width:650px) { .configuracao-empresa .material-catalogo { grid-template-columns:1fr; }.configuracao-empresa fieldset { padding:16px; } }
