@@ -51,7 +51,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
           <legend>Perfil da empresa</legend>
           <label>Nome da empresa<input required maxLength={120} value={empresa.nome} onChange={e=>setEmpresa({...empresa,nome:e.target.value})}/></label>
           <label>Ramo de atividade<select value={empresa.segmento} onChange={e=>setEmpresa({...empresa,segmento:e.target.value})}>{ramos.map(([valor,nome])=><option key={valor} value={valor}>{nome}</option>)}</select></label>
-          <label>Com o que você trabalha?<input required maxLength={200} placeholder={exemplosAtividade[empresa.segmento] || exemplosAtividade.outros} value={empresa.atividade} onChange={e=>setEmpresa({...empresa,atividade:e.target.value})}/></label>
+          <label>{empresa.segmento === 'outros' ? 'Qual é o ramo da sua empresa?' : 'Com o que você trabalha?'}<input required maxLength={200} placeholder={exemplosAtividade[empresa.segmento] || exemplosAtividade.outros} value={empresa.atividade} onChange={e=>setEmpresa({...empresa,atividade:e.target.value})}/></label>
           <button type="submit">{ocupado ? 'Salvando…' : 'Salvar perfil da empresa'}</button>
         </fieldset>
         {!podeEditar && <p>Peça ao administrador da empresa para alterar o perfil.</p>}

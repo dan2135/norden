@@ -63,9 +63,11 @@ function Aplicacao() {
     if (salvandoEmpresa) return;
     const nome = novaEmpresa.nome.trim();
     if (!nome) return;
+    const atividade = novaEmpresa.atividade?.trim() || '';
+    if (novaEmpresa.segmento === 'outros' && !atividade) { setErroEmpresa('Informe o ramo da empresa.'); return; }
     setSalvandoEmpresa(true); setErroEmpresa('');
     try {
-      const { marcenaria } = await requisicao('/marcenarias', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ nome, segmento: novaEmpresa.segmento }) });
+      const { marcenaria } = await requisicao('/marcenarias', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ nome, segmento: novaEmpresa.segmento, atividade }) });
       setMarcenarias(lista => [...lista,marcenaria].sort((a,b)=>a.nome.localeCompare(b.nome))); trocarMarcenaria(String(marcenaria.id));
       setNovaEmpresa(null);
     } catch (e) { setErroEmpresa(e.message); } finally { setSalvandoEmpresa(false); }
@@ -91,11 +93,12 @@ function Aplicacao() {
     <section className="app-principal">
       <header className="app-topo"><div><small>ESPAÇO DE TRABALHO</small><strong>{marcenarias.find(m=>String(m.id)===marcenariaId)?.nome || 'Sua empresa'}</strong></div>
         <div className="seletor-marcenaria"><select aria-label="Empresa ativa" value={marcenariaId} disabled={!marcenarias.length} onChange={e=>trocarMarcenaria(e.target.value)}>
-          {marcenarias.map(m=><option value={m.id} key={m.id}>{m.nome}</option>)}</select><button onClick={()=>setNovaEmpresa({nome:'',segmento:'outros'})}>+ Nova empresa</button></div>
+          {marcenarias.map(m=><option value={m.id} key={m.id}>{m.nome}</option>)}</select><button onClick={()=>setNovaEmpresa({nome:'',segmento:'outros',atividade:''})}>+ Nova empresa</button></div>
       </header>
       {novaEmpresa && <form className="nova-empresa" onSubmit={criarMarcenaria}>
         <label>Nome da empresa<input required maxLength={120} value={novaEmpresa.nome} onChange={e=>setNovaEmpresa({...novaEmpresa,nome:e.target.value})} /></label>
-        <label>Ramo de atividade<select value={novaEmpresa.segmento} onChange={e=>setNovaEmpresa({...novaEmpresa,segmento:e.target.value})}><option value="outros">Outros ramos</option><option value="serralheria">Serralheria e solda</option><option value="comercio">Comércio</option><option value="servicos">Prestação de serviços</option><option value="marcenaria">Marcenaria</option></select></label>
+        <label>Ramo de atividade<select value={novaEmpresa.segmento} onChange={e=>setNovaEmpresa({...novaEmpresa,segmento:e.target.value,atividade:e.target.value==='outros'?novaEmpresa.atividade:''})}><option value="outros">Outros ramos</option><option value="serralheria">Serralheria e solda</option><option value="comercio">Comércio</option><option value="servicos">Prestação de serviços</option><option value="marcenaria">Marcenaria</option></select></label>
+        {novaEmpresa.segmento === 'outros' && <label>Qual é o ramo da empresa?<input required maxLength={200} value={novaEmpresa.atividade} onChange={e=>setNovaEmpresa({...novaEmpresa,atividade:e.target.value})} placeholder="Ex.: vidraçaria, estética automotiva, costura…" /></label>}
         <button disabled={salvandoEmpresa}>Criar empresa</button><button type="button" disabled={salvandoEmpresa} onClick={()=>setNovaEmpresa(null)}>Cancelar</button>
       </form>}
       {erroEmpresa && <div className="erro-empresa" role="alert">{erroEmpresa}</div>}

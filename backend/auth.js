@@ -43,6 +43,13 @@ function validarDocumento(valor) {
   return documento;
 }
 
+function validarAtividade(valor, { obrigatoria = false } = {}) {
+  const atividade = typeof valor === 'string' ? valor.trim() : '';
+  if (obrigatoria && !atividade) throw erroHttp(400, 'Informe o ramo da empresa.');
+  if (atividade.length > 200) throw erroHttp(400, 'Informe o ramo da empresa em até 200 caracteres.');
+  return atividade;
+}
+
 function novoToken() { const token=crypto.randomBytes(32).toString('hex'); return { token, hash:hashToken(token) }; }
 function urlFrontend(caminho) { return `${(process.env.FRONTEND_URL || 'http://localhost:5176').replace(/\/$/,'')}${caminho}`; }
 function obterIp(req) { return String(req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/,'').slice(0,64); }
@@ -102,8 +109,8 @@ function registrarAuth(app, banco, rota) {
       if ((await db.query('SELECT EXISTS (SELECT 1 FROM usuarios) AS existe')).rows[0].existe) throw erroHttp(409, 'O acesso inicial já foi configurado. Faça login.');
       const senhaHash = await criarHashSenha(dados.senha);
       const usuario = (await db.query('INSERT INTO usuarios (nome,email,senha_hash) VALUES ($1,$2,$3) RETURNING id,nome,email', [dados.nome,dados.email,senhaHash])).rows[0];
-      const marcenaria = (await db.query("SELECT id,nome,slug FROM marcenarias WHERE slug='principal' AND ativa=TRUE")).rows[0];
-      if (!marcenaria) throw new Error('Marcenaria principal não encontrada. Execute as migrações.');
+      const marcenaria = (await db.query("SELECT id,nome,slug,segmento,atividade FROM marcenarias WHERE slug='principal' AND ativa=TRUE")).rows[0];
+      if (!marcenaria) throw new Error('Empresa principal não encontrada. Execute as migrações.');
       await db.query("INSERT INTO membros_marcenaria (usuario_id,marcenaria_id,papel) VALUES ($1,$2,'proprietario')", [usuario.id,marcenaria.id]);
       const csrf_token = await criarSessao(db, usuario.id, res);
       await db.query('COMMIT');
@@ -115,8 +122,9 @@ function registrarAuth(app, banco, rota) {
     // Cadastro público cria empresa e vínculo próprios; a confirmação libera o login.
     const dados=validarCadastro(req.body); const documento=validarDocumento(req.body?.documento);
     const segmento=validarSegmento(req.body?.segmento);
+    const atividade=validarAtividade(req.body?.atividade,{ obrigatoria: segmento === 'outros' });
     const empresa=typeof req.body?.empresa==='string'?req.body.empresa.trim():'';
-    if (!empresa || empresa.length>120) throw erroHttp(400,'Informe o nome da marcenaria.');
+    if (!empresa || empresa.length>120) throw erroHttp(400,'Informe o nome da empresa.');
     const db=await banco.connect();
     try {
       await db.query('BEGIN');
@@ -124,8 +132,8 @@ function registrarAuth(app, banco, rota) {
       const usuario=(await db.query(`INSERT INTO usuarios (nome,email,senha_hash,documento,email_confirmado)
         VALUES ($1,$2,$3,$4,FALSE) RETURNING id,nome,email`,[dados.nome,dados.email,senhaHash,documento])).rows[0];
       const base=slugify(empresa); let marcenaria;
-      for(let i=0;i<20&&!marcenaria;i++){const slug=i?`${base}-${i+1}`:base;marcenaria=(await db.query('INSERT INTO marcenarias (nome,slug,segmento) VALUES ($1,$2,$3) ON CONFLICT (slug) DO NOTHING RETURNING id,nome,slug,segmento',[empresa,slug,segmento])).rows[0];}
-      if(!marcenaria) throw erroHttp(409,'Já existem muitas marcenarias com esse nome.');
+      for(let i=0;i<20&&!marcenaria;i++){const slug=i?`${base}-${i+1}`:base;marcenaria=(await db.query('INSERT INTO marcenarias (nome,slug,segmento,atividade) VALUES ($1,$2,$3,$4) ON CONFLICT (slug) DO NOTHING RETURNING id,nome,slug,segmento,atividade',[empresa,slug,segmento,atividade])).rows[0];}
+      if(!marcenaria) throw erroHttp(409,'Já existem muitas empresas com esse nome.');
       await db.query("INSERT INTO membros_marcenaria (usuario_id,marcenaria_id,papel) VALUES ($1,$2,'proprietario')",[usuario.id,marcenaria.id]);
       const confirmacao=novoToken();
       await db.query("INSERT INTO tokens_usuario (token_hash,usuario_id,tipo,expira_em) VALUES ($1,$2,'confirmar_email',CURRENT_TIMESTAMP+INTERVAL '24 hours')",[confirmacao.hash,usuario.id]);
@@ -181,8 +189,8 @@ function registrarAuth(app, banco, rota) {
     await banco.query('UPDATE usuarios SET ultimo_ip=$1,ultimo_login_em=CURRENT_TIMESTAMP WHERE id=$2',[ipAtual,usuario.id]);
     if(ipDiferente) await enviarEmail(banco,{destinatario:usuario.email,assunto:'Novo acesso à Norden',texto:`Detectamos um login em um endereço de rede diferente (${ipAtual}). Se não foi você, redefina sua senha.`});
     const marcenarias = usuario.superadministrador
-      ? (await banco.query("SELECT id,nome,slug,segmento,'superadministrador' AS papel FROM marcenarias WHERE ativa=TRUE ORDER BY nome,id")).rows
-      : (await banco.query(`SELECT m.id,m.nome,m.slug,m.segmento,mm.papel FROM membros_marcenaria mm JOIN marcenarias m ON m.id=mm.marcenaria_id WHERE mm.usuario_id=$1 AND mm.ativo=TRUE AND m.ativa=TRUE ORDER BY m.nome,m.id`, [usuario.id])).rows;
+      ? (await banco.query("SELECT id,nome,slug,segmento,atividade,'superadministrador' AS papel FROM marcenarias WHERE ativa=TRUE ORDER BY nome,id")).rows
+      : (await banco.query(`SELECT m.id,m.nome,m.slug,m.segmento,m.atividade,mm.papel FROM membros_marcenaria mm JOIN marcenarias m ON m.id=mm.marcenaria_id WHERE mm.usuario_id=$1 AND mm.ativo=TRUE AND m.ativa=TRUE ORDER BY m.nome,m.id`, [usuario.id])).rows;
     delete usuario.senha_hash;
     res.json({ usuario, marcenarias, csrf_token, trocar_senha: usuario.trocar_senha });
   }));
@@ -206,8 +214,8 @@ function registrarAuth(app, banco, rota) {
   app.get('/api/auth/sessao', autenticar, rota(async (req, res) => {
     if (req.usuario.trocar_senha) return res.json({usuario:req.usuario,marcenarias:[],csrf_token:req.csrfToken,trocar_senha:true});
     const marcenarias = req.usuario.superadministrador
-      ? (await banco.query("SELECT id,nome,slug,segmento,'superadministrador' AS papel FROM marcenarias WHERE ativa=TRUE ORDER BY nome,id")).rows
-      : (await banco.query(`SELECT m.id,m.nome,m.slug,m.segmento,mm.papel FROM membros_marcenaria mm JOIN marcenarias m ON m.id=mm.marcenaria_id WHERE mm.usuario_id=$1 AND mm.ativo=TRUE AND m.ativa=TRUE ORDER BY m.nome,m.id`, [req.usuario.id])).rows;
+      ? (await banco.query("SELECT id,nome,slug,segmento,atividade,'superadministrador' AS papel FROM marcenarias WHERE ativa=TRUE ORDER BY nome,id")).rows
+      : (await banco.query(`SELECT m.id,m.nome,m.slug,m.segmento,m.atividade,mm.papel FROM membros_marcenaria mm JOIN marcenarias m ON m.id=mm.marcenaria_id WHERE mm.usuario_id=$1 AND mm.ativo=TRUE AND m.ativa=TRUE ORDER BY m.nome,m.id`, [req.usuario.id])).rows;
     res.json({ usuario: req.usuario, marcenarias, csrf_token: req.csrfToken });
   }));
   app.post('/api/auth/trocar-senha', autenticar, rota(async (req, res) => {

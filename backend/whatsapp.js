@@ -58,8 +58,8 @@ function resumoWebhook(payload = {}) {
 
 async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp()) {
   const resultado = config.marcenariaId
-    ? await banco.query("SELECT id,nome,slug,segmento,'administrador' AS papel FROM marcenarias WHERE id=$1 AND ativa=TRUE", [config.marcenariaId])
-    : await banco.query("SELECT id,nome,slug,segmento,'administrador' AS papel FROM marcenarias WHERE slug=$1 AND ativa=TRUE ORDER BY id LIMIT 1", [config.marcenariaSlug]);
+    ? await banco.query("SELECT id,nome,slug,segmento,atividade,'administrador' AS papel FROM marcenarias WHERE id=$1 AND ativa=TRUE", [config.marcenariaId])
+    : await banco.query("SELECT id,nome,slug,segmento,atividade,'administrador' AS papel FROM marcenarias WHERE slug=$1 AND ativa=TRUE ORDER BY id LIMIT 1", [config.marcenariaSlug]);
   const empresa = resultado.rows[0];
   if (!empresa) throw erroHttp(503, 'Empresa do WhatsApp não configurada.');
   return empresa;
