@@ -26,11 +26,15 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [sucesso, setSucesso] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [tentativa, setTentativa] = useState(0);
+  const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
   useEffect(() => {
     let cancelado = false;
     requisicao('/empresa-configuracao').then(({empresa}) => { if (!cancelado) setEmpresa(empresa); }).catch(e => { if (!cancelado) setErro(e.message); });
     return () => { cancelado = true; };
   }, [tentativa]);
+  useEffect(() => {
+    requisicao('/ramos-personalizados').then(({ ramos }) => setRamosPersonalizados(ramos || [])).catch(() => {});
+  }, []);
   async function salvar(e) {
     e.preventDefault();
     if (ocupado) return;
@@ -51,7 +55,8 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
           <legend>Perfil da empresa</legend>
           <label>Nome da empresa<input required maxLength={120} value={empresa.nome} onChange={e=>setEmpresa({...empresa,nome:e.target.value})}/></label>
           <label>Ramo de atividade<select value={empresa.segmento} onChange={e=>setEmpresa({...empresa,segmento:e.target.value})}>{ramos.map(([valor,nome])=><option key={valor} value={valor}>{nome}</option>)}</select></label>
-          <label>{empresa.segmento === 'outros' ? 'Qual é o ramo da sua empresa?' : 'Com o que você trabalha?'}<input required maxLength={200} placeholder={exemplosAtividade[empresa.segmento] || exemplosAtividade.outros} value={empresa.atividade} onChange={e=>setEmpresa({...empresa,atividade:e.target.value})}/></label>
+          <label>{empresa.segmento === 'outros' ? 'Qual é o ramo da sua empresa?' : 'Com o que você trabalha?'}<input required maxLength={200} list={empresa.segmento === 'outros' ? 'ramos-personalizados-configuracao' : undefined} placeholder={exemplosAtividade[empresa.segmento] || exemplosAtividade.outros} value={empresa.atividade} onChange={e=>setEmpresa({...empresa,atividade:e.target.value})}/></label>
+          {empresa.segmento === 'outros' && <><datalist id="ramos-personalizados-configuracao">{ramosPersonalizados.map(r=><option key={r.chave} value={r.nome} />)}</datalist>{ramosPersonalizados.length>0 && <div className="sugestoes-ramos"><span>Já cadastrados:</span>{ramosPersonalizados.slice(0,6).map(r=><button type="button" key={r.chave} onClick={()=>setEmpresa({...empresa,segmento:'outros',atividade:r.nome})}>{r.nome}</button>)}</div>}</>}
           <button type="submit">{ocupado ? 'Salvando…' : 'Salvar perfil da empresa'}</button>
         </fieldset>
         {!podeEditar && <p>Peça ao administrador da empresa para alterar o perfil.</p>}

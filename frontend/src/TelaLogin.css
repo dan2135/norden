@@ -30,4 +30,7 @@
 .login-erro{padding:12px;background:#fff1ed;color:#963d2d;border:1px solid #efcfc6;border-radius:6px;font-size:13px}
 .login-seguranca{margin-top:24px;font-size:12px;color:#667085;line-height:1.7;text-align:center}
 .login-acoes{display:flex;justify-content:space-between;gap:16px;margin-top:18px}.login-acoes button{border:0;background:transparent;color:#315de8;padding:4px 0;font-size:12px;cursor:pointer}.login-sucesso{padding:12px;background:#edf7ea;color:#3d6b35;border:1px solid #cfe4c9;border-radius:6px;font-size:13px}
+.sugestoes-ramos{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:-8px 0 14px;font-size:12px;color:#667085}
+.sugestoes-ramos button{border:1px solid #d5dce8;background:#fff;color:#315de8;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
+.sugestoes-ramos button:hover{background:#edf2ff;border-color:#b9c8ff}
 @media(max-width:800px){.login-pagina{grid-template-columns:1fr}.login-area{grid-column:1;grid-row:2;padding:32px 22px}.login-apresentacao{grid-column:1;grid-row:1;padding:24px;gap:24px}.login-chamada h1{font-size:34px;letter-spacing:-1px;margin-bottom:12px}.login-chamada>p,.login-recursos,.login-apresentacao>small{display:none}.etiqueta-tech{margin-bottom:12px}.login-card{padding:0}.login-icone{display:none}.login-card h2{font-size:28px}}

@@ -6,3 +6,6 @@
 .nova-empresa input,.nova-empresa select,.nova-empresa button{padding:12px;border:1px solid #d5dce8;border-radius:6px;background:#fafbfe;color:#243247;font:inherit}
 .nova-empresa button{cursor:pointer}
 .nova-empresa button:disabled{opacity:.5;cursor:wait}
+.sugestoes-ramos{display:flex;align-items:center;flex-wrap:wrap;gap:8px;flex:1 1 100%;font-size:12px;color:#667085}
+.sugestoes-ramos button{border:1px solid #d5dce8;background:#fff;color:#315de8;border-radius:999px;padding:7px 11px;font:inherit;font-size:12px;cursor:pointer}
+.sugestoes-ramos button:hover{background:#edf2ff;border-color:#b9c8ff}

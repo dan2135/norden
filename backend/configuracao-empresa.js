@@ -1,6 +1,7 @@
 /** Configura o negócio antes do primeiro cliente, sempre dentro da empresa autenticada. */
 const { erroHttp } = require('./projetos');
 const { validarSegmento } = require('./segmentos');
+const { copiarCatalogoModelo, sincronizarCatalogoEmpresaModelo } = require('./ramos-personalizados');
 function validarConfiguracao(body = {}) {
   const nome = typeof body.nome === 'string' ? body.nome.trim() : '';
   const atividade = typeof body.atividade === 'string' ? body.atividade.trim() : '';
@@ -27,6 +28,8 @@ function registrarConfiguracaoEmpresa(app, banco, rota) {
         throw erroHttp(409, 'Esta empresa já tem projetos. Para trabalhar em outro ramo, crie uma nova empresa; os projetos atuais serão preservados.');
       }
       const empresa = (await db.query('UPDATE marcenarias SET nome=$1,segmento=$2,atividade=$3,configurada_em=COALESCE(configurada_em,NOW()) WHERE id=$4 RETURNING id,nome,segmento,atividade,configurada_em', [dados.nome,dados.segmento,dados.atividade,req.marcenaria.id])).rows[0];
+      const copiados = await copiarCatalogoModelo(db, empresa);
+      if (!copiados) await sincronizarCatalogoEmpresaModelo(db, empresa);
       await db.query('COMMIT');
       res.json({ empresa });
     } catch (erro) { await db.query('ROLLBACK'); throw erro; } finally { db.release(); }

@@ -3,6 +3,7 @@
  */
 const { validarSegmento } = require('./segmentos');
 const { erroHttp, validarId } = require('./projetos');
+const { copiarCatalogoModelo } = require('./ramos-personalizados');
 
 // Transforma o nome da empresa em um identificador legível para URLs e unicidade.
 function slugify(nome) {
@@ -52,6 +53,7 @@ function registrarMarcenarias(app, banco, rota) {
         criada = (await db.query('INSERT INTO marcenarias (nome,slug,segmento,atividade) VALUES ($1,$2,$3,$4) ON CONFLICT (slug) DO NOTHING RETURNING id,nome,slug,segmento,atividade', [nome,slug,segmento,atividade])).rows[0];
       }
       if (!criada) throw erroHttp(409, 'Já existem muitas empresas com esse nome.');
+      await copiarCatalogoModelo(db, criada);
       await db.query("INSERT INTO membros_marcenaria (usuario_id,marcenaria_id,papel) VALUES ($1,$2,'proprietario')", [req.usuario.id,criada.id]);
       await db.query('COMMIT');
       res.status(201).json({ marcenaria: { ...criada, papel: 'proprietario' } });

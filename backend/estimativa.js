@@ -3,6 +3,7 @@
  */
 const { validarTextoAnalise } = require('./seguranca');
 const { validarId, erroHttp } = require('./projetos');
+const { sincronizarMaterialModelo } = require('./ramos-personalizados');
 
 const tipos = new Set(['chapa', 'fita', 'dobradica', 'corredica', 'puxador', 'outro']);
 const unidades = new Set(['m2', 'm', 'un']);
@@ -73,13 +74,16 @@ function registrarEstimativa(app, banco, rota) {
     const m = validarMaterial(req.body);
     const r = await banco.query(`INSERT INTO catalogo_materiais (tipo,descricao,fornecedor,unidade_consumo,rendimento_milesimos,preco_centavos,ativo,marcenaria_id,especificacoes)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`, [m.tipo,m.descricao,m.fornecedor,m.unidade_consumo,m.rendimento_milesimos,m.preco_centavos,m.ativo,req.marcenaria.id,m.especificacoes]);
+    await sincronizarMaterialModelo(banco, req.marcenaria, r.rows[0]);
     res.status(201).json({ material: r.rows[0] });
   }));
   app.put('/api/catalogo/:id', rota(async (req, res) => {
     const id = validarId(req.params.id), m = validarMaterial(req.body);
     const r = await banco.query(`UPDATE catalogo_materiais SET tipo=$1,descricao=$2,fornecedor=$3,unidade_consumo=$4,rendimento_milesimos=$5,
       preco_centavos=$6,ativo=$7,especificacoes=$10,atualizado_em=CURRENT_TIMESTAMP WHERE id=$8 AND marcenaria_id=$9 RETURNING *`, [m.tipo,m.descricao,m.fornecedor,m.unidade_consumo,m.rendimento_milesimos,m.preco_centavos,m.ativo,id,req.marcenaria.id,m.especificacoes]);
-    if (!r.rows[0]) throw erroHttp(404, 'Material não encontrado.'); res.json({ material: r.rows[0] });
+    if (!r.rows[0]) throw erroHttp(404, 'Material não encontrado.');
+    await sincronizarMaterialModelo(banco, req.marcenaria, r.rows[0]);
+    res.json({ material: r.rows[0] });
   }));
   app.post('/api/projetos/:id/estimativa', rota(async (req, res) => {
     if((req.marcenaria.segmento || 'marcenaria') !== 'marcenaria') throw erroHttp(409,'A estimativa automática de materiais é exclusiva do ramo de marcenaria. Para este pedido, utilize o orçamento manual.');

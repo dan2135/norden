@@ -30,6 +30,7 @@ function Aplicacao() {
   const [erroEmpresa, setErroEmpresa] = useState('');
   const [novaEmpresa, setNovaEmpresa] = useState(null);
   const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
+  const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
   const empresaAtiva = marcenarias.find(m=>String(m.id)===marcenariaId);
   const segmento = empresaAtiva?.segmento || 'marcenaria';
   const podeConfigurarEmpresa = ['proprietario','administrador','superadministrador'].includes(empresaAtiva?.papel);
@@ -37,6 +38,9 @@ function Aplicacao() {
     requisicao('/auth/sessao').then(entrar)
       .catch(erro => { if (erro.status !== 401) setErroEmpresa(erro.message); })
       .finally(() => setIniciando(false));
+  }, []);
+  useEffect(() => {
+    requisicao('/ramos-personalizados').then(({ ramos }) => setRamosPersonalizados(ramos || [])).catch(() => {});
   }, []);
   function entrar(dados) {
     definirCsrf(dados.csrf_token);
@@ -98,7 +102,7 @@ function Aplicacao() {
       {novaEmpresa && <form className="nova-empresa" onSubmit={criarMarcenaria}>
         <label>Nome da empresa<input required maxLength={120} value={novaEmpresa.nome} onChange={e=>setNovaEmpresa({...novaEmpresa,nome:e.target.value})} /></label>
         <label>Ramo de atividade<select value={novaEmpresa.segmento} onChange={e=>setNovaEmpresa({...novaEmpresa,segmento:e.target.value,atividade:e.target.value==='outros'?novaEmpresa.atividade:''})}><option value="outros">Outros ramos</option><option value="serralheria">Serralheria e solda</option><option value="comercio">Comércio</option><option value="servicos">Prestação de serviços</option><option value="marcenaria">Marcenaria</option></select></label>
-        {novaEmpresa.segmento === 'outros' && <label>Qual é o ramo da empresa?<input required maxLength={200} value={novaEmpresa.atividade} onChange={e=>setNovaEmpresa({...novaEmpresa,atividade:e.target.value})} placeholder="Ex.: vidraçaria, estética automotiva, costura…" /></label>}
+        {novaEmpresa.segmento === 'outros' && <><label>Qual é o ramo da empresa?<input required maxLength={200} list="ramos-personalizados-painel" value={novaEmpresa.atividade} onChange={e=>setNovaEmpresa({...novaEmpresa,atividade:e.target.value})} placeholder="Ex.: vidraçaria, estética automotiva, costura…" /></label><datalist id="ramos-personalizados-painel">{ramosPersonalizados.map(r=><option key={r.chave} value={r.nome} />)}</datalist>{ramosPersonalizados.length>0 && <div className="sugestoes-ramos"><span>Já cadastrados:</span>{ramosPersonalizados.slice(0,6).map(r=><button type="button" key={r.chave} onClick={()=>setNovaEmpresa({...novaEmpresa,segmento:'outros',atividade:r.nome})}>{r.nome}</button>)}</div>}</>}
         <button disabled={salvandoEmpresa}>Criar empresa</button><button type="button" disabled={salvandoEmpresa} onClick={()=>setNovaEmpresa(null)}>Cancelar</button>
       </form>}
       {erroEmpresa && <div className="erro-empresa" role="alert">{erroEmpresa}</div>}

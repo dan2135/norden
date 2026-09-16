@@ -13,11 +13,15 @@ export default function TelaLogin({ onEntrar }) {
   const [form, setForm] = useState({ nome: '', email: '', identificador: '', senha: '', documento: '', empresa: '', segmento: 'outros', atividade: '' });
   const [estado, setEstado] = useState({ enviando: false, erro: '' });
   const [sucesso, setSucesso] = useState('');
+  const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
   const confirmacaoIniciada = useRef(false);
 
   useEffect(() => {
     requisicao('/auth/estado').then(({ configurado }) => setPrimeiroAcesso(!configurado))
       .catch(erro => setEstado({ enviando: false, erro: erro.message }));
+  }, []);
+  useEffect(() => {
+    requisicao('/ramos-personalizados').then(({ ramos }) => setRamosPersonalizados(ramos || [])).catch(() => {});
   }, []);
   useEffect(() => {
     const token=parametros.get('confirmar'); if(!token || confirmacaoIniciada.current)return;
@@ -63,7 +67,7 @@ export default function TelaLogin({ onEntrar }) {
         {(primeiroAcesso||modo==='cadastro') && <label>Seu nome<input autoComplete="name" required maxLength="120" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Como devemos chamar você?" /></label>}
         {modo==='cadastro'&&<><label>CPF ou CNPJ<input inputMode="numeric" required value={form.documento} onChange={e=>setForm({...form,documento:e.target.value})} placeholder="Somente números ou formatado" /></label><label>Nome da empresa<input required maxLength="120" value={form.empresa} onChange={e=>setForm({...form,empresa:e.target.value})} placeholder="Nome da sua empresa" /></label></>}
         {modo==='cadastro' && <label>Ramo de atividade<select value={form.segmento} onChange={e=>setForm({...form,segmento:e.target.value,atividade:e.target.value==='outros'?form.atividade:''})}><option value="outros">Outros ramos</option><option value="serralheria">Serralheria e solda</option><option value="comercio">Comércio</option><option value="servicos">Prestação de serviços</option><option value="marcenaria">Marcenaria</option></select></label>}
-        {modo==='cadastro' && form.segmento === 'outros' && <label>Qual é o ramo da sua empresa?<input required maxLength="200" value={form.atividade} onChange={e=>setForm({...form,atividade:e.target.value})} placeholder="Ex.: vidraçaria, estética automotiva, costura…" /></label>}
+        {modo==='cadastro' && form.segmento === 'outros' && <><label>Qual é o ramo da sua empresa?<input required maxLength="200" list="ramos-personalizados-login" value={form.atividade} onChange={e=>setForm({...form,atividade:e.target.value})} placeholder="Ex.: vidraçaria, estética automotiva, costura…" /></label><datalist id="ramos-personalizados-login">{ramosPersonalizados.map(r=><option key={r.chave} value={r.nome} />)}</datalist>{ramosPersonalizados.length>0 && <div className="sugestoes-ramos"><span>Já cadastrados:</span>{ramosPersonalizados.slice(0,6).map(r=><button type="button" key={r.chave} onClick={()=>setForm({...form,segmento:'outros',atividade:r.nome})}>{r.nome}</button>)}</div>}</>}
         {(primeiroAcesso||modo==='cadastro'||modo==='esqueci'||modo==='reenviar') ? <label>E-mail<input type="email" autoComplete="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="voce@empresa.com.br" /></label>
           : modo==='login'&&<label>Usuário ou e-mail<input autoComplete="username" required value={form.identificador} onChange={e => setForm({ ...form, identificador: e.target.value })} placeholder="Seu usuário" /></label>}
         {!['esqueci','reenviar','confirmar'].includes(modo)&&<label>Senha<input type="password" autoComplete={(primeiroAcesso||modo==='cadastro'||modo==='redefinir') ? 'new-password' : 'current-password'} required minLength={(primeiroAcesso||modo==='cadastro'||modo==='redefinir') ? 10 : 1} maxLength="200" value={form.senha} onChange={e => setForm({ ...form, senha: e.target.value })} placeholder={(primeiroAcesso||modo==='cadastro'||modo==='redefinir') ? 'Mínimo de 10 caracteres' : 'Sua senha'} /></label>}

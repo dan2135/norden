@@ -27,6 +27,7 @@ async function main() {
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/013-configuracao-empresa.sql'), 'utf8'));
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/014-assinaturas-asaas.sql'), 'utf8'));
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/015-assinatura-forma-pagamento.sql'), 'utf8'));
+    await db.query(await fs.readFile(path.join(__dirname, 'migrations/016-ramos-personalizados.sql'), 'utf8'));
     const resultado = await db.query('SELECT COUNT(*) AS total FROM mensagens WHERE projeto_id IS NULL');
     console.log('Migração concluída. Mensagens antigas sem vínculo:', resultado.rows[0].total);
   } catch (erro) {

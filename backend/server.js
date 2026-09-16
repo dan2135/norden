@@ -18,6 +18,7 @@ const { analisarSolicitacao, responderSolicitacao } = require('./segmentos');
 const { registrarLixeira, bloquearArquivados } = require('./lixeira');
 const { registrarWebhookAsaas, registrarAssinaturasAsaas } = require('./asaas');
 const { registrarWhatsApp } = require('./whatsapp');
+const { registrarRotasRamos } = require('./ramos-personalizados');
 
 const { validarTelefone, validarId, selecionarProjeto, obterCliente, historicoProjeto, erroHttp } = require("./projetos");
 
@@ -72,6 +73,7 @@ const rota = (fn) => async (req, res) => {
 
 registrarWebhookAsaas(app, banco, rota);
 registrarWhatsApp(app, banco, rota, { extrair, logger });
+registrarRotasRamos(app, banco, rota);
 const autenticar = registrarAuth(app, banco, rota);
 // A partir daqui as rotas exigem sessão. A seleção da empresa vem antes das consultas de negócio.
 app.use('/api', autenticarInjetado || autenticar);

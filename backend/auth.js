@@ -9,6 +9,7 @@ const { erroHttp } = require('./projetos');
 const { slugify } = require('./marcenarias');
 const { enviarEmail } = require('./email');
 const { reenviarConfirmacao } = require('./reenviar-confirmacao');
+const { copiarCatalogoModelo } = require('./ramos-personalizados');
 
 const scrypt = promisify(crypto.scrypt);
 const COOKIE = 'marceneiro_session';
@@ -134,6 +135,7 @@ function registrarAuth(app, banco, rota) {
       const base=slugify(empresa); let marcenaria;
       for(let i=0;i<20&&!marcenaria;i++){const slug=i?`${base}-${i+1}`:base;marcenaria=(await db.query('INSERT INTO marcenarias (nome,slug,segmento,atividade) VALUES ($1,$2,$3,$4) ON CONFLICT (slug) DO NOTHING RETURNING id,nome,slug,segmento,atividade',[empresa,slug,segmento,atividade])).rows[0];}
       if(!marcenaria) throw erroHttp(409,'Já existem muitas empresas com esse nome.');
+      await copiarCatalogoModelo(db, marcenaria);
       await db.query("INSERT INTO membros_marcenaria (usuario_id,marcenaria_id,papel) VALUES ($1,$2,'proprietario')",[usuario.id,marcenaria.id]);
       const confirmacao=novoToken();
       await db.query("INSERT INTO tokens_usuario (token_hash,usuario_id,tipo,expira_em) VALUES ($1,$2,'confirmar_email',CURRENT_TIMESTAMP+INTERVAL '24 hours')",[confirmacao.hash,usuario.id]);
