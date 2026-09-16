@@ -1,5 +1,5 @@
 /**
- * Testes de regressão: valida ramo e rejeita valores desconhecidos; marcenaria mantém campos técnicos e dados gerais incompletos continuam em coleta.
+ * Testes de regressão: valida ramo e rejeita valores desconhecidos; o ramo técnico mantém campos específicos e dados gerais incompletos continuam em coleta.
  */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -8,10 +8,10 @@ const { situacaoColeta } = require('../painel');
 
 test('valida ramo e rejeita valores desconhecidos', () => {
   assert.equal(validarSegmento(), 'outros');
-  for (const ramo of ['marcenaria','comercio','servicos','outros']) assert.equal(validarSegmento(ramo), ramo);
+  for (const ramo of ['marcenaria','serralheria','comercio','servicos','outros']) assert.equal(validarSegmento(ramo), ramo);
   for (const ramo of ['invalido',null,'toString']) assert.throws(()=>validarSegmento(ramo));
 });
-for(const segmento of ['comercio','servicos','outros']) test(`coleta ${segmento} sem exigir dados de móveis`,()=>{
+for(const segmento of ['serralheria','comercio','servicos','outros']) test(`coleta ${segmento} sem exigir dados de móveis`,()=>{
   const empresa={nome:'Empresa teste',segmento}, cliente={}, projeto={coleta:{}};
   function enviar(texto,primeiro=false){
     const a=analisarSolicitacao(texto,projeto,cliente);

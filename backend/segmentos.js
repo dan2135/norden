@@ -1,8 +1,8 @@
 /**
- * Define os ramos aceitos e a coleta guiada para negócios fora da marcenaria. Reúne pedido, detalhes e nome sem prometer preço ou prazo.
+ * Define os ramos aceitos e a coleta guiada para negócios fora do fluxo técnico específico. Reúne pedido, detalhes e nome sem prometer preço ou prazo.
  */
 const { erroHttp } = require('./projetos');
-const segmentos = { marcenaria:'Marcenaria', comercio:'Comércio', servicos:'Prestação de serviços', outros:'Outros ramos' };
+const segmentos = { outros:'Outros ramos', serralheria:'Serralheria e solda', comercio:'Comércio', servicos:'Prestação de serviços', marcenaria:'Marcenaria' };
 // Aceita apenas os ramos cadastrados na lista de segmentos.
 function validarSegmento(valor='outros') {
   if(!Object.hasOwn(segmentos,valor)) throw erroHttp(400,'Escolha um ramo de atividade válido.');

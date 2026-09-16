@@ -5,6 +5,21 @@ import CatalogoEstimativa from './CatalogoEstimativa';
 import './Orcamento.css';
 import './ConfiguracaoEmpresa.css';
 
+const ramos = [
+  ['outros', 'Outros ramos'],
+  ['serralheria', 'Serralheria e solda'],
+  ['comercio', 'Comércio'],
+  ['servicos', 'Prestação de serviços'],
+  ['marcenaria', 'Marcenaria'],
+];
+const exemplosAtividade = {
+  marcenaria: 'Ex.: móveis planejados, reformas, fabricação sob medida…',
+  serralheria: 'Ex.: portões, grades, solda, estruturas metálicas…',
+  comercio: 'Ex.: venda de peças, loja de materiais, comércio local…',
+  servicos: 'Ex.: manutenção, instalação, reparos, assistência técnica…',
+  outros: 'Ex.: serralheria, comércio, manutenção, instalação, produção sob medida…',
+};
+
 export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [empresa, setEmpresa] = useState(null);
   const [erro, setErro] = useState('');
@@ -22,11 +37,11 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     setOcupado(true); setErro(''); setSucesso('');
     try {
       const resultado = await requisicao('/empresa-configuracao', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(empresa) });
-      setEmpresa(resultado.empresa); aoSalvar(resultado.empresa); setSucesso('Empresa configurada. Você já pode preparar os materiais abaixo e iniciar seus atendimentos.');
+      setEmpresa(resultado.empresa); aoSalvar(resultado.empresa); setSucesso('Empresa configurada. Você já pode preparar os materiais abaixo e iniciar suas conversas.');
     } catch (erro) { setErro(erro.message); } finally { setOcupado(false); }
   }
   return <section className="configuracao-empresa">
-    <header><p>SEU NEGÓCIO, DO SEU JEITO</p><h1>Minha empresa</h1><p>Defina com o que você trabalha e deixe seus materiais prontos antes do primeiro atendimento.</p></header>
+    <header><p>SEU NEGÓCIO, DO SEU JEITO</p><h1>Minha empresa</h1><p>Defina com o que você trabalha e deixe seus materiais prontos antes da primeira conversa.</p></header>
     {erro && <p role="alert">{erro}</p>}
     {!empresa && (erro ? <button onClick={() => { setErro(''); setTentativa(v=>v+1); }}>Tentar novamente</button> : <p>Carregando configurações…</p>)}
     {empresa && <>
@@ -35,14 +50,14 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
         <fieldset disabled={ocupado || !podeEditar}>
           <legend>Perfil da empresa</legend>
           <label>Nome da empresa<input required maxLength={120} value={empresa.nome} onChange={e=>setEmpresa({...empresa,nome:e.target.value})}/></label>
-          <label>Ramo de atividade<select value={empresa.segmento} onChange={e=>setEmpresa({...empresa,segmento:e.target.value})}><option value="marcenaria">Marcenaria</option><option value="comercio">Comércio</option><option value="servicos">Prestação de serviços</option><option value="outros">Outros ramos</option></select></label>
-          <label>Com o que você trabalha?<input required maxLength={200} placeholder="Ex.: móveis planejados, reformas, venda de peças…" value={empresa.atividade} onChange={e=>setEmpresa({...empresa,atividade:e.target.value})}/></label>
+          <label>Ramo de atividade<select value={empresa.segmento} onChange={e=>setEmpresa({...empresa,segmento:e.target.value})}>{ramos.map(([valor,nome])=><option key={valor} value={valor}>{nome}</option>)}</select></label>
+          <label>Com o que você trabalha?<input required maxLength={200} placeholder={exemplosAtividade[empresa.segmento] || exemplosAtividade.outros} value={empresa.atividade} onChange={e=>setEmpresa({...empresa,atividade:e.target.value})}/></label>
           <button type="submit">{ocupado ? 'Salvando…' : 'Salvar perfil da empresa'}</button>
         </fieldset>
         {!podeEditar && <p>Peça ao administrador da empresa para alterar o perfil.</p>}
       </form>
       {sucesso && <p role="status">{sucesso}</p>}
-      <CatalogoEstimativa somenteCatalogo somenteLeitura={!podeEditar} />
+      <CatalogoEstimativa somenteCatalogo somenteLeitura={!podeEditar} segmento={empresa.segmento} atividade={empresa.atividade} />
     </>}
   </section>;
 }

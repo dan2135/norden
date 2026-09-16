@@ -73,7 +73,7 @@ export default function Orcamento({ projeto, aoSalvar }) {
       <div className="campos-orcamento"><label>Situação<select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
         <option value="rascunho">Rascunho</option><option value="pronto">Pronto para enviar</option><option value="aprovado">Aprovado pelo cliente</option><option value="recusado">Recusado</option>
       </select></label><label>Validade<input type="date" value={form.validade} onChange={e => setForm({ ...form, validade: e.target.value })} /></label></div>
-      {(!projeto.segmento || projeto.segmento === 'marcenaria') && <CatalogoEstimativa projetoId={projeto.id} aoAplicar={aplicarEstimativa} />}
+      {(!projeto.segmento || projeto.segmento === 'marcenaria') && <CatalogoEstimativa projetoId={projeto.id} aoAplicar={aplicarEstimativa} segmento={projeto.segmento || 'marcenaria'} />}
       <div className="itens-orcamento">
         {form.itens.map((item, i) => <fieldset key={i}><legend>Item {i + 1}</legend>
           <label className="descricao">Descrição<input required maxLength="200" value={item.descricao} onChange={e => alterarItem(i, 'descricao', e.target.value)} /></label>

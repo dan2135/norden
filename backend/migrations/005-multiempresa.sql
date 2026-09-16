@@ -7,8 +7,11 @@ CREATE TABLE IF NOT EXISTS marcenarias (
   criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO marcenarias (nome, slug) VALUES ('Marcenaria principal', 'principal')
+INSERT INTO marcenarias (nome, slug) VALUES ('Empresa principal', 'principal')
 ON CONFLICT (slug) DO NOTHING;
+
+UPDATE marcenarias SET nome='Empresa principal'
+WHERE slug='principal' AND nome='Marcenaria principal';
 
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marcenaria_id INTEGER;
 ALTER TABLE projetos ADD COLUMN IF NOT EXISTS marcenaria_id INTEGER;

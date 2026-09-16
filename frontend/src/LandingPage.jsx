@@ -42,7 +42,7 @@ export default function LandingPage() {
           <div className="lp-preview-note"><span aria-hidden="true">✓</span> Informações juntas. Decisões nas suas mãos.</div>
         </div>
       </section>
-      <section className="lp-audience" aria-label="Para diferentes negócios"><div className="lp-container"><p>Seu ramo muda.<br/><strong>A organização fica.</strong></p><span>Prestadores de serviços</span><span>Comércio</span><span>Marcenarias</span><span>Seu próximo negócio</span></div></section>
+      <section className="lp-audience" aria-label="Para diferentes negócios"><div className="lp-container"><p>Seu ramo muda.<br/><strong>A organização fica.</strong></p><span>Prestadores de serviços</span><span>Comércio</span><span>Serralherias e oficinas</span><span>Seu próximo negócio</span></div></section>
       <section className="lp-section lp-container" id="beneficios"><div className="lp-section-heading"><p className="lp-eyebrow">MAIS CLAREZA NA ROTINA</p><h2>O trabalho já é muito.<br/>Organizar não precisa ser.</h2><p>Menos informação espalhada e mais espaço para cuidar do que faz sua empresa crescer.</p></div>
         <div className="lp-benefits">{beneficios.map(([numero,titulo,texto,etiqueta])=><article key={numero}><span className="lp-number">{numero}</span><p className="lp-card-label">{etiqueta}</p><h3>{titulo}</h3><p>{texto}</p></article>)}</div>
       </section>

@@ -27,10 +27,6 @@ export default function Rodape() {
       </div>
       <p className="rodape-norden-copyright">© {new Date().getFullYear()} Norden. Todos os direitos reservados.</p>
     </div>
-    {(email || telefone) && <div className="rodape-contato-resumo" aria-label="Canais de contato">
-      {email && <a href={`mailto:${email}?subject=${encodeURIComponent('Contato Norden')}`}><span>E-mail</span><strong>Fale com a Norden</strong></a>}
-      {telefone && <a href={`https://wa.me/${telefone}`} target="_blank" rel="noreferrer"><span>WhatsApp</span><strong>Enviar mensagem</strong></a>}
-    </div>}
     <nav className="rodape-links" aria-label="Ajuda e informações institucionais">
       {[['sobre', 'Sobre nós'], ['ajuda', 'Ajuda'], ['suporte', 'Suporte'], ['privacidade', 'Privacidade'], ['termos', 'Termos']].map(([chave, texto]) =>
         <button key={chave} type="button" aria-expanded={pagina === chave} aria-controls="rodape-conteudo" onClick={e => abrir(chave, e.currentTarget)}>{texto}</button>)}

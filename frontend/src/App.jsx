@@ -95,7 +95,7 @@ function Aplicacao() {
       </header>
       {novaEmpresa && <form className="nova-empresa" onSubmit={criarMarcenaria}>
         <label>Nome da empresa<input required maxLength={120} value={novaEmpresa.nome} onChange={e=>setNovaEmpresa({...novaEmpresa,nome:e.target.value})} /></label>
-        <label>Ramo de atividade<select value={novaEmpresa.segmento} onChange={e=>setNovaEmpresa({...novaEmpresa,segmento:e.target.value})}><option value="outros">Outros ramos</option><option value="comercio">Comércio</option><option value="servicos">Prestação de serviços</option><option value="marcenaria">Marcenaria</option></select></label>
+        <label>Ramo de atividade<select value={novaEmpresa.segmento} onChange={e=>setNovaEmpresa({...novaEmpresa,segmento:e.target.value})}><option value="outros">Outros ramos</option><option value="serralheria">Serralheria e solda</option><option value="comercio">Comércio</option><option value="servicos">Prestação de serviços</option><option value="marcenaria">Marcenaria</option></select></label>
         <button disabled={salvandoEmpresa}>Criar empresa</button><button type="button" disabled={salvandoEmpresa} onClick={()=>setNovaEmpresa(null)}>Cancelar</button>
       </form>}
       {erroEmpresa && <div className="erro-empresa" role="alert">{erroEmpresa}</div>}

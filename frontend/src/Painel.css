@@ -100,3 +100,20 @@
 .botao-secundario,.paginacao button,.ficha-projeto>header button{border-color:#bdd5fb!important;color:#1f55bd!important}
 .painel th{background:#eaf3ff!important;color:#3f526f!important}
 .painel tbody tr:hover,.painel tr.selecionado{background:#edf5ff!important}
+
+/* Navegação lateral discreta no desktop. */
+@media(min-width:761px){
+  .app-shell{display:grid!important;grid-template-columns:212px minmax(0,1fr)!important;min-height:100dvh!important}
+  .app-navegacao{position:sticky!important;top:0!important;height:100dvh!important;min-height:100dvh!important;flex-direction:column!important;align-items:stretch!important;gap:14px!important;padding:20px 14px!important;border-right:1px solid var(--norden-line)!important;border-bottom:0!important}
+  .app-marca{padding:0 8px 18px!important;display:flex!important;align-items:center!important}
+  .app-marca strong{display:block!important;font-size:15px!important}
+  .app-navegacao nav{flex-direction:column!important;margin-left:0!important;width:100%!important;gap:7px!important}
+  .app-navegacao nav button{width:100%!important;justify-content:flex-start!important;padding:10px 12px!important;border-radius:12px!important;font-size:13px!important}
+  .app-navegacao nav button>span{display:inline-grid!important;width:20px!important;text-align:center!important}
+  .app-usuario{margin-top:auto!important;margin-left:0!important;width:100%!important;max-width:none!important;padding:12px 8px!important;border-top:1px solid var(--norden-line)!important}
+  .app-usuario div{display:block!important}
+  .app-usuario>span{display:grid!important}
+  .app-principal{min-width:0!important}
+  .app-topo{height:auto!important;min-height:64px!important;padding:14px 24px!important;background:transparent!important;border-bottom:0!important}
+  .painel{padding-top:18px!important}
+}
