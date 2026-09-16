@@ -83,3 +83,20 @@
 .aviso,.selo.pendente{background:#fff8e8!important;color:#7b571d!important;border-color:#f0dcae!important}
 .selo.completo{background:#edf8f1!important;color:#2f6b43!important;border-color:#cce8d6!important}
 .erro-empresa,.aviso.erro{background:#fff3ef!important;color:#903a2d!important;border-color:#edc9bf!important}
+
+/* Um pouco mais de brilho no painel sem pesar a leitura. */
+:root{--norden-bg:#f3f8ff;--norden-blue:#256fff;--norden-blue-soft:#e5f0ff;--norden-line:#cfe0ff}
+.app-shell{background:linear-gradient(180deg,#f6faff 0%,#eef6ff 100%)!important}
+.app-navegacao{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)!important}
+.app-marca>span{background:linear-gradient(135deg,#256fff,#78a7ff)!important;box-shadow:0 10px 24px #256fff24!important}
+.app-navegacao nav button[aria-pressed=true]{background:#e4efff!important;color:#1d55c8!important;border-color:#bad4ff!important}
+.app-navegacao nav button:hover{background:#eef6ff!important;color:#1d55c8!important}
+.painel h1{color:#101b31!important}
+.sobretitulo{color:#256fff!important}
+.indicador,.lista-painel,.ficha-projeto,.nova-empresa,.assinatura-card{box-shadow:0 18px 50px #256fff14!important;border-color:#cfe0ff!important}
+.indicador{background:linear-gradient(145deg,#ffffff 0%,#f9fcff 100%)!important}
+.indicador strong{color:#111c32!important}
+.botao-principal,.botao-whatsapp{background:linear-gradient(135deg,#256fff,#69a0ff)!important;box-shadow:0 10px 22px #256fff2e!important}
+.botao-secundario,.paginacao button,.ficha-projeto>header button{border-color:#bdd5fb!important;color:#1f55bd!important}
+.painel th{background:#eaf3ff!important;color:#3f526f!important}
+.painel tbody tr:hover,.painel tr.selecionado{background:#edf5ff!important}

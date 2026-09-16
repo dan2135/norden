@@ -30,3 +30,95 @@
 .rodape-norden-texto p { margin:12px 0; }
 @media(max-width:650px) { .rodape-norden { padding:22px 16px; }.rodape-norden-linha { flex-direction:column; align-items:flex-start; gap:16px; } }
 @media print { .rodape-norden { display:none; }.app-shell,.app-principal { display:block; } }
+
+/* Rodapé mais claro, em coluna e com contatos sem dados "soltos" na tela. */
+.rodape-norden {
+  padding:30px 30px 34px;
+  margin-top:34px;
+  border-top:1px solid #cfe0ff;
+  background:linear-gradient(180deg,#ffffff 0%,#f3f8ff 100%);
+  color:#4d5c73;
+}
+.rodape-norden-linha {
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-start;
+  gap:10px;
+}
+.rodape-norden-marca>span {
+  background:linear-gradient(135deg,#2f6fe4,#7aa8ff);
+  color:#fff;
+  border-radius:11px;
+}
+.rodape-norden-marca strong { color:#14223a; font-size:16px; }
+.rodape-norden-copyright { color:#6a7890; }
+.rodape-contato-resumo {
+  max-width:1480px;
+  margin:20px auto 0;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+.rodape-contato-resumo a,
+.rodape-contatos a {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  width:min(420px,100%);
+  padding:14px 16px;
+  border:1px solid #cfe0ff;
+  border-radius:14px;
+  background:#ffffff;
+  color:#1f55bd;
+  text-decoration:none;
+  box-shadow:0 10px 28px #2f6fe40d;
+}
+.rodape-contato-resumo a:hover,
+.rodape-contatos a:hover {
+  border-color:#9fc3ff;
+  background:#f8fbff;
+  transform:translateY(-1px);
+}
+.rodape-contato-resumo span,
+.rodape-contatos span {
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#6a7890;
+}
+.rodape-contato-resumo strong,
+.rodape-contatos strong {
+  color:#19335f;
+  font-size:14px;
+}
+.rodape-links {
+  flex-direction:column;
+  align-items:flex-start;
+  gap:2px;
+  margin-top:18px;
+}
+.rodape-links button,
+.rodape-pagina button {
+  color:#245dbf;
+  font-weight:650;
+}
+.rodape-pagina {
+  border:1px solid #d8e7fb;
+  border-radius:18px;
+  padding:24px;
+  background:#fff;
+  box-shadow:0 14px 40px #244d7d0f;
+}
+.rodape-pagina>header {
+  align-items:flex-start;
+}
+.rodape-contatos {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  max-width:520px;
+}
+@media(max-width:650px) {
+  .rodape-norden { padding:24px 18px 28px; }
+  .rodape-contato-resumo a,.rodape-contatos a { width:100%; }
+}

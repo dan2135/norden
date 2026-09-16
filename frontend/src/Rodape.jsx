@@ -27,9 +27,11 @@ export default function Rodape() {
       </div>
       <p className="rodape-norden-copyright">© {new Date().getFullYear()} Norden. Todos os direitos reservados.</p>
     </div>
+    {(email || telefone) && <div className="rodape-contato-resumo" aria-label="Canais de contato">
+      {email && <a href={`mailto:${email}?subject=${encodeURIComponent('Contato Norden')}`}><span>E-mail</span><strong>Fale com a Norden</strong></a>}
+      {telefone && <a href={`https://wa.me/${telefone}`} target="_blank" rel="noreferrer"><span>WhatsApp</span><strong>Enviar mensagem</strong></a>}
+    </div>}
     <nav className="rodape-links" aria-label="Ajuda e informações institucionais">
-      {email && <a href={`mailto:${email}`}>{email}</a>}
-      {telefone && <a href={`https://wa.me/${telefone}`} target="_blank" rel="noreferrer">WhatsApp: {contatoNorden.whatsappFormatado} (abre em nova aba)</a>}
       {[['sobre', 'Sobre nós'], ['ajuda', 'Ajuda'], ['suporte', 'Suporte'], ['privacidade', 'Privacidade'], ['termos', 'Termos']].map(([chave, texto]) =>
         <button key={chave} type="button" aria-expanded={pagina === chave} aria-controls="rodape-conteudo" onClick={e => abrir(chave, e.currentTarget)}>{texto}</button>)}
     </nav>
@@ -42,8 +44,8 @@ export default function Rodape() {
         <p>Precisa de ajuda com a Norden? Ao relatar um problema, informe a tela utilizada, o que estava tentando fazer e a mensagem de erro.</p>
         <p>Não envie senhas, links de recuperação ou dados pessoais de clientes no relato.</p>
         <div className="rodape-contatos">
-          {email && <a href={`mailto:${email}?subject=${encodeURIComponent('Suporte Norden')}`}>{email}</a>}
-          {telefone && <a href={`https://wa.me/${telefone}`} target="_blank" rel="noreferrer">WhatsApp: {contatoNorden.whatsappFormatado} (abre em nova aba)</a>}
+          {email && <a href={`mailto:${email}?subject=${encodeURIComponent('Suporte Norden')}`}><span>E-mail de suporte</span><strong>{email}</strong></a>}
+          {telefone && <a href={`https://wa.me/${telefone}`} target="_blank" rel="noreferrer"><span>WhatsApp comercial</span><strong>{contatoNorden.whatsappFormatado}</strong></a>}
         </div>
         {!email && !telefone && <p className="rodape-rascunho">Os canais oficiais de suporte ainda não foram cadastrados. Durante os testes, fale diretamente com o responsável pela implantação.</p>}
         <button type="button" className="rodape-ajuda" onClick={() => { setPagina('ajuda'); requestAnimationFrame(() => titulo.current?.focus()); }}>Consultar a central de ajuda</button>

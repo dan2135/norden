@@ -48,8 +48,8 @@ export default function TelaLogin({ onEntrar }) {
       <div className="login-chamada">
         <span className="etiqueta-tech">FEITO PARA SUA EMPRESA</span>
         <h1>Sua próxima ideia.<br /><em>Seu próximo projeto.</em></h1>
-        <p>Atendimento, clientes e orçamentos em um painel feito para a rotina da sua empresa.</p>
-        <div className="login-recursos"><span>Projetos organizados</span><span>Orçamentos à mão</span><span>Atendimento próximo</span></div>
+        <p>WhatsApp, clientes e orçamentos em um painel feito para a rotina da sua empresa.</p>
+        <div className="login-recursos"><span>Projetos organizados</span><span>Orçamentos à mão</span><span>WhatsApp conectado</span></div>
       </div>
       <small>Ambiente administrativo • acesso restrito</small>
     </section>
