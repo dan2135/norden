@@ -33,5 +33,11 @@ async function main() {
     await db.query('ROLLBACK').catch(() => {});
     throw erro;
   } finally { db.release(); }
+  if (process.env.ADMIN_USUARIO || process.env.ADMIN_EMAIL || process.env.ADMIN_SENHA) {
+    const faltantes = ['ADMIN_USUARIO', 'ADMIN_EMAIL', 'ADMIN_SENHA'].filter(chave => !process.env[chave]?.trim());
+    if (faltantes.length) throw new Error(`Provisionamento admin incompleto. Faltam: ${faltantes.join(', ')}`);
+    await require('./admin').provisionarAdmin(pool);
+    console.log('[ADMIN] Superadministrador preparado. Remova ADMIN_SENHA após confirmar o acesso.');
+  }
 }
 main().catch(erro => { console.error(diagnosticarBanco(erro)); process.exitCode = 1; }).finally(() => pool?.end());
