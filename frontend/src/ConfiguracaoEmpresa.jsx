@@ -146,6 +146,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
           config_id: embeddedMeta.config_id,
           response_type: 'code',
           override_default_response_type: true,
+          display: 'popup',
           scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management',
           extras: {
             setup: {},
@@ -153,7 +154,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
             sessionInfoVersion: '3',
           },
         });
-        setTimeout(() => { if (!retornou) reject(new Error('A janela da Meta não retornou autorização. Tente abrir de novo e conclua o fluxo.')); }, 120000);
+        setTimeout(() => { if (!retornou) reject(new Error('A janela da Meta não abriu ou não retornou autorização. Libere pop-ups para este site, confira se o domínio da Norden está permitido no app da Meta e tente novamente.')); }, 30000);
       });
       const code = resposta?.authResponse?.code;
       if (!code) throw new Error('A conexão com a Meta foi cancelada ou não retornou autorização.');
@@ -191,7 +192,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       </form>
       {sucesso && <p role="status">{sucesso}</p>}
       <form onSubmit={salvarWhatsApp}>
-        <fieldset disabled={salvandoWhatsApp || conectandoMeta || !podeEditar}>
+        <fieldset disabled={salvandoWhatsApp || !podeEditar}>
           <legend>WhatsApp da empresa</legend>
           <p>Conecte o número desta empresa na Meta. O mesmo webhook pode atender várias empresas; a Norden identifica pelo Phone Number ID.</p>
           <div className="meta-connect-card">
