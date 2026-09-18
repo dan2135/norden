@@ -24,14 +24,24 @@ const whatsappInicial = { numero: '', waba_id: '', phone_number_id: '', access_t
 function carregarSdkFacebook(appId, apiVersion = 'v25.0') {
   if (!appId) return Promise.reject(new Error('App ID da Meta não configurado no servidor.'));
   return new Promise((resolve, reject) => {
+    let resolvido = false;
+    const concluir = fn => valor => {
+      if (resolvido) return;
+      resolvido = true;
+      clearTimeout(tempoLimite);
+      fn(valor);
+    };
+    const resolver = concluir(resolve);
+    const rejeitar = concluir(reject);
+    const tempoLimite = setTimeout(() => rejeitar(new Error('A Meta demorou para carregar. Verifique bloqueador de pop-up/anúncios e recarregue a página.')), 15000);
     const inicializar = () => {
       window.FB.init({
         appId,
         cookie: true,
-        xfbml: false,
+        xfbml: true,
         version: apiVersion || 'v25.0',
       });
-      resolve(window.FB);
+      resolver(window.FB);
     };
     if (window.FB) { inicializar(); return; }
     const existente = document.getElementById('facebook-jssdk');
@@ -43,7 +53,7 @@ function carregarSdkFacebook(appId, apiVersion = 'v25.0') {
     script.async = true;
     script.defer = true;
     script.crossOrigin = 'anonymous';
-    script.onerror = () => reject(new Error('Não foi possível carregar a janela de conexão da Meta.'));
+    script.onerror = () => rejeitar(new Error('Não foi possível carregar a janela de conexão da Meta. Verifique bloqueador de pop-up/anúncios.'));
     document.body.appendChild(script);
   });
 }
@@ -58,6 +68,8 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [ocupado, setOcupado] = useState(false);
   const [salvandoWhatsApp, setSalvandoWhatsApp] = useState(false);
   const [conectandoMeta, setConectandoMeta] = useState(false);
+  const [sdkMetaPronto, setSdkMetaPronto] = useState(false);
+  const [erroSdkMeta, setErroSdkMeta] = useState('');
   const [embeddedMeta, setEmbeddedMeta] = useState({ configurado: false, app_id: '', config_id: '', api_version: 'v25.0' });
   const [tentativa, setTentativa] = useState(0);
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
@@ -76,6 +88,20 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   useEffect(() => {
     requisicao('/whatsapp-embedded-config').then(config => setEmbeddedMeta(config || {})).catch(() => {});
   }, []);
+  useEffect(() => {
+    if (!embeddedMeta.configurado) return;
+    let cancelado = false;
+    setErroSdkMeta('');
+    carregarSdkFacebook(embeddedMeta.app_id, embeddedMeta.api_version || 'v25.0')
+      .then(() => { if (!cancelado) setSdkMetaPronto(true); })
+      .catch(erro => {
+        if (!cancelado) {
+          setSdkMetaPronto(false);
+          setErroSdkMeta(erro.message);
+        }
+      });
+    return () => { cancelado = true; };
+  }, [embeddedMeta.configurado, embeddedMeta.app_id, embeddedMeta.api_version]);
   useEffect(() => {
     function ouvirMeta(event) {
       try {
@@ -112,16 +138,20 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     setConectandoMeta(true); setErroWhatsApp(''); setSucessoWhatsApp('');
     try {
       if (!embeddedMeta.configurado) throw new Error('Conexão rápida da Meta ainda não configurada no servidor. Configure META_APP_ID, META_APP_SECRET e META_EMBEDDED_SIGNUP_CONFIG_ID no Render.');
+      if (!sdkMetaPronto || !window.FB) throw new Error('A janela da Meta ainda não carregou. Aguarde alguns segundos, recarregue a página e tente de novo. Se continuar, desative bloqueador de pop-up/anúncios para este site.');
       embeddedInfoRef.current = {};
-      const FB = await carregarSdkFacebook(embeddedMeta.app_id, embeddedMeta.api_version || 'v25.0');
       const resposta = await new Promise((resolve, reject) => {
         let retornou = false;
-        FB.login(r => { retornou = true; resolve(r); }, {
+        window.FB.login(r => { retornou = true; resolve(r); }, {
           config_id: embeddedMeta.config_id,
           response_type: 'code',
           override_default_response_type: true,
           scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management',
-          extras: { feature: 'whatsapp_embedded_signup' },
+          extras: {
+            setup: {},
+            featureType: 'whatsapp_business_app_onboarding',
+            sessionInfoVersion: '3',
+          },
         });
         setTimeout(() => { if (!retornou) reject(new Error('A janela da Meta não retornou autorização. Tente abrir de novo e conclua o fluxo.')); }, 120000);
       });
@@ -169,8 +199,10 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
               <strong>Conectar pelo site</strong>
               <p>Abra a janela oficial da Meta, escolha a conta/WhatsApp da empresa e a Norden salva token, WABA ID e Phone Number ID automaticamente.</p>
               {!embeddedMeta.configurado && <small>Para ativar este botão, configure no Render: <code>META_APP_ID</code>, <code>META_APP_SECRET</code> e <code>META_EMBEDDED_SIGNUP_CONFIG_ID</code>.</small>}
+              {embeddedMeta.configurado && !sdkMetaPronto && !erroSdkMeta && <small>Carregando a janela oficial da Meta…</small>}
+              {erroSdkMeta && <small>{erroSdkMeta}</small>}
             </div>
-            <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || salvandoWhatsApp || !podeEditar || !embeddedMeta.configurado}>{conectandoMeta ? 'Conectando…' : 'Conectar WhatsApp pela Meta'}</button>
+            <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || salvandoWhatsApp || !podeEditar || !embeddedMeta.configurado || !sdkMetaPronto}>{conectandoMeta ? 'Conectando…' : sdkMetaPronto ? 'Conectar WhatsApp pela Meta' : 'Carregando Meta…'}</button>
           </div>
           <p className="nota-whatsapp">Se precisar, você ainda pode preencher manualmente os campos abaixo.</p>
           <label>Número do WhatsApp<input maxLength={30} placeholder="+55 11 99999-9999" value={whatsapp.numero || ''} onChange={e=>setWhatsapp({...whatsapp,numero:e.target.value})}/></label>

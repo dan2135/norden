@@ -18,9 +18,9 @@ function configurarWhatsApp(env = process.env) {
 
 function configurarEmbeddedSignup(env = process.env) {
   return {
-    appId: env.META_APP_ID || env.FACEBOOK_APP_ID || '',
+    appId: env.META_APP_ID || env.META_API_ID || env.FACEBOOK_APP_ID || '',
     appSecret: env.META_APP_SECRET || env.FACEBOOK_APP_SECRET || '',
-    configId: env.META_EMBEDDED_SIGNUP_CONFIG_ID || env.FACEBOOK_LOGIN_CONFIG_ID || '',
+    configId: env.META_EMBEDDED_SIGNUP_CONFIG_ID || env.META_SIGNUP_CONFIG_ID || env.META_CONFIG_ID || env.FACEBOOK_LOGIN_CONFIG_ID || '',
     apiVersion: env.WHATSAPP_API_VERSION || 'v25.0',
   };
 }

@@ -63,6 +63,16 @@ test('configuração do embedded signup lê credenciais da Meta', () => {
   assert.deepEqual(config, { appId:'1532554661892738', appSecret:'segredo', configId:'config-123', apiVersion:'v26.0' });
 });
 
+test('embedded signup aceita apelidos de variáveis comuns do painel', () => {
+  const config = configurarEmbeddedSignup({
+    META_API_ID:'1532554661892738',
+    META_APP_SECRET:'segredo',
+    META_CONFIG_ID:'config-123',
+  });
+  assert.equal(config.appId, '1532554661892738');
+  assert.equal(config.configId, 'config-123');
+});
+
 test('valida conclusão do embedded signup', () => {
   assert.deepEqual(validarConclusaoEmbeddedSignup({
     code:' abc ',
