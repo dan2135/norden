@@ -21,8 +21,10 @@ function mensagensDoWebhook(payload = {}) {
   for (const entry of payload.entry || []) {
     for (const change of entry.changes || []) {
       const value = change.value || {};
+      const phoneNumberId = String(value.metadata?.phone_number_id || '').trim();
+      const displayPhoneNumber = String(value.metadata?.display_phone_number || '').trim();
       for (const msg of value.messages || []) {
-        if (msg.type === 'text' && msg.text?.body) mensagens.push({ de: msg.from, texto: msg.text.body, id: msg.id });
+        if (msg.type === 'text' && msg.text?.body) mensagens.push({ de: msg.from, texto: msg.text.body, id: msg.id, phoneNumberId, displayPhoneNumber });
       }
     }
   }
@@ -56,12 +58,36 @@ function resumoWebhook(payload = {}) {
   };
 }
 
-async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp()) {
+function empresaComConfigWhatsApp(registro, config) {
+  const { whatsapp_token, whatsapp_phone_number_id, whatsapp_api_version, ...empresa } = registro;
+  empresa.whatsapp = {
+    token: whatsapp_token || config.token,
+    phoneNumberId: whatsapp_phone_number_id || config.phoneNumberId,
+    apiVersion: whatsapp_api_version || config.apiVersion,
+  };
+  return empresa;
+}
+
+async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp(), phoneNumberId = '') {
+  const numeroRecebido = String(phoneNumberId || '').trim();
+  if (numeroRecebido) {
+    const resultado = await banco.query(
+      `SELECT m.id,m.nome,m.slug,m.segmento,m.atividade,'administrador' AS papel,
+        w.access_token AS whatsapp_token,w.phone_number_id AS whatsapp_phone_number_id,w.api_version AS whatsapp_api_version
+       FROM whatsapp_configuracoes w
+       JOIN marcenarias m ON m.id=w.marcenaria_id
+       WHERE w.phone_number_id=$1 AND w.ativo=TRUE AND m.ativa=TRUE`,
+      [numeroRecebido],
+    );
+    if (resultado.rows[0]) return empresaComConfigWhatsApp(resultado.rows[0], config);
+    if (config.phoneNumberId && numeroRecebido !== config.phoneNumberId) throw erroHttp(503, 'Número do WhatsApp não vinculado a nenhuma empresa.');
+  }
   const resultado = config.marcenariaId
     ? await banco.query("SELECT id,nome,slug,segmento,atividade,'administrador' AS papel FROM marcenarias WHERE id=$1 AND ativa=TRUE", [config.marcenariaId])
     : await banco.query("SELECT id,nome,slug,segmento,atividade,'administrador' AS papel FROM marcenarias WHERE slug=$1 AND ativa=TRUE ORDER BY id LIMIT 1", [config.marcenariaSlug]);
   const empresa = resultado.rows[0];
   if (!empresa) throw erroHttp(503, 'Empresa do WhatsApp não configurada.');
+  empresa.whatsapp = config;
   return empresa;
 }
 
@@ -78,6 +104,63 @@ async function enviarWhatsApp(para, texto, config = configurarWhatsApp()) {
     }),
   });
   if (!resposta.ok) throw erroHttp(502, 'Não foi possível enviar mensagem pelo WhatsApp.');
+}
+
+function validarConfiguracaoWhatsApp(body = {}, existente = null, env = process.env) {
+  const phoneNumberId = String(body.phone_number_id || '').replace(/\D/g, '');
+  if (!/^[0-9]{5,40}$/.test(phoneNumberId)) throw erroHttp(400, 'Informe o Phone Number ID do WhatsApp.');
+  const wabaId = String(body.waba_id || '').replace(/\D/g, '').slice(0, 40);
+  const numero = String(body.numero || '').trim();
+  if (numero.length > 30) throw erroHttp(400, 'Informe um número de WhatsApp menor.');
+  const accessToken = typeof body.access_token === 'string' ? body.access_token.trim() : '';
+  if (accessToken && accessToken.length > 5000) throw erroHttp(400, 'Token de acesso muito longo.');
+  if (!accessToken && !existente?.access_token) throw erroHttp(400, 'Informe o token de acesso da Meta.');
+  const apiVersion = String(body.api_version || env.WHATSAPP_API_VERSION || 'v25.0').trim();
+  if (!/^v[0-9]+[.][0-9]+$/.test(apiVersion)) throw erroHttp(400, 'Versão da API inválida. Ex.: v25.0');
+  return { phoneNumberId, wabaId, numero, accessToken, apiVersion, ativo: body.ativo !== false };
+}
+
+function registroPublicoWhatsApp(registro) {
+  return registro ? {
+    numero: registro.numero,
+    waba_id: registro.waba_id,
+    phone_number_id: registro.phone_number_id,
+    api_version: registro.api_version,
+    ativo: registro.ativo,
+    configurado: Boolean(registro.access_token),
+  } : { numero: '', waba_id: '', phone_number_id: '', api_version: process.env.WHATSAPP_API_VERSION || 'v25.0', ativo: true, configurado: false };
+}
+
+function registrarWhatsAppConfiguracoes(app, banco, rota) {
+  app.get('/api/whatsapp-configuracao', rota(async (req, res) => {
+    const registro = (await banco.query('SELECT numero,waba_id,phone_number_id,api_version,ativo,access_token FROM whatsapp_configuracoes WHERE marcenaria_id=$1', [req.marcenaria.id])).rows[0];
+    res.json({ whatsapp: registroPublicoWhatsApp(registro) });
+  }));
+  app.put('/api/whatsapp-configuracao', rota(async (req, res) => {
+    if (!['proprietario', 'administrador', 'superadministrador'].includes(req.marcenaria.papel)) throw erroHttp(403, 'Somente administradores podem configurar o WhatsApp.');
+    const existente = (await banco.query('SELECT access_token FROM whatsapp_configuracoes WHERE marcenaria_id=$1', [req.marcenaria.id])).rows[0];
+    const dados = validarConfiguracaoWhatsApp(req.body, existente);
+    try {
+      const registro = (await banco.query(
+        `INSERT INTO whatsapp_configuracoes (marcenaria_id,numero,waba_id,phone_number_id,access_token,api_version,ativo)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         ON CONFLICT (marcenaria_id) DO UPDATE SET
+           numero=EXCLUDED.numero,
+           waba_id=EXCLUDED.waba_id,
+           phone_number_id=EXCLUDED.phone_number_id,
+           access_token=CASE WHEN EXCLUDED.access_token='' THEN whatsapp_configuracoes.access_token ELSE EXCLUDED.access_token END,
+           api_version=EXCLUDED.api_version,
+           ativo=EXCLUDED.ativo,
+           atualizado_em=CURRENT_TIMESTAMP
+         RETURNING numero,waba_id,phone_number_id,api_version,ativo,access_token`,
+        [req.marcenaria.id, dados.numero, dados.wabaId, dados.phoneNumberId, dados.accessToken, dados.apiVersion, dados.ativo],
+      )).rows[0];
+      res.json({ whatsapp: registroPublicoWhatsApp(registro) });
+    } catch (erro) {
+      if (erro.code === '23505') throw erroHttp(409, 'Este Phone Number ID já está conectado em outra empresa.');
+      throw erro;
+    }
+  }));
 }
 
 async function responderMensagem({ banco, extrair, logger, telefone, texto, empresa }) {
@@ -144,16 +227,16 @@ function registrarWhatsApp(app, banco, rota, { extrair, logger = console } = {})
       logger.log('[WHATSAPP] sem mensagem de texto para processar', JSON.stringify(resumo));
       return res.json({ recebido: true, mensagens: 0 });
     }
-    const empresa = await resolverEmpresaWhatsApp(banco, config);
-    logger.log('[WHATSAPP] empresa selecionada', JSON.stringify({ id: empresa.id, nome: empresa.nome, slug: empresa.slug }));
     for (const mensagem of mensagens) {
+      const empresa = await resolverEmpresaWhatsApp(banco, config, mensagem.phoneNumberId);
+      logger.log('[WHATSAPP] empresa selecionada', JSON.stringify({ id: empresa.id, nome: empresa.nome, slug: empresa.slug, phone_number_id: mensagem.phoneNumberId || empresa.whatsapp?.phoneNumberId || '' }));
       logger.log('[WHATSAPP] processando mensagem', JSON.stringify({ de: mascararTelefone(mensagem.de), empresa_id: empresa.id }));
       const resposta = await responderMensagem({ banco, extrair, logger, telefone: mensagem.de, texto: mensagem.texto, empresa });
-      await enviarWhatsApp(mensagem.de, resposta, config);
+      await enviarWhatsApp(mensagem.de, resposta, empresa.whatsapp || config);
       logger.log('[WHATSAPP] resposta enviada', JSON.stringify({ para: mascararTelefone(mensagem.de), empresa_id: empresa.id }));
     }
     res.json({ recebido: true, mensagens: mensagens.length });
   }));
 }
 
-module.exports = { configurarWhatsApp, mensagensDoWebhook, registrarWhatsApp, resolverEmpresaWhatsApp };
+module.exports = { configurarWhatsApp, mensagensDoWebhook, registrarWhatsApp, registrarWhatsAppConfiguracoes, resolverEmpresaWhatsApp, validarConfiguracaoWhatsApp };

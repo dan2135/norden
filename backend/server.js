@@ -17,7 +17,7 @@ const { registrarAuth } = require('./auth');
 const { analisarSolicitacao, responderSolicitacao } = require('./segmentos');
 const { registrarLixeira, bloquearArquivados } = require('./lixeira');
 const { registrarWebhookAsaas, registrarAssinaturasAsaas } = require('./asaas');
-const { registrarWhatsApp } = require('./whatsapp');
+const { registrarWhatsApp, registrarWhatsAppConfiguracoes } = require('./whatsapp');
 const { registrarRotasRamos } = require('./ramos-personalizados');
 
 const { validarTelefone, validarId, selecionarProjeto, obterCliente, historicoProjeto, erroHttp } = require("./projetos");
@@ -79,6 +79,7 @@ const autenticar = registrarAuth(app, banco, rota);
 app.use('/api', autenticarInjetado || autenticar);
 registrarMarcenarias(app, banco, rota);
 app.use('/api', (req,res,next) => resolverMarcenaria(req,res,next,banco));
+registrarWhatsAppConfiguracoes(app, banco, rota);
 registrarLixeira(app, banco, rota);
 app.use('/api', (req,res,next) => bloquearArquivados(req,res,next,banco));
 
