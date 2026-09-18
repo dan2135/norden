@@ -1,5 +1,5 @@
 /** Área independente de clientes/projetos: perfil do negócio e catálogo compartilhado. */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { requisicao } from './api';
 import CatalogoEstimativa from './CatalogoEstimativa';
 import './Orcamento.css';
@@ -21,6 +21,33 @@ const exemplosAtividade = {
 };
 const whatsappInicial = { numero: '', waba_id: '', phone_number_id: '', access_token: '', api_version: 'v25.0', ativo: true, configurado: false };
 
+function carregarSdkFacebook(appId, apiVersion = 'v25.0') {
+  if (!appId) return Promise.reject(new Error('App ID da Meta não configurado no servidor.'));
+  return new Promise((resolve, reject) => {
+    const inicializar = () => {
+      window.FB.init({
+        appId,
+        cookie: true,
+        xfbml: false,
+        version: apiVersion || 'v25.0',
+      });
+      resolve(window.FB);
+    };
+    if (window.FB) { inicializar(); return; }
+    const existente = document.getElementById('facebook-jssdk');
+    window.fbAsyncInit = inicializar;
+    if (existente) return;
+    const script = document.createElement('script');
+    script.id = 'facebook-jssdk';
+    script.src = 'https://connect.facebook.net/pt_BR/sdk.js';
+    script.async = true;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+    script.onerror = () => reject(new Error('Não foi possível carregar a janela de conexão da Meta.'));
+    document.body.appendChild(script);
+  });
+}
+
 export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [empresa, setEmpresa] = useState(null);
   const [whatsapp, setWhatsapp] = useState(whatsappInicial);
@@ -30,8 +57,11 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [sucessoWhatsApp, setSucessoWhatsApp] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [salvandoWhatsApp, setSalvandoWhatsApp] = useState(false);
+  const [conectandoMeta, setConectandoMeta] = useState(false);
+  const [embeddedMeta, setEmbeddedMeta] = useState({ configurado: false, app_id: '', config_id: '', api_version: 'v25.0' });
   const [tentativa, setTentativa] = useState(0);
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
+  const embeddedInfoRef = useRef({});
   useEffect(() => {
     let cancelado = false;
     requisicao('/empresa-configuracao').then(({empresa}) => { if (!cancelado) setEmpresa(empresa); }).catch(e => { if (!cancelado) setErro(e.message); });
@@ -43,6 +73,21 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   useEffect(() => {
     requisicao('/whatsapp-configuracao').then(({ whatsapp }) => setWhatsapp({ ...whatsappInicial, ...whatsapp, access_token: '' })).catch(() => {});
   }, [tentativa]);
+  useEffect(() => {
+    requisicao('/whatsapp-embedded-config').then(config => setEmbeddedMeta(config || {})).catch(() => {});
+  }, []);
+  useEffect(() => {
+    function ouvirMeta(event) {
+      try {
+        const host = new URL(event.origin).hostname;
+        if (!host.endsWith('facebook.com')) return;
+        const dados = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (dados?.type === 'WA_EMBEDDED_SIGNUP') embeddedInfoRef.current = { ...embeddedInfoRef.current, ...(dados.data || {}) };
+      } catch {}
+    }
+    window.addEventListener('message', ouvirMeta);
+    return () => window.removeEventListener('message', ouvirMeta);
+  }, []);
   async function salvar(e) {
     e.preventDefault();
     if (ocupado) return;
@@ -61,6 +106,40 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       setWhatsapp({ ...whatsappInicial, ...resultado.whatsapp, access_token: '' });
       setSucessoWhatsApp('WhatsApp conectado a esta empresa. O webhook vai direcionar as mensagens deste número para este painel.');
     } catch (erro) { setErroWhatsApp(erro.message); } finally { setSalvandoWhatsApp(false); }
+  }
+  async function conectarWhatsAppMeta() {
+    if (conectandoMeta) return;
+    setConectandoMeta(true); setErroWhatsApp(''); setSucessoWhatsApp('');
+    try {
+      if (!embeddedMeta.configurado) throw new Error('Conexão rápida da Meta ainda não configurada no servidor. Configure META_APP_ID, META_APP_SECRET e META_EMBEDDED_SIGNUP_CONFIG_ID no Render.');
+      embeddedInfoRef.current = {};
+      const FB = await carregarSdkFacebook(embeddedMeta.app_id, embeddedMeta.api_version || 'v25.0');
+      const resposta = await new Promise((resolve, reject) => {
+        let retornou = false;
+        FB.login(r => { retornou = true; resolve(r); }, {
+          config_id: embeddedMeta.config_id,
+          response_type: 'code',
+          override_default_response_type: true,
+          scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management',
+          extras: { feature: 'whatsapp_embedded_signup' },
+        });
+        setTimeout(() => { if (!retornou) reject(new Error('A janela da Meta não retornou autorização. Tente abrir de novo e conclua o fluxo.')); }, 120000);
+      });
+      const code = resposta?.authResponse?.code;
+      if (!code) throw new Error('A conexão com a Meta foi cancelada ou não retornou autorização.');
+      const info = embeddedInfoRef.current || {};
+      const resultado = await requisicao('/whatsapp-embedded-signup', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ code, waba_id: info.waba_id, phone_number_id: info.phone_number_id }),
+      });
+      setWhatsapp({ ...whatsappInicial, ...resultado.whatsapp, access_token: '' });
+      setSucessoWhatsApp('WhatsApp conectado pela Meta. A partir de agora, as mensagens desse número chegam neste painel.');
+    } catch (erro) {
+      setErroWhatsApp(erro.message);
+    } finally {
+      setConectandoMeta(false);
+    }
   }
   const webhookUrl = `${window.location.origin}/api/webhooks/whatsapp`;
   return <section className="configuracao-empresa">
@@ -82,9 +161,18 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       </form>
       {sucesso && <p role="status">{sucesso}</p>}
       <form onSubmit={salvarWhatsApp}>
-        <fieldset disabled={salvandoWhatsApp || !podeEditar}>
+        <fieldset disabled={salvandoWhatsApp || conectandoMeta || !podeEditar}>
           <legend>WhatsApp da empresa</legend>
           <p>Conecte o número desta empresa na Meta. O mesmo webhook pode atender várias empresas; a Norden identifica pelo Phone Number ID.</p>
+          <div className="meta-connect-card">
+            <div>
+              <strong>Conectar pelo site</strong>
+              <p>Abra a janela oficial da Meta, escolha a conta/WhatsApp da empresa e a Norden salva token, WABA ID e Phone Number ID automaticamente.</p>
+              {!embeddedMeta.configurado && <small>Para ativar este botão, configure no Render: <code>META_APP_ID</code>, <code>META_APP_SECRET</code> e <code>META_EMBEDDED_SIGNUP_CONFIG_ID</code>.</small>}
+            </div>
+            <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || salvandoWhatsApp || !podeEditar || !embeddedMeta.configurado}>{conectandoMeta ? 'Conectando…' : 'Conectar WhatsApp pela Meta'}</button>
+          </div>
+          <p className="nota-whatsapp">Se precisar, você ainda pode preencher manualmente os campos abaixo.</p>
           <label>Número do WhatsApp<input maxLength={30} placeholder="+55 11 99999-9999" value={whatsapp.numero || ''} onChange={e=>setWhatsapp({...whatsapp,numero:e.target.value})}/></label>
           <label>Phone Number ID<input required inputMode="numeric" maxLength={40} placeholder="ID do número na Meta" value={whatsapp.phone_number_id || ''} onChange={e=>setWhatsapp({...whatsapp,phone_number_id:e.target.value})}/></label>
           <label>WhatsApp Business Account ID<input inputMode="numeric" maxLength={40} placeholder="WABA ID, se tiver" value={whatsapp.waba_id || ''} onChange={e=>setWhatsapp({...whatsapp,waba_id:e.target.value})}/></label>

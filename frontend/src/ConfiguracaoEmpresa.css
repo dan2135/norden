@@ -11,7 +11,13 @@
 .configuracao-empresa .checkbox-config input { width:auto; }
 .nota-whatsapp { font-size:13px; color:#667085; }
 .nota-whatsapp code { background:var(--chat-soft,#f1f5ff); border-radius:6px; padding:3px 6px; word-break:break-all; }
+.meta-connect-card { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:18px; border:1px solid rgba(81,117,222,.28); border-radius:14px; background:linear-gradient(135deg,rgba(81,117,222,.12),rgba(57,202,154,.10)); }
+.meta-connect-card strong { display:block; margin-bottom:4px; font-size:16px; color:#1f3763; }
+.meta-connect-card p { margin:0; color:#475569; }
+.meta-connect-card small { display:block; margin-top:8px; color:#7c5800; }
+.meta-connect-card button { border:0; background:#1f6feb; color:#fff; font-weight:700; white-space:nowrap; box-shadow:0 10px 22px rgba(31,111,235,.18); }
+.meta-connect-card button:hover:not(:disabled) { filter:brightness(1.05); transform:translateY(-1px); }
 .configuracao-empresa .material-catalogo { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .configuracao-empresa .material-catalogo>div:first-child { grid-column:1/-1; }
 .configuracao-boas-vindas { padding:16px; border-left:4px solid #5175de; background:var(--chat-soft,#f1f5ff); }
-@media(max-width:650px) { .configuracao-empresa .material-catalogo { grid-template-columns:1fr; }.configuracao-empresa fieldset { padding:16px; } }
+@media(max-width:650px) { .configuracao-empresa .material-catalogo { grid-template-columns:1fr; }.configuracao-empresa fieldset { padding:16px; }.meta-connect-card { align-items:stretch; flex-direction:column; }.meta-connect-card button { white-space:normal; } }

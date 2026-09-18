@@ -16,6 +16,15 @@ function configurarWhatsApp(env = process.env) {
   };
 }
 
+function configurarEmbeddedSignup(env = process.env) {
+  return {
+    appId: env.META_APP_ID || env.FACEBOOK_APP_ID || '',
+    appSecret: env.META_APP_SECRET || env.FACEBOOK_APP_SECRET || '',
+    configId: env.META_EMBEDDED_SIGNUP_CONFIG_ID || env.FACEBOOK_LOGIN_CONFIG_ID || '',
+    apiVersion: env.WHATSAPP_API_VERSION || 'v25.0',
+  };
+}
+
 function mensagensDoWebhook(payload = {}) {
   const mensagens = [];
   for (const entry of payload.entry || []) {
@@ -120,6 +129,80 @@ function validarConfiguracaoWhatsApp(body = {}, existente = null, env = process.
   return { phoneNumberId, wabaId, numero, accessToken, apiVersion, ativo: body.ativo !== false };
 }
 
+function validarConclusaoEmbeddedSignup(body = {}) {
+  const code = typeof body.code === 'string' ? body.code.trim() : '';
+  if (!code || code.length > 2000) throw erroHttp(400, 'Autorização da Meta inválida ou expirada.');
+  const wabaId = String(body.waba_id || body.wabaId || '').replace(/\D/g, '');
+  const phoneNumberId = String(body.phone_number_id || body.phoneNumberId || '').replace(/\D/g, '');
+  if (wabaId && !/^[0-9]{5,40}$/.test(wabaId)) throw erroHttp(400, 'WABA ID inválido.');
+  if (phoneNumberId && !/^[0-9]{5,40}$/.test(phoneNumberId)) throw erroHttp(400, 'Phone Number ID inválido.');
+  return { code, wabaId, phoneNumberId };
+}
+
+async function chamarGraph(caminho, { token = '', method = 'GET', body = null, apiVersion = 'v25.0', consultar = fetch } = {}) {
+  const url = caminho.startsWith('https://') ? caminho : `https://graph.facebook.com/${apiVersion}/${caminho.replace(/^\//, '')}`;
+  let resposta;
+  try {
+    resposta = await consultar(url, {
+      method,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch {
+    throw erroHttp(502, 'Não foi possível falar com a Meta agora.');
+  }
+  let dados = {};
+  try { dados = await resposta.json(); } catch {}
+  if (!resposta.ok) throw erroHttp(502, 'Não foi possível concluir a conexão com a Meta.');
+  return dados;
+}
+
+async function trocarCodigoEmbeddedSignup(code, config = configurarEmbeddedSignup(), consultar = fetch) {
+  if (!config.appId || !config.appSecret || !config.configId) throw erroHttp(503, 'Embedded Signup da Meta não configurado no servidor.');
+  const params = new URLSearchParams({ client_id: config.appId, client_secret: config.appSecret, code });
+  const dados = await chamarGraph(`https://graph.facebook.com/${config.apiVersion}/oauth/access_token?${params}`, { consultar });
+  if (!dados.access_token) throw erroHttp(502, 'A Meta não retornou o token do WhatsApp.');
+  return dados.access_token;
+}
+
+async function detalhesNumeroMeta({ token, wabaId, phoneNumberId, config = configurarEmbeddedSignup(), consultar = fetch }) {
+  if (phoneNumberId) {
+    const numero = await chamarGraph(`${phoneNumberId}?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
+    return { phoneNumberId: numero.id || phoneNumberId, numero: numero.display_phone_number || '' };
+  }
+  if (!wabaId) throw erroHttp(400, 'A Meta não informou o número conectado.');
+  const lista = await chamarGraph(`${wabaId}/phone_numbers?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
+  const primeiro = lista.data?.[0];
+  if (!primeiro?.id) throw erroHttp(400, 'Nenhum número foi conectado pela Meta.');
+  return { phoneNumberId: primeiro.id, numero: primeiro.display_phone_number || '' };
+}
+
+async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch, env = process.env }) {
+  const config = configurarEmbeddedSignup(env);
+  const entrada = validarConclusaoEmbeddedSignup(body);
+  const token = await trocarCodigoEmbeddedSignup(entrada.code, config, consultar);
+  const numero = await detalhesNumeroMeta({ token, wabaId: entrada.wabaId, phoneNumberId: entrada.phoneNumberId, config, consultar });
+  if (entrada.wabaId) await chamarGraph(`${entrada.wabaId}/subscribed_apps`, { token, method: 'POST', apiVersion: config.apiVersion, consultar });
+  const registro = (await banco.query(
+    `INSERT INTO whatsapp_configuracoes (marcenaria_id,numero,waba_id,phone_number_id,access_token,api_version,ativo)
+     VALUES ($1,$2,$3,$4,$5,$6,TRUE)
+     ON CONFLICT (marcenaria_id) DO UPDATE SET
+       numero=EXCLUDED.numero,
+       waba_id=EXCLUDED.waba_id,
+       phone_number_id=EXCLUDED.phone_number_id,
+       access_token=EXCLUDED.access_token,
+       api_version=EXCLUDED.api_version,
+       ativo=TRUE,
+       atualizado_em=CURRENT_TIMESTAMP
+     RETURNING numero,waba_id,phone_number_id,api_version,ativo,access_token`,
+    [empresa.id, numero.numero, entrada.wabaId, numero.phoneNumberId, token, config.apiVersion],
+  )).rows[0];
+  return registroPublicoWhatsApp(registro);
+}
+
 function registroPublicoWhatsApp(registro) {
   return registro ? {
     numero: registro.numero,
@@ -132,6 +215,15 @@ function registroPublicoWhatsApp(registro) {
 }
 
 function registrarWhatsAppConfiguracoes(app, banco, rota) {
+  app.get('/api/whatsapp-embedded-config', rota(async (req, res) => {
+    const config = configurarEmbeddedSignup();
+    res.json({
+      configurado: Boolean(config.appId && config.configId && config.appSecret),
+      app_id: config.appId,
+      config_id: config.configId,
+      api_version: config.apiVersion,
+    });
+  }));
   app.get('/api/whatsapp-configuracao', rota(async (req, res) => {
     const registro = (await banco.query('SELECT numero,waba_id,phone_number_id,api_version,ativo,access_token FROM whatsapp_configuracoes WHERE marcenaria_id=$1', [req.marcenaria.id])).rows[0];
     res.json({ whatsapp: registroPublicoWhatsApp(registro) });
@@ -158,6 +250,16 @@ function registrarWhatsAppConfiguracoes(app, banco, rota) {
       res.json({ whatsapp: registroPublicoWhatsApp(registro) });
     } catch (erro) {
       if (erro.code === '23505') throw erroHttp(409, 'Este Phone Number ID já está conectado em outra empresa.');
+      throw erro;
+    }
+  }));
+  app.post('/api/whatsapp-embedded-signup', rota(async (req, res) => {
+    if (!['proprietario', 'administrador', 'superadministrador'].includes(req.marcenaria.papel)) throw erroHttp(403, 'Somente administradores podem conectar o WhatsApp.');
+    try {
+      const whatsapp = await concluirEmbeddedSignup({ banco, empresa: req.marcenaria, body: req.body });
+      res.json({ whatsapp });
+    } catch (erro) {
+      if (erro.code === '23505') throw erroHttp(409, 'Este WhatsApp já está conectado em outra empresa.');
       throw erro;
     }
   }));
@@ -239,4 +341,4 @@ function registrarWhatsApp(app, banco, rota, { extrair, logger = console } = {})
   }));
 }
 
-module.exports = { configurarWhatsApp, mensagensDoWebhook, registrarWhatsApp, registrarWhatsAppConfiguracoes, resolverEmpresaWhatsApp, validarConfiguracaoWhatsApp };
+module.exports = { configurarWhatsApp, configurarEmbeddedSignup, mensagensDoWebhook, registrarWhatsApp, registrarWhatsAppConfiguracoes, resolverEmpresaWhatsApp, validarConfiguracaoWhatsApp, validarConclusaoEmbeddedSignup, concluirEmbeddedSignup };
