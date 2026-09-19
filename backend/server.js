@@ -23,9 +23,11 @@ const { registrarRotasRamos } = require('./ramos-personalizados');
 const { validarTelefone, validarId, selecionarProjeto, obterCliente, historicoProjeto, erroHttp } = require("./projetos");
 
 function criarApp({ banco = pool, extrair, logger = console, autenticar: autenticarInjetado } = {}) {
+// Permite injetar banco, extração e autenticação nos testes sem mudar a configuração real de produção.
 extrair ??= extrairDadosProjeto;
 const app = express();
 
+// Segurança básica do Express: CORS restrito, proteção de origem e limite de payload antes de chegar nas rotas.
 const { origens } = configuracaoHospedagem();
 app.locals.origensPermitidas = origens;
 if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
@@ -39,6 +41,7 @@ if (process.env.SERVE_FRONTEND === 'true') {
 }
 
 app.get("/api/status", (req, res) => {
+  // Healthcheck usado pelo frontend para confirmar que o backend atual tem os recursos esperados.
   res.json({
     status: "online",
     sistema: "Norden",
@@ -48,6 +51,7 @@ app.get("/api/status", (req, res) => {
 });
 
 app.get("/api/teste-banco", async (req, res) => {
+  // Diagnóstico manual simples: confirma conexão sem expor tabelas, registros ou credenciais.
   try {
     const resultado = await banco.query("SELECT NOW()");
 
@@ -65,6 +69,7 @@ app.get("/api/teste-banco", async (req, res) => {
 });
 
 const rota = (fn) => async (req, res) => {
+  // Wrapper padrão das rotas: converte exceções em JSON seguro e evita repetir try/catch.
   try { await fn(req, res); } catch (erro) {
     console.error("Erro:", erro.message);
     res.status(erro.status || 500).json({ mensagem: erro.status ? erro.message : "Não foi possível concluir. Tente novamente." });
@@ -83,6 +88,7 @@ registrarWhatsAppConfiguracoes(app, banco, rota);
 registrarLixeira(app, banco, rota);
 app.use('/api', (req,res,next) => bloquearArquivados(req,res,next,banco));
 
+// Módulos privados do painel: todos recebem req.marcenaria já validado pelo middleware anterior.
 registrarPainel(app, banco, rota);
 registrarOrcamentos(app, banco, rota);
 registrarEstimativa(app, banco, rota);
@@ -90,6 +96,7 @@ registrarAssinaturasAsaas(app, banco, rota);
 require('./configuracao-empresa').registrarConfiguracaoEmpresa(app, banco, rota);
 
 app.get("/api/projetos", rota(async (req, res) => {
+  // Lista projetos de um telefone dentro da empresa ativa, sem misturar dados entre empresas.
   const telefone = validarTelefone(req.query.telefone);
   const resultado = await banco.query(
     "SELECT p.* FROM projetos p JOIN clientes c ON c.id = p.cliente_id WHERE c.telefone = $1 AND c.marcenaria_id=$2 AND p.marcenaria_id=$2 AND c.excluido_em IS NULL AND p.excluido_em IS NULL ORDER BY p.id DESC", [telefone,req.marcenaria.id]);
@@ -97,6 +104,7 @@ app.get("/api/projetos", rota(async (req, res) => {
 }));
 
 app.post("/api/projetos", rota(async (req, res) => {
+  // Cria projeto manual para um telefone; obterCliente cria o cliente se ainda não existir.
   const telefone = validarTelefone(req.body?.telefone);
   const db = await banco.connect();
   try {
@@ -112,6 +120,7 @@ app.post("/api/projetos", rota(async (req, res) => {
 }));
 
 app.get("/api/projetos/:id/mensagens", rota(async (req, res) => {
+  // Histórico público por telefone/projeto, usado para continuar uma conversa específica.
   const telefone = validarTelefone(req.query.telefone);
   const id = validarId(req.params.id);
   const resultado = await banco.query(
@@ -139,6 +148,7 @@ app.post("/api/mensagem", rota(async (req, res) => {
     const historicoBanco = { rows: await historicoProjeto(db, cliente.id, projetoSelecionado.id,req.marcenaria.id) };
 
 const historico = historicoBanco.rows.map((item) => ({
+  // Histórico no formato "chat" para ser aproveitado por IA quando ela estiver configurada.
   role: item.remetente === "cliente" ? "user" : "assistant",
   content: item.texto,
 }));
@@ -164,6 +174,7 @@ const historico = historicoBanco.rows.map((item) => ({
   let respostaSistema = geral ? responderSolicitacao(analise,cliente,req.marcenaria,primeiroContato) : responder(analise, projetoSelecionado, cliente, { marcenaria: req.marcenaria.nome, primeiroContato });
   let modoIA = 'regras';
   if (process.env.IA_PROVIDER === 'openai') {
+    // OpenAI refina a resposta da Suzy, mas se falhar o atendimento continua com a resposta por regras.
     try {
       respostaSistema = await require('./openai').responderComOpenAI({historico,empresa:req.marcenaria,respostaBase:respostaSistema});
       modoIA = 'openai';
@@ -228,6 +239,7 @@ res.json({ resposta: respostaSistema, cliente: clienteAtual, projeto, pendencias
 }));
 app.use("/api", (req, res) => res.status(404).json({ mensagem: "Rota não encontrada. Verifique se o backend está atualizado." }));
 app.use((erro, req, res, next) => {
+  // Tratamento final de erros do Express; mensagens internas não vazam para o navegador.
   if (res.headersSent) return next(erro);
   const status = erro.status || (erro.type === "entity.too.large" ? 413 : erro instanceof SyntaxError ? 400 : 500);
   res.status(status).json({ mensagem: erro.status ? erro.message : status === 400 ? "JSON inválido." : status === 413 ? "Mensagem muito grande." : "Erro interno no atendimento." });

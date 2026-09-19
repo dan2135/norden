@@ -11,6 +11,7 @@ import BotaoTema from './BotaoTema';
 import TrocarSenha from './TrocarSenha';
 import ConfiguracaoEmpresa from './ConfiguracaoEmpresa';
 import Assinatura from './Assinatura';
+import { useTema } from './tema';
 import './Empresa.css';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
 
 function CallbackMetaOAuth({ parametros }) {
   useEffect(() => {
+    // A Meta volta para a raiz do site com "code" e "state"; esta tela repassa os dados para o popup que iniciou a conexão.
     const dados = {
       type: 'NORDEN_META_OAUTH',
       code: parametros.get('code') || '',
@@ -41,6 +43,7 @@ function CallbackMetaOAuth({ parametros }) {
 
 function Aplicacao() {
   // Coordena o usuário autenticado e a empresa ativa; trocar empresa recarrega seu contexto.
+  const [temaEscuro] = useTema();
   const [aba, setAba] = useState('painel');
   const [sessao, setSessao] = useState(null);
   const [iniciando, setIniciando] = useState(true);
@@ -54,14 +57,17 @@ function Aplicacao() {
   const segmento = empresaAtiva?.segmento || 'marcenaria';
   const podeConfigurarEmpresa = ['proprietario','administrador','superadministrador'].includes(empresaAtiva?.papel);
   useEffect(() => {
+    // Ao abrir o app interno, tenta reaproveitar a sessão do cookie antes de mostrar login.
     requisicao('/auth/sessao').then(entrar)
       .catch(erro => { if (erro.status !== 401) setErroEmpresa(erro.message); })
       .finally(() => setIniciando(false));
   }, []);
   useEffect(() => {
+    // Ramos personalizados alimentam as sugestões quando o usuário cria empresas fora dos modelos prontos.
     requisicao('/ramos-personalizados').then(({ ramos }) => setRamosPersonalizados(ramos || [])).catch(() => {});
   }, []);
   function entrar(dados) {
+    // Depois do login, registra CSRF e escolhe a última empresa usada para manter o contexto do painel.
     definirCsrf(dados.csrf_token);
     setSessao(dados.usuario);
     const lista = dados.marcenarias || [];
@@ -71,9 +77,11 @@ function Aplicacao() {
     setIniciando(false);
   }
   function trocarMarcenaria(id) {
+    // Trocar empresa muda o cabeçalho das próximas chamadas e força cada aba a ler seus próprios dados.
     definirMarcenaria(id); localStorage.setItem('marceneiro-ia:marcenaria', id); setMarcenariaId(id);
   }
   useEffect(() => {
+    // Primeiro acesso cai direto em "Minha empresa" para completar ramo, materiais e WhatsApp.
     if (!sessao?.id || sessao?.trocar_senha || !marcenariaId) return;
     let cancelado = false;
     requisicao('/empresa-configuracao')
@@ -82,6 +90,7 @@ function Aplicacao() {
     return () => { cancelado = true; };
   }, [sessao?.id, sessao?.trocar_senha, marcenariaId]);
   async function criarMarcenaria(event) {
+    // Cria outra empresa para o mesmo usuário; o backend valida acesso e evita nomes/slug duplicados.
     event.preventDefault();
     if (salvandoEmpresa) return;
     const nome = novaEmpresa.nome.trim();
@@ -96,6 +105,7 @@ function Aplicacao() {
     } catch (e) { setErroEmpresa(e.message); } finally { setSalvandoEmpresa(false); }
   }
   async function sair() {
+    // Logout limpa tanto a sessão do servidor quanto o contexto local usado nas requisições.
     try { await requisicao('/auth/logout', { method: 'POST' }); } finally {
       definirCsrf(null); definirMarcenaria(null); setSessao(null); setMarcenariaId(''); setMarcenarias([]);
     }
@@ -103,7 +113,8 @@ function Aplicacao() {
   if (iniciando) return <div className="tela-carregamento"><span>N</span><p>Preparando seu painel…</p></div>;
   if (!sessao) return <TelaLogin onEntrar={entrar} />;
   if (sessao.trocar_senha) return <TrocarSenha aoSair={sair} aoConcluir={()=>{definirCsrf(null);definirMarcenaria(null);setSessao(null);setMarcenarias([]);setMarcenariaId('');}} />;
-  return <div className="app-shell">
+  return <div className="app-shell" data-theme={temaEscuro ? 'dark' : 'light'}>
+    {/* Navegação lateral fixa: troca abas sem recarregar a sessão nem perder a empresa ativa. */}
     <aside className="app-navegacao">
       <div className="app-marca"><span>N</span><strong>Norden</strong></div>
       <nav aria-label="Navegação principal">
@@ -114,6 +125,7 @@ function Aplicacao() {
       <div className="app-usuario"><span>{sessao.nome?.slice(0,1).toUpperCase()}</span><div><strong>{sessao.nome}</strong><small>{sessao.email}</small></div><button onClick={sair} title="Sair">↪</button></div>
     </aside>
     <section className="app-principal">
+      {/* Topo da área interna: mostra a empresa atual e permite criar/alternar empresas. */}
       <header className="app-topo"><div><small>ESPAÇO DE TRABALHO</small><strong>{marcenarias.find(m=>String(m.id)===marcenariaId)?.nome || 'Sua empresa'}</strong></div>
         <div className="seletor-marcenaria"><select aria-label="Empresa ativa" value={marcenariaId} disabled={!marcenarias.length} onChange={e=>trocarMarcenaria(e.target.value)}>
           {marcenarias.map(m=><option value={m.id} key={m.id}>{m.nome}</option>)}</select><button onClick={()=>setNovaEmpresa({nome:'',segmento:'outros',atividade:''})}>+ Nova empresa</button></div>
@@ -127,6 +139,7 @@ function Aplicacao() {
       {erroEmpresa && <div className="erro-empresa" role="alert">{erroEmpresa}</div>}
       {!marcenariaId && !erroEmpresa && <p className="carregando-empresa">Carregando empresa…</p>}
       {marcenariaId && <div key={marcenariaId} className="app-conteudo">
+        {/* Cada aba é montada só quando necessária; isso evita chamadas desnecessárias e mantém o painel leve. */}
         <div hidden={aba !== 'painel'}><Painel segmento={segmento} visivel={aba === 'painel'} /></div>
         <div hidden={aba !== 'empresa'}>
           {aba === 'empresa' && <ConfiguracaoEmpresa

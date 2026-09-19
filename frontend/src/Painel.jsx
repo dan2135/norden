@@ -12,6 +12,7 @@ const porPagina = 12;
 const vazio = { clientes: [], projetos: [], resumo: { clientes: 0, projetos: 0, em_coleta: 0, pendentes: 0, completos: 0 } };
 
 export default function Painel({ visivel, segmento = 'marcenaria' }) {
+  // Estados de exclusão/lixeira ficam separados dos dados principais para evitar apagar registros por engano.
   const [exclusaoPendente,setExclusaoPendente]=useState(null);
   const [lixeira, setLixeira] = useState([]);
   const [projetosExcluidos, setProjetosExcluidos] = useState([]);
@@ -32,6 +33,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
   const origemFicha = useRef(null);
 
   useEffect(() => {
+    // Ao abrir/atualizar o painel, carrega resumo, listas ativas e lixeiras em paralelo.
     if (!visivel) return;
     let cancelado = false;
     requisicao('/status').then(status => {
@@ -44,6 +46,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
   }, [visivel, atualizacao]);
 
   useEffect(() => {
+    // A ficha completa só é buscada quando o usuário escolhe um projeto, economizando chamadas na listagem.
     if (!selecionado || !visivel) return;
     let cancelado = false;
     requisicao(`/painel/projetos/${selecionado}`).then(resultado => {
@@ -53,16 +56,19 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
   }, [selecionado, visivel, atualizacao]);
 
   useEffect(() => {
+    // Quando a ficha abre, move o foco para o título para melhorar navegação por teclado/leitor de tela.
     if (selecionado && !ficha.carregando) tituloFicha.current?.focus();
   }, [selecionado, ficha.carregando]);
 
   function atualizar() {
+    // Recarrega listas e, se houver ficha aberta, também força a ficha a buscar dados atuais.
     setEstado({ carregando: true, erro: '' });
     if (selecionado) setFicha({ carregando: true, erro: '', dados: null });
     setAtualizacao(v => v + 1);
   }
 
   function abrirFicha(id, elemento) {
+    // Guarda o botão que abriu a ficha para devolver o foco ao fechar.
     origemFicha.current = elemento;
     setFicha({ carregando: true, erro: '', dados: null });
     if (selecionado === id) setAtualizacao(v => v + 1);
@@ -70,16 +76,19 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
   }
 
   function fecharFicha() {
+    // Fecha a lateral de detalhes sem perder filtros nem página atual.
     setSelecionado(null);
     setFicha({ carregando: false, erro: '', dados: null });
     origemFicha.current?.focus();
   }
 
+  // Filtros sempre voltam para a primeira página porque a lista resultante pode ficar menor.
   function filtrar(setter, valor) { setter(valor); setPagina(1); }
   function limpar() { setBusca(''); setCliente(''); setCategoria(''); setPagina(1); }
   function projetosDoCliente(id) { limpar(); setCliente(String(id)); setAba('projetos'); fecharFicha(); }
 
   async function moverCliente(item, restaurar = false) {
+    // Arquivar cliente preserva projetos e mensagens; exclusão definitiva exige outro fluxo de confirmação.
     if (travaCliente.current || estado.carregando) return;
     if (!restaurar && !window.confirm(`Mover ${item.nome || item.telefone} para a lixeira? Os projetos, orçamentos e o histórico serão preservados e poderão ser recuperados.`)) return;
     travaCliente.current = true; setMovendo(true); setAvisoCliente('');
@@ -93,6 +102,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
 
   const projetos = filtrarProjetos(dados.projetos, { busca, cliente, categoria });
   async function alterarRegistro(item, tipo, acao) {
+    // Projetos e clientes compartilham a mesma lógica de restaurar, mover para lixeira ou confirmar exclusão final.
     if(travaCliente.current || estado.carregando) return;
     if(acao==='permanente') {
       setExclusaoPendente({item,tipo});return;
@@ -115,6 +125,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
   const p = ficha.dados?.projeto;
 
   return <main className="painel">
+    {/* Confirmação com senha para exclusão permanente: evita remoção irreversível por clique acidental. */}
     {exclusaoPendente&&<ConfirmarExclusao alvo={exclusaoPendente} aoFechar={()=>setExclusaoPendente(null)} aoExcluir={mensagem=>{
       setExclusaoPendente(null);setAvisoCliente(mensagem);fecharFicha();limpar();atualizar();window.dispatchEvent(new Event('norden:clientes-alterados'));
     }}/>}
@@ -128,6 +139,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
 
     {estado.erro && <div className="aviso erro" role="alert">{estado.erro} <button onClick={atualizar}>Tentar novamente</button></div>}
     {avisoCliente && <p className="aviso sucesso" role="status">{avisoCliente}</p>}
+    {/* Indicadores rápidos: números gerais da empresa sem considerar os filtros da tabela. */}
     <section className="indicadores" aria-label="Resumo geral, sem filtros">
       {[['Clientes', dados.resumo.clientes], ['Projetos', dados.resumo.projetos], ['Em coleta', dados.resumo.em_coleta],
         ['Confirmar dados', dados.resumo.pendentes], ['Dados completos', dados.resumo.completos]].map(([titulo, valor]) =>
@@ -136,6 +148,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
     <p className="nota">“Dados completos” significa coleta preenchida, não orçamento aprovado. {dados.consultado_em && `Consulta: ${formatarData(dados.consultado_em)}.`}</p>
 
     <div className={`painel-conteudo ${selecionado ? 'com-ficha' : ''}`}>
+      {/* Lista principal: alterna entre projetos, clientes e lixeiras usando os mesmos filtros visuais. */}
       <section className="lista-painel" aria-label="Consulta de clientes e projetos" aria-busy={estado.carregando}>
         <div className="abas-lista" aria-label="Tipo de consulta">
           <button aria-pressed={aba === 'projetos'} onClick={() => { setAba('projetos'); setPagina(1); }}>Projetos</button>
@@ -199,6 +212,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
         </nav>}
       </section>
 
+      {/* Ficha lateral: concentra dados coletados, pendências, orçamento e histórico da conversa. */}
       {selecionado && <aside className="ficha-projeto" aria-labelledby="titulo-ficha" aria-busy={ficha.carregando}>
         <header><h2 ref={tituloFicha} tabIndex={-1} id="titulo-ficha">Projeto #{selecionado}</h2><button onClick={fecharFicha} aria-label="Fechar ficha">Fechar</button></header>
         {ficha.carregando && <p role="status">Carregando ficha e histórico…</p>}
@@ -216,9 +230,10 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
           <p className="nota">Criado: {formatarData(p.criado_em)}<br />Atualizado: {formatarData(p.atualizado_em)}</p>
           <Orcamento key={p.id} projeto={p} aoSalvar={() => setAtualizacao(v => v + 1)} />
           <h3>Histórico da conversa</h3>
-          <div className="historico-painel">
+          {/* Balões do histórico: cliente à direita, Suzy à esquerda, para leitura parecida com chat. */}
+          <div className="historico-painel historico-baloes">
             {!ficha.dados.mensagens.length && <p className="texto-suave">Este projeto ainda não tem mensagens.</p>}
-            {ficha.dados.mensagens.map(m => <article className={`mensagem-painel ${m.remetente === 'cliente' ? 'do-cliente' : ''}`} key={m.id}>
+            {ficha.dados.mensagens.map(m => <article className={`mensagem-painel balao-conversa ${m.remetente === 'cliente' ? 'do-cliente mensagem-cliente' : 'da-suzy mensagem-suzy'}`} key={m.id}>
               <header><strong>{m.remetente === 'cliente' ? 'Cliente' : 'Suzy'}</strong><time>{formatarData(m.criado_em)}</time></header><p>{m.texto}</p>
             </article>)}
           </div>

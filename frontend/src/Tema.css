@@ -34,3 +34,237 @@ html[data-theme="dark"] .tema-botao{background:#253246;border-color:#50617c;colo
 html[data-theme="dark"] :is(button,input,select,textarea):focus-visible{outline-color:#aabdff!important}
 }
 @media print{.tema-botao{display:none!important}.app-principal{padding-bottom:0}}
+
+/* Dark mode renovado: contraste limpo, azul vivo e superfícies consistentes. */
+@media screen {
+html[data-theme="dark"]{
+  color-scheme:dark;
+  background:#07111f!important;
+  color:#eaf1ff!important;
+  --norden-bg:#07111f;
+  --norden-surface:#101b2d;
+  --norden-surface-soft:#16243a;
+  --norden-line:#253955;
+  --norden-text:#eef5ff;
+  --norden-muted:#9fb0c8;
+  --norden-blue:#69a0ff;
+  --norden-blue-soft:#172f57;
+  --chat-bg:#07111f;
+  --chat-surface:#101b2d;
+  --chat-text:#eef5ff;
+  --chat-soft:#16243a;
+  --chat-client:#1d63d8;
+  --chat-error:#ffb1a6;
+}
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell{
+  background:
+    radial-gradient(circle at top left,#193d73 0,transparent 34%),
+    radial-gradient(circle at bottom right,#102a4b 0,transparent 28%),
+    linear-gradient(180deg,#07111f 0%,#0a1626 100%)!important;
+  color:#eaf1ff!important;
+}
+html[data-theme="dark"] :is(.app-navegacao,.app-topo,.login-pagina,.tela-carregamento){
+  background:rgba(10,22,38,.92)!important;
+  color:#eaf1ff!important;
+}
+html[data-theme="dark"] .app-navegacao{
+  border-right-color:#263b58!important;
+  border-bottom-color:#263b58!important;
+  box-shadow:12px 0 40px #00000022!important;
+}
+html[data-theme="dark"] .app-marca>span{
+  background:linear-gradient(135deg,#4d8dff,#8bb8ff)!important;
+  color:#061225!important;
+  box-shadow:0 12px 28px #4d8dff33!important;
+}
+html[data-theme="dark"] :is(.app-marca strong,.app-topo strong,.painel h1,.painel h2,.painel h3,.indicador strong,.painel td strong,.dados-ficha dd,.ficha-projeto>p,.configuracao-empresa h1,.configuracao-empresa h2,.configuracao-empresa h3){
+  color:#eef5ff!important;
+}
+html[data-theme="dark"] :is(.texto-suave,.nota,.contagem,.painel td small,.dados-ficha dt,.estado-vazio,.carregando-empresa,.app-topo small,.app-usuario small,.indicador span,.filtros label,.configuracao-empresa p,.configuracao-empresa small){
+  color:#9fb0c8!important;
+}
+html[data-theme="dark"] :is(.lista-painel,.ficha-projeto,.indicador,.nova-empresa,.confirmar-exclusao,.login-card,.rodape-norden,.assinatura-card,.configuracao-empresa form,.configuracao-empresa fieldset,.meta-connect-card){
+  background:linear-gradient(180deg,#101b2d 0%,#0d1828 100%)!important;
+  border-color:#263b58!important;
+  color:#eaf1ff!important;
+  box-shadow:0 22px 70px #00000038!important;
+}
+html[data-theme="dark"] :is(.indicador,.lista-painel,.ficha-projeto,.nova-empresa,.assinatura-card){
+  border-radius:18px!important;
+}
+html[data-theme="dark"] .indicador{
+  background:linear-gradient(145deg,#13223a 0%,#0f1a2d 100%)!important;
+}
+html[data-theme="dark"] .sobretitulo{
+  color:#7fb0ff!important;
+}
+html[data-theme="dark"] :is(.app-navegacao nav button,.abas-lista button,.botao-texto,.rodape-links button,.rodape-pagina button,.rodape-pagina a,.rodape-norden-sobre summary,.login-acoes button,.login-card>a,.resultado-estimativa summary){
+  color:#b7ccff!important;
+}
+html[data-theme="dark"] .app-navegacao nav button:hover{
+  background:#172b49!important;
+  color:#eef5ff!important;
+}
+html[data-theme="dark"] .app-navegacao nav button[aria-pressed=true]{
+  background:linear-gradient(135deg,#1b3f79,#17315a)!important;
+  color:#ffffff!important;
+  border-color:#3766a7!important;
+}
+html[data-theme="dark"] :is(input,select,textarea,.seletor-marcenaria select,.configuracao-empresa input,.configuracao-empresa select){
+  background:#091524!important;
+  color:#edf5ff!important;
+  border-color:#304967!important;
+  box-shadow:inset 0 1px 0 #ffffff0a!important;
+}
+html[data-theme="dark"] :is(input,textarea)::placeholder{
+  color:#7f90aa!important;
+}
+html[data-theme="dark"] :is(.botao-secundario,.paginacao button,.ficha-projeto>header button,.nova-empresa button,.seletor-marcenaria button,.configuracao-empresa button){
+  background:#14243b!important;
+  color:#c7d8ff!important;
+  border-color:#355170!important;
+}
+html[data-theme="dark"] :is(.botao-secundario,.paginacao button,.ficha-projeto>header button,.nova-empresa button,.seletor-marcenaria button,.configuracao-empresa button):hover{
+  background:#1b3150!important;
+  color:#ffffff!important;
+}
+html[data-theme="dark"] :is(.botao-principal,.botao-whatsapp,.meta-connect-card button[type="button"]){
+  background:linear-gradient(135deg,#3f86ff,#7dacff)!important;
+  color:#061225!important;
+  box-shadow:0 12px 26px #3f86ff30!important;
+}
+html[data-theme="dark"] .painel th{
+  background:#13233a!important;
+  color:#a9bad2!important;
+}
+html[data-theme="dark"] .painel td,
+html[data-theme="dark"] :is(.abas-lista,.paginacao,.dados-ficha,.itens-orcamento fieldset,.fechamento-orcamento,.novo-material,.linha-estimativa,.rodape-pagina,.app-usuario){
+  border-color:#263b58!important;
+}
+html[data-theme="dark"] :is(.painel tbody tr:hover,.painel tr.selecionado){
+  background:#142642!important;
+}
+html[data-theme="dark"] :is(.catalogo-estimativa,.whatsapp-orcamento,.previa-whatsapp pre){
+  background:#0b1727!important;
+  color:#dce8ff!important;
+  border-color:#263b58!important;
+}
+html[data-theme="dark"] :is(.resultado-estimativa,.material-catalogo,.previa-whatsapp){
+  background:#101b2d!important;
+  border-color:#263b58!important;
+}
+html[data-theme="dark"] :is(.selo,.aviso){
+  background:#17243a!important;
+  color:#c8d6ea!important;
+  border-color:#304967!important;
+}
+html[data-theme="dark"] .selo.pendente,
+html[data-theme="dark"] .aviso{
+  background:#392e16!important;
+  color:#f7d99d!important;
+  border-color:#6c5427!important;
+}
+html[data-theme="dark"] :is(.selo.completo,.aviso.sucesso,.login-sucesso){
+  background:#123528!important;
+  color:#a9edc9!important;
+  border-color:#2f7354!important;
+}
+html[data-theme="dark"] :is(.aviso.erro,.login-erro,.erro-empresa,.botao-excluir-cliente){
+  background:#3a1f20!important;
+  color:#ffb7b0!important;
+  border-color:#7a3f3e!important;
+}
+html[data-theme="dark"] .tema-botao{
+  background:#13243d!important;
+  border-color:#385577!important;
+  color:#ffe19c!important;
+  box-shadow:0 14px 34px #0007!important;
+}
+
+html[data-theme="dark"] .historico-painel{
+  border-color:#263b58!important;
+  background:
+    radial-gradient(circle at 16px 16px,#1a2c45 1.4px,transparent 1.6px) 0 0/28px 28px,
+    linear-gradient(180deg,#0b1727 0%,#091321 100%)!important;
+}
+html[data-theme="dark"] .mensagem-painel.da-suzy{
+  background:#14233a!important;
+  color:#edf5ff!important;
+  border-color:#2a415f!important;
+  box-shadow:0 12px 26px #00000033!important;
+}
+html[data-theme="dark"] .mensagem-painel.do-cliente{
+  background:linear-gradient(135deg,#2f7cff,#66a3ff)!important;
+  color:#061225!important;
+  border-color:#69a0ff!important;
+  box-shadow:0 12px 28px #2f7cff30!important;
+}
+html[data-theme="dark"] .mensagem-painel.da-suzy header{
+  color:#a7b7cf!important;
+}
+html[data-theme="dark"] .mensagem-painel.do-cliente header{
+  color:#092147!important;
+}
+html[data-theme="dark"] :is(button,input,select,textarea):focus-visible{
+  outline:3px solid #75a8ff!important;
+  outline-offset:2px!important;
+}
+
+/* Camada final para o app autenticado: evita telas meio claras/meio escuras. */
+html[data-theme="dark"] .app-shell[data-theme="dark"]{
+  background:
+    radial-gradient(circle at 8% 0%,#173761 0,transparent 34%),
+    radial-gradient(circle at 92% 18%,#112c50 0,transparent 28%),
+    linear-gradient(180deg,#07111f 0%,#081321 100%)!important;
+  color:#edf5ff!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.app-principal,.app-conteudo,.painel,.configuracao-empresa,.assinatura){
+  background:transparent!important;
+  color:#edf5ff!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.configuracao-empresa header p,.assinatura header p,.assinatura-card p,.assinatura-card small,.formas-pagamento small,.cartao-form label,.rodape-norden p,.rodape-norden small,.rodape-pagina p,.rodape-norden-texto p){
+  color:#aabdff!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.configuracao-empresa h1,.configuracao-empresa h2,.configuracao-empresa h3,.configuracao-empresa legend,.assinatura h1,.assinatura h2,.assinatura h3,.assinatura-card strong,.formas-pagamento legend,.formas-pagamento span,.rodape-norden-marca strong,.rodape-pagina h2,.rodape-pagina h3,.rodape-norden-texto h2){
+  color:#f3f8ff!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.configuracao-empresa fieldset,.assinatura-card,.assinatura-card>div,.formas-pagamento label,.cartao-form,.rodape-norden,.rodape-pagina,.rodape-contato-resumo a,.rodape-contatos a,.configuracao-boas-vindas){
+  background:linear-gradient(180deg,#111f33 0%,#0d192a 100%)!important;
+  border-color:#2a4262!important;
+  color:#edf5ff!important;
+  box-shadow:0 24px 70px #00000033!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.configuracao-empresa input,.configuracao-empresa select,.configuracao-empresa textarea,.cartao-form input){
+  background:#091524!important;
+  border-color:#335072!important;
+  color:#edf5ff!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.configuracao-empresa input,.configuracao-empresa textarea,.cartao-form input)::placeholder{
+  color:#8fa1ba!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.configuracao-empresa button,.assinatura button,.rodape-links button,.rodape-pagina button){
+  color:#c9dcff!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.configuracao-empresa button[type="submit"],.meta-connect-card button,.assinatura-card button){
+  background:linear-gradient(135deg,#3f86ff,#7dacff)!important;
+  color:#061225!important;
+  border-color:transparent!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] .meta-connect-card{
+  background:linear-gradient(135deg,#132849,#102b39)!important;
+  border-color:#376198!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] .meta-connect-card :is(strong,p){
+  color:#edf5ff!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] .meta-connect-card small{
+  color:#f3d48d!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.rodape-contato-resumo span,.rodape-contatos span){
+  color:#9fb2cc!important;
+}
+html[data-theme="dark"] .app-shell[data-theme="dark"] :is(.rodape-contato-resumo strong,.rodape-contatos strong){
+  color:#f3f8ff!important;
+}
+}

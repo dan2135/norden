@@ -22,10 +22,12 @@ const exemplosAtividade = {
 const whatsappInicial = { numero: '', waba_id: '', phone_number_id: '', access_token: '', api_version: 'v25.0', ativo: true, configurado: false };
 
 function obterRedirectUriMeta() {
+  // A Meta exige que a URL usada para abrir o OAuth seja idêntica à URL enviada no backend ao trocar o code.
   return `${window.location.origin}/`;
 }
 
 function gerarEstadoMeta() {
+  // "state" protege o fluxo OAuth: a resposta só vale se voltar com o mesmo identificador gerado aqui.
   const prefixo = `norden-meta-${Date.now()}`;
   if (!window.crypto?.getRandomValues) return `${prefixo}-${Math.random().toString(36).slice(2)}`;
   const bytes = new Uint8Array(12);
@@ -34,6 +36,7 @@ function gerarEstadoMeta() {
 }
 
 function montarUrlOAuthMeta({ appId, configId, apiVersion, redirectUri, state }) {
+  // Monta a janela oficial do Embedded Signup; a Norden não pede senha da Meta nem manipula login manual.
   const params = new URLSearchParams({
     client_id: appId,
     config_id: configId,
@@ -53,6 +56,7 @@ function montarUrlOAuthMeta({ appId, configId, apiVersion, redirectUri, state })
 }
 
 function aguardarOAuthMeta(url, state) {
+  // Abre o popup da Meta e resolve apenas quando a página de callback devolve code/state para esta janela.
   return new Promise((resolve, reject) => {
     const largura = 560;
     const altura = 720;
@@ -67,6 +71,7 @@ function aguardarOAuthMeta(url, state) {
     let intervalo;
     let tempoLimite;
     function concluir(erro, dados) {
+      // Finaliza uma única vez, limpa listeners e tenta fechar o popup para não deixar janelas perdidas.
       if (finalizado) return;
       finalizado = true;
       clearInterval(intervalo);
@@ -77,6 +82,7 @@ function aguardarOAuthMeta(url, state) {
       else resolve(dados);
     }
     function ouvir(event) {
+      // A callback da própria Norden repassa o resultado; eventos de outros domínios são ignorados.
       if (event.origin !== window.location.origin) return;
       const dados = event.data || {};
       if (dados.type !== 'NORDEN_META_OAUTH' || dados.state !== state) return;
@@ -96,6 +102,7 @@ function aguardarOAuthMeta(url, state) {
 }
 
 export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
+  // Estados do perfil da empresa, configuração de WhatsApp e mensagens de retorno de cada formulário.
   const [empresa, setEmpresa] = useState(null);
   const [whatsapp, setWhatsapp] = useState(whatsappInicial);
   const [erro, setErro] = useState('');
@@ -110,20 +117,25 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
   const embeddedInfoRef = useRef({});
   useEffect(() => {
+    // Perfil principal da empresa: nome, ramo, atividade e data de configuração inicial.
     let cancelado = false;
     requisicao('/empresa-configuracao').then(({empresa}) => { if (!cancelado) setEmpresa(empresa); }).catch(e => { if (!cancelado) setErro(e.message); });
     return () => { cancelado = true; };
   }, [tentativa]);
   useEffect(() => {
+    // Lista de ramos criados por usuários para sugerir opções em "Outros ramos".
     requisicao('/ramos-personalizados').then(({ ramos }) => setRamosPersonalizados(ramos || [])).catch(() => {});
   }, []);
   useEffect(() => {
+    // Configuração já salva do WhatsApp; o token volta vazio para não expor segredo no navegador.
     requisicao('/whatsapp-configuracao').then(({ whatsapp }) => setWhatsapp({ ...whatsappInicial, ...whatsapp, access_token: '' })).catch(() => {});
   }, [tentativa]);
   useEffect(() => {
+    // Confere se o Render já recebeu App ID, App Secret e Config ID para habilitar o botão de conexão pela Meta.
     requisicao('/whatsapp-embedded-config').then(config => setEmbeddedMeta(config || {})).catch(() => {});
   }, []);
   useEffect(() => {
+    // Durante o Embedded Signup, a Meta envia WABA ID e Phone Number ID por postMessage antes do OAuth terminar.
     function ouvirMeta(event) {
       try {
         const host = new URL(event.origin).hostname;
@@ -136,6 +148,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     return () => window.removeEventListener('message', ouvirMeta);
   }, []);
   async function salvar(e) {
+    // Salva o perfil visível no painel e avisa o App para atualizar nome/ramo no seletor lateral.
     e.preventDefault();
     if (ocupado) return;
     setOcupado(true); setErro(''); setSucesso('');
@@ -145,6 +158,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     } catch (erro) { setErro(erro.message); } finally { setOcupado(false); }
   }
   async function salvarWhatsApp(e) {
+    // Grava ou atualiza manualmente os IDs da Meta. O token só é enviado quando o usuário preenche o campo.
     e.preventDefault();
     if (salvandoWhatsApp) return;
     setSalvandoWhatsApp(true); setErroWhatsApp(''); setSucessoWhatsApp('');
@@ -155,6 +169,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     } catch (erro) { setErroWhatsApp(erro.message); } finally { setSalvandoWhatsApp(false); }
   }
   async function conectarWhatsAppMeta() {
+    // Fluxo facilitado: abre Meta, recebe code, envia code + IDs para o backend e salva tudo na empresa ativa.
     if (conectandoMeta) return;
     setConectandoMeta(true); setErroWhatsApp(''); setSucessoWhatsApp('');
     try {
@@ -189,11 +204,13 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   }
   const webhookUrl = `${window.location.origin}/api/webhooks/whatsapp`;
   return <section className="configuracao-empresa">
+    {/* Cabeçalho explica o objetivo da tela: preparar o negócio antes de receber clientes pelo WhatsApp. */}
     <header><p>SEU NEGÓCIO, DO SEU JEITO</p><h1>Minha empresa</h1><p>Defina com o que você trabalha e deixe seus materiais prontos antes da primeira conversa.</p></header>
     {erro && <p role="alert">{erro}</p>}
     {!empresa && (erro ? <button onClick={() => { setErro(''); setTentativa(v=>v+1); }}>Tentar novamente</button> : <p>Carregando configurações…</p>)}
     {empresa && <>
       {!empresa.configurada_em && <p className="configuracao-boas-vindas">Vamos preparar sua empresa? Revise o ramo de atividade, salve seu perfil e cadastre os materiais que usa. Você pode voltar aqui sempre que precisar.</p>}
+      {/* Perfil da empresa: define ramo e exemplos usados depois no catálogo e na coleta da Suzy. */}
       <form onSubmit={salvar}>
         <fieldset disabled={ocupado || !podeEditar}>
           <legend>Perfil da empresa</legend>
@@ -206,6 +223,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
         {!podeEditar && <p>Peça ao administrador da empresa para alterar o perfil.</p>}
       </form>
       {sucesso && <p role="status">{sucesso}</p>}
+      {/* WhatsApp da empresa: conecta o número oficial da Meta ou permite preenchimento manual dos IDs. */}
       <form onSubmit={salvarWhatsApp}>
         <fieldset disabled={salvandoWhatsApp || !podeEditar}>
           <legend>WhatsApp da empresa</legend>
@@ -233,6 +251,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       </form>
       {erroWhatsApp && <p role="alert">{erroWhatsApp}</p>}
       {sucessoWhatsApp && <p role="status">{sucessoWhatsApp}</p>}
+      {/* Catálogo compartilhado da empresa: materiais/preços ficam disponíveis para futuros orçamentos. */}
       <CatalogoEstimativa somenteCatalogo somenteLeitura={!podeEditar} segmento={empresa.segmento} atividade={empresa.atividade} />
     </>}
   </section>;

@@ -2,17 +2,20 @@
  * Integração de assinaturas com o Asaas. Mantém a chave somente no backend e usa webhooks para refletir pagamentos no banco.
  */
 const { erroHttp } = require('./projetos');
+const { validarDocumento } = require('./auth');
 
 const statusPago = new Set(['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_AUTHORIZED']);
 const statusProblema = new Set(['PAYMENT_OVERDUE', 'PAYMENT_DELETED', 'PAYMENT_REFUNDED', 'PAYMENT_REPROVED_BY_RISK_ANALYSIS']);
 
 function configurarAsaas(env = process.env) {
+  const trialSolicitado = Number.parseInt(env.NORDEN_TRIAL_DIAS || '15', 10);
+  const trialDias = Number.isFinite(trialSolicitado) && trialSolicitado > 0 ? Math.min(trialSolicitado, 15) : 15;
   return {
     apiKey: env.ASAAS_API_KEY || '',
     baseUrl: (env.ASAAS_BASE_URL || env.ASAAS_BASE_UR || 'https://api.asaas.com/v3').replace(/\/+$/, ''),
     webhookToken: env.ASAAS_WEBHOOK_TOKEN || '',
     valorCentavos: Math.max(0, Number.parseInt(env.NORDEN_PLANO_VALOR || '9000', 10) || 9000),
-    trialDias: Math.max(0, Number.parseInt(env.NORDEN_TRIAL_DIAS || '30', 10) || 30),
+    trialDias,
   };
 }
 
@@ -28,6 +31,12 @@ function centavosParaReais(centavos) {
 
 function somenteDigitos(valor) {
   return String(valor || '').replace(/\D/g, '');
+}
+
+function validarDocumentoCobranca(...valores) {
+  const valor = valores.find(item => typeof item === 'string' && item.trim());
+  if (!valor) throw erroHttp(400, 'Informe CPF ou CNPJ para ativar a assinatura no Asaas.');
+  return validarDocumento(valor);
 }
 
 function validarFormaPagamento(body = {}) {
@@ -51,6 +60,7 @@ function validarFormaPagamento(body = {}) {
       postalCode: somenteDigitos(titular.postalCode),
       addressNumber: String(titular.addressNumber || '').trim(),
       phone: somenteDigitos(titular.phone),
+      mobilePhone: somenteDigitos(titular.mobilePhone || titular.phone),
     },
   };
   if (!dados.creditCard.holderName || dados.creditCard.number.length < 13 || !dados.creditCard.expiryMonth || dados.creditCard.expiryYear.length < 4 || dados.creditCard.ccv.length < 3) {
@@ -69,10 +79,20 @@ function validarPlano(config) {
 
 async function chamarAsaas(caminho, opcoes = {}, config = configurarAsaas()) {
   validarPlano(config);
-  const resposta = await fetch(`${config.baseUrl}${caminho}`, {
-    ...opcoes,
-    headers: { access_token: config.apiKey, 'Content-Type': 'application/json', ...(opcoes.headers || {}) },
-  });
+  const sinalTimeout = !opcoes.signal && typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+    ? AbortSignal.timeout(70000)
+    : undefined;
+  let resposta;
+  try {
+    resposta = await fetch(`${config.baseUrl}${caminho}`, {
+      ...opcoes,
+      signal: opcoes.signal || sinalTimeout,
+      headers: { access_token: config.apiKey, 'Content-Type': 'application/json', ...(opcoes.headers || {}) },
+    });
+  } catch (erro) {
+    if (erro.name === 'AbortError' || erro.name === 'TimeoutError') throw erroHttp(504, 'O Asaas demorou para responder. Tente novamente em instantes.');
+    throw erroHttp(502, 'Não foi possível comunicar com o Asaas.');
+  }
   const texto = await resposta.text();
   let dados = {};
   if (texto) {
@@ -115,11 +135,26 @@ async function iniciarAssinatura(banco, usuario, marcenaria, opcoes = {}) {
     }
 
     let customerId = assinatura.asaas_customer_id;
+    const usuarioDocumento = (await db.query('SELECT documento FROM usuarios WHERE id=$1 FOR UPDATE', [usuario.id])).rows[0]?.documento;
+    const documento = validarDocumentoCobranca(usuarioDocumento, opcoes.cpfCnpj, pagamento.creditCardHolderInfo?.cpfCnpj);
+    if (!usuarioDocumento) {
+      try {
+        await db.query('UPDATE usuarios SET documento=$1 WHERE id=$2 AND documento IS NULL', [documento, usuario.id]);
+      } catch (erro) {
+        if (erro.code === '23505') throw erroHttp(409, 'Este CPF/CNPJ já está cadastrado em outra conta.');
+        throw erro;
+      }
+    }
     if (!customerId) {
-      const documento = (await db.query('SELECT documento FROM usuarios WHERE id=$1', [usuario.id])).rows[0]?.documento;
       const cliente = await chamarAsaas('/customers', {
         method: 'POST',
-        body: JSON.stringify({ name: marcenaria.nome, email: usuario.email, cpfCnpj: documento || undefined }),
+        body: JSON.stringify({
+          name: marcenaria.nome,
+          email: usuario.email,
+          cpfCnpj: documento,
+          mobilePhone: pagamento.creditCardHolderInfo?.mobilePhone || undefined,
+          externalReference: `norden-marcenaria-${marcenaria.id}`,
+        }),
       }, config);
       customerId = cliente.id;
     }
@@ -189,7 +224,7 @@ async function processarEventoAsaas(banco, payload) {
     await db.query('BEGIN');
     await db.query(
       `INSERT INTO eventos_asaas (evento_id,evento,asaas_payment_id,asaas_subscription_id,payload)
-       VALUES ($1,$2,$3,$4,$5) ON CONFLICT (evento_id) DO NOTHING`,
+       VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING`,
       [payload.id || null, evento, paymentId || null, subscriptionId || null, JSON.stringify(payload)],
     );
     if (subscriptionId) {
@@ -231,7 +266,8 @@ function registrarWebhookAsaas(app, banco, rota) {
 function registrarAssinaturasAsaas(app, banco, rota) {
   app.get('/api/assinatura', rota(async (req, res) => {
     const assinatura = await assinaturaAtual(banco, req.marcenaria.id);
-    res.json({ assinatura: resumoAssinatura(assinatura), configurado: Boolean(configurarAsaas().apiKey) });
+    const documentoObrigatorio = !(await banco.query('SELECT documento FROM usuarios WHERE id=$1', [req.usuario.id])).rows[0]?.documento;
+    res.json({ assinatura: resumoAssinatura(assinatura), configurado: Boolean(configurarAsaas().apiKey), documento_obrigatorio: documentoObrigatorio });
   }));
 
   app.post('/api/assinatura/iniciar', rota(async (req, res) => {
@@ -241,4 +277,4 @@ function registrarAssinaturasAsaas(app, banco, rota) {
   }));
 }
 
-module.exports = { configurarAsaas, iniciarAssinatura, processarEventoAsaas, resumoAssinatura, registrarWebhookAsaas, registrarAssinaturasAsaas, validarFormaPagamento };
+module.exports = { configurarAsaas, iniciarAssinatura, processarEventoAsaas, resumoAssinatura, registrarWebhookAsaas, registrarAssinaturasAsaas, validarDocumentoCobranca, validarFormaPagamento };

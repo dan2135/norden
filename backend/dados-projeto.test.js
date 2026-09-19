@@ -47,6 +47,12 @@ test('JSON inválido, objetos e textos excessivos não entram no banco', () => {
   assert.equal(validar('mesa', 'movel', {}).dados.movel, null);
   assert.equal(validar('a'.repeat(101), 'movel', 'a'.repeat(101)).dados.movel, null);
 });
+test('não aceita preço ou orçamento como detalhe extraído pela IA', () => {
+  const historico = [{ role: 'user', content: 'quero uma mesa com orçamento de R$ 500' }];
+  const resultado = validarExtracao({ detalhes: { valor: 'orçamento de R$ 500', trecho: 'orçamento de R$ 500' } }, historico);
+  assert.equal(resultado.dados.detalhes, null);
+  assert.ok(resultado.pendencias.includes('detalhes'));
+});
 test('campos ausentes preservam dados; chaves inesperadas são ignoradas', () => {
   const resultado = validarExtracao({ status: 'aprovado', largura_cm: null }, [{ role: 'user', content: 'Olá' }]);
   assert.equal(resultado.dados.largura_cm, null);

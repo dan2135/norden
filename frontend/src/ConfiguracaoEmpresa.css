@@ -1,3 +1,7 @@
+/**
+ * Tela "Minha empresa": organiza perfil do negócio, conexão WhatsApp/Meta e catálogo de materiais.
+ * Também concentra regras de modo escuro específicas dessa tela para evitar contraste quebrado.
+ */
 .configuracao-empresa { padding:clamp(18px,3vw,40px); max-width:1200px; margin:auto; color:var(--chat-text,#243247); }
 .configuracao-empresa header>p:first-child { font-size:12px; letter-spacing:.12em; }
 .configuracao-empresa h1 { font-size:30px; margin:10px 0; }
@@ -21,3 +25,71 @@
 .configuracao-empresa .material-catalogo>div:first-child { grid-column:1/-1; }
 .configuracao-boas-vindas { padding:16px; border-left:4px solid #5175de; background:var(--chat-soft,#f1f5ff); }
 @media(max-width:650px) { .configuracao-empresa .material-catalogo { grid-template-columns:1fr; }.configuracao-empresa fieldset { padding:16px; }.meta-connect-card { align-items:stretch; flex-direction:column; }.meta-connect-card button { white-space:normal; } }
+
+/* Modo escuro da tela Minha empresa. Mantém fundo, textos e campos no mesmo tema. */
+.app-shell[data-theme="dark"] .configuracao-empresa{
+  color:#edf5ff!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa header>p:first-child{
+  color:#79adff!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa h1,
+.app-shell[data-theme="dark"] .configuracao-empresa h2,
+.app-shell[data-theme="dark"] .configuracao-empresa h3,
+.app-shell[data-theme="dark"] .configuracao-empresa legend{
+  color:#f3f8ff!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa p,
+.app-shell[data-theme="dark"] .configuracao-empresa label,
+.app-shell[data-theme="dark"] .nota-whatsapp{
+  color:#aabdff!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa fieldset{
+  background:linear-gradient(180deg,#111f33 0%,#0d192a 100%)!important;
+  border-color:#2a4262!important;
+  box-shadow:0 24px 70px #00000033!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa input,
+.app-shell[data-theme="dark"] .configuracao-empresa select,
+.app-shell[data-theme="dark"] .configuracao-empresa textarea{
+  background:#091524!important;
+  border-color:#335072!important;
+  color:#edf5ff!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa input::placeholder,
+.app-shell[data-theme="dark"] .configuracao-empresa textarea::placeholder{
+  color:#8fa1ba!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa button{
+  background:#142641!important;
+  border-color:#375779!important;
+  color:#c9dcff!important;
+}
+.app-shell[data-theme="dark"] .configuracao-empresa button[type="submit"],
+.app-shell[data-theme="dark"] .meta-connect-card button{
+  background:linear-gradient(135deg,#3f86ff,#7dacff)!important;
+  color:#061225!important;
+  border-color:transparent!important;
+}
+.app-shell[data-theme="dark"] .configuracao-boas-vindas{
+  background:#142641!important;
+  border-left-color:#63a0ff!important;
+  color:#d8e7ff!important;
+}
+.app-shell[data-theme="dark"] .nota-whatsapp code{
+  background:#0b1727!important;
+  color:#dce8ff!important;
+}
+.app-shell[data-theme="dark"] .meta-connect-card{
+  background:linear-gradient(135deg,#132849,#102b39)!important;
+  border-color:#376198!important;
+}
+.app-shell[data-theme="dark"] .meta-connect-card strong{
+  color:#f3f8ff!important;
+}
+.app-shell[data-theme="dark"] .meta-connect-card p{
+  color:#c4d5ef!important;
+}
+.app-shell[data-theme="dark"] .meta-connect-card small{
+  color:#f3d48d!important;
+}

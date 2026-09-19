@@ -5,18 +5,23 @@ const api = import.meta.env?.VITE_API_URL || (import.meta.env?.PROD ? '/api' : `
 let marcenariaId = null;
 let csrfToken = null;
 
+// Mantém em memória a empresa selecionada no painel; cada chamada privada manda esse ID no cabeçalho.
 export function definirMarcenaria(id) { marcenariaId = id ? String(id) : null; }
+
+// Guarda o token CSRF recebido no login para proteger chamadas que alteram dados.
 export function definirCsrf(token) { csrfToken = token || null; }
 
 export async function requisicao(caminho, opcoes = {}) {
   let resposta;
   try {
+    // Monta cabeçalhos padrão da Norden sem obrigar cada tela a repetir empresa, CSRF e cookies.
     const headers = new Headers(opcoes.headers || {});
     if (marcenariaId && !caminho.startsWith('/auth/')) headers.set('X-Marcenaria-ID', marcenariaId);
     const metodo = (opcoes.method || 'GET').toUpperCase();
     if (csrfToken && !['GET', 'HEAD', 'OPTIONS'].includes(metodo)) headers.set('X-CSRF-Token', csrfToken);
     resposta = await fetch(api + caminho, { ...opcoes, headers, credentials: 'include', signal: AbortSignal.timeout(45000) });
   } catch (erro) {
+    // A interface recebe mensagens humanas; o erro original fica preservado em "cause" para depuração.
     if (erro.name === 'TimeoutError') throw new Error('O atendimento demorou demais. Recarregue o histórico antes de reenviar para conferir se a mensagem foi salva.', { cause: erro });
     throw new Error('Não foi possível conectar ao backend. Verifique o terminal do servidor e tente novamente.', { cause: erro });
   }
@@ -27,6 +32,7 @@ export async function requisicao(caminho, opcoes = {}) {
   try { dados = await resposta.json(); }
   catch (erro) { throw new Error('O backend retornou dados inválidos. Confira o terminal do servidor.', { cause: erro }); }
   if (!resposta.ok) {
+    // Padroniza falhas HTTP para os componentes exibirem somente a mensagem segura do backend.
     const erro = new Error(dados.mensagem || 'Não foi possível carregar o atendimento.');
     erro.status = resposta.status;
     throw erro;

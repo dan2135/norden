@@ -17,7 +17,7 @@ function conversa(projeto = {}, cliente = {}) {
 }
 test('sequência das capturas: não volta ao móvel; confirma todas as medidas em uma resposta', () => {
   const enviar = conversa();
-  assert.match(enviar('ola').resposta, /Qual móvel/);
+  assert.match(enviar('ola').resposta, /Como posso ajudar hoje/);
   assert.equal(enviar('gostaria de fazer uma gaveteiro').projeto.movel, 'gaveteiro');
   const medidas = enviar('quero que ele tenha 80 de altura uns 30 profundidade e uns 30 de larguda');
   assert.deepEqual(medidas.estado.medidas, { largura_cm: '30', altura_cm: '80', profundidade_cm: '30' });
@@ -106,6 +106,6 @@ test('negação de acabamento não apaga dado; exige decisão explícita', () =>
 });
 test('não inventa preços e não promete encaminhamento externo', () => {
   const a = conversa({ movel: 'mesa', uso: 'sala', largura_cm: 120, altura_cm: 80, profundidade_cm: 60, acabamento: 'branco' }, { nome: 'Daniel' })('quanto custa?');
-  assert.match(a.resposta, /análise do marceneiro/);
+  assert.match(a.resposta, /não calculo valores/);
   assert.doesNotMatch(a.resposta, /R\$|encaminhados|enviados/);
 });

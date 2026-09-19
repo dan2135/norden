@@ -22,11 +22,15 @@ for(const segmento of ['serralheria','comercio','servicos','outros']) test(`cole
     assert.doesNotMatch(resposta,/largura|altura|profundidade|acabamento|móvel/i);
     return resposta;
   }
-  assert.match(enviar('oi',true),/Suzy, assistente virtual da Empresa teste/);
+  assert.match(enviar('oi',true),/Suzy, atendente virtual/);
+  assert.doesNotMatch(enviar('quem é você?'),/Empresa teste/);
   assert.equal(projeto.coleta.geral.solicitacao,undefined);
   enviar('Preciso de manutenção');
   enviar('Visita na segunda-feira');
   enviar('Ana Silva');
+  const preco=enviar('quanto custa?');
+  assert.match(preco,/não calculo valores/);
+  assert.doesNotMatch(preco,/R\$/);
   assert.equal(cliente.nome,'Ana Silva');
   assert.equal(projeto.coleta.geral.solicitacao,'Preciso de manutenção');
   assert.equal(projeto.coleta.geral.detalhes,'Visita na segunda-feira');

@@ -7,8 +7,11 @@ const normalizar = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLow
 const dimensoes = { largura_cm: 'largura', altura_cm: 'altura', profundidade_cm: 'profundidade' };
 const campos = ['movel', 'uso', ...Object.keys(dimensoes), 'acabamento', 'detalhes'];
 const moveis = /\b(gaveteiro|giverteiro|gaverteiro|guarda[ -]roupa|armario|mesa|bancada|estante|balcao|painel|prateleira|rack|gabinete|gaveta)\b/;
-const locais = /\b(?:no|na|nos|nas|para o|para a)\s+(?:(?:meu|minha|meus|minhas)\s+)?(quarto|sala(?: de jantar| de estar)?|cozinha|banheiro|escritorio|ecritorio|escrtorio|lavanderia|area de servico|varanda)\b/;
+const locais = /\b(?:no|na|nos|nas|para o|para a|para)\s+(?:(?:meu|minha|meus|minhas)\s+)?(quarto|sala(?: de jantar| de estar)?|cozinha|banheiro|escritorio|ecritorio|escrtorio|lavanderia|area de servico|varanda|loja|comercio|comércio)\b/;
 const cores = /\b(madeirado|branco|branca|preto|preta|cinza|azul|verde|bege|fosco|fosca|brilhante)\b/g;
+const assuntoComercial = /\b(preco|valor|custa|custo|orcamento|cotacao|desconto|prazo|entrega)\b|r\$/;
+const saudacaoSimples = /^(oi|ola|bom dia|boa tarde|boa noite)[.!\s]*$/;
+const perguntaIdentidade = /\b(quem e voce|qual (?:e )?(?:o )?seu nome|se apresente)\b/;
 
 // Converte a medida para centímetros quando a unidade é conhecida.
 function medida(valor, unidade) {
@@ -124,31 +127,32 @@ function responder(analise, projeto, cliente, contexto = {}) {
   const estado = analise.estado;
   let resposta;
   const perguntar = (campo, texto) => { estado.pergunta = campo; return texto; };
+  const texto = normalizar(analise.texto);
+  const semDadosNovos = !Object.values(analise.dados).some(v => v !== null) && !analise.nome && !analise.pendencias.length && !Object.keys(estado.medidas).length;
+  if (semDadosNovos && (saudacaoSimples.test(texto) || perguntaIdentidade.test(texto))) {
+    return perguntaIdentidade.test(texto) ? 'Sou a Suzy, atendente virtual. Me conta como posso ajudar hoje.'
+      : 'Oi! Sou a Suzy, atendente virtual. Como posso ajudar hoje?';
+  }
   if (analise.pendencias.length) {
     const c = analise.pendencias[0];
-    resposta = c === 'medidas' ? perguntar('largura_cm', 'Para não inverter as medidas, qual é a largura e sua unidade?')
+    resposta = c === 'medidas' ? perguntar('largura_cm', 'Para eu anotar certinho, qual é a largura e a unidade?')
       : c === 'acabamento' ? perguntar(c, 'Qual acabamento você decidiu usar?')
-        : perguntar(c, `Pode confirmar a ${dimensoes[c]} com a unidade, por exemplo 80 cm?`);
+        : perguntar(c, `Pode confirmar a ${dimensoes[c]} com a unidade?`);
   } else if (Object.keys(estado.medidas).length) {
     const resumo = Object.entries(estado.medidas).map(([c, v]) => `${dimensoes[c]} ${v}`).join(', ');
     resposta = /^n[aã]o\b/i.test(analise.texto) ? perguntar('unidade', 'Qual é a unidade dessas medidas: cm, m ou mm?')
       : perguntar('unidade_cm', `Anotei ${resumo}, ainda sem unidade. Essas medidas são em centímetros?`);
-  } else if (!p.movel) resposta = perguntar('movel', 'Qual móvel você gostaria de fazer?');
-  else if (!p.uso) resposta = perguntar('uso', `Em qual ambiente ficará o ${p.movel}?`);
-  else if (!p.largura_cm) resposta = perguntar('largura_cm', 'Qual é a largura desejada? Informe a unidade, por exemplo 30 cm.');
-  else if (!p.altura_cm) resposta = perguntar('altura_cm', 'Qual é a altura desejada? Informe a unidade, por exemplo 80 cm.');
-  else if (!p.profundidade_cm) resposta = perguntar('profundidade_cm', 'Qual é a profundidade desejada? Informe a unidade, por exemplo 30 cm.');
-  else if (!p.acabamento) resposta = perguntar('acabamento', 'Você tem preferência de cor ou acabamento?');
+  } else if (!p.movel) resposta = perguntar('movel', 'Me conta o que você precisa hoje.');
+  else if (!p.uso) resposta = perguntar('uso', 'Entendi. Me conta onde isso vai ser usado ou qual é a ideia do projeto.');
+  else if (!p.acabamento) resposta = perguntar('acabamento', 'Você tem alguma preferência de cor, acabamento ou material?');
+  else if (!p.largura_cm) resposta = perguntar('largura_cm', 'Você sabe a largura aproximada? Pode mandar com a unidade, tipo 80 cm.');
+  else if (!p.altura_cm) resposta = perguntar('altura_cm', 'E a altura aproximada? Pode mandar em cm, m ou mm.');
+  else if (!p.profundidade_cm) resposta = perguntar('profundidade_cm', 'Qual seria a profundidade aproximada? Pode mandar com a unidade.');
   else if (!(analise.nome || cliente.nome)) resposta = perguntar('nome', 'Como posso chamar você?');
-  else { estado.pergunta = null; resposta = 'Os dados principais estão registrados para análise do marceneiro. Valores, materiais disponíveis e prazo precisam ser confirmados por ele.'; }
-  if (/\b(preco|valor|custa|orcamento|prazo|entrega)\b/.test(normalizar(analise.texto))) resposta = `Preço e prazo dependem da análise do marceneiro. ${resposta}`;
-  const texto = normalizar(analise.texto);
-  const apresentacao = contexto.primeiroContato || /^(oi|ola|bom dia|boa tarde|boa noite)[.!\s]*$/.test(texto)
-    || /\b(quem e voce|qual (?:e )?(?:o )?seu nome|se apresente)\b/.test(texto);
-  if (apresentacao) {
-    const empresa = contexto.marcenaria?.trim();
-    resposta = `Oi, eu sou a Suzy, assistente virtual ${empresa ? `da ${empresa}` : 'da sua marcenaria'}. ${resposta}`;
-  }
+  else { estado.pergunta = null; resposta = 'Os dados principais estão registrados para análise da equipe. Nesta versão a Suzy não calcula valores nem confirma prazos.'; }
+  if (assuntoComercial.test(texto)) resposta = `Nesta versão eu não calculo valores por aqui; registro sua necessidade para a equipe avaliar. ${resposta}`;
+  const apresentacao = contexto.primeiroContato || perguntaIdentidade.test(texto);
+  if (apresentacao) resposta = `Oi! Sou a Suzy, atendente virtual. ${resposta}`;
   return resposta;
 }
 

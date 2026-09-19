@@ -117,3 +117,316 @@
   .app-topo{height:auto!important;min-height:64px!important;padding:14px 24px!important;background:transparent!important;border-bottom:0!important}
   .painel{padding-top:18px!important}
 }
+
+/* Histórico em formato de conversa: Suzy à esquerda, cliente à direita. */
+.historico-painel{
+  position:relative!important;
+  gap:12px!important;
+  padding:14px!important;
+  border:1px solid #d9e8ff!important;
+  border-radius:18px!important;
+  background:
+    radial-gradient(circle at 16px 16px,#dcecff 1.4px,transparent 1.6px) 0 0/28px 28px,
+    linear-gradient(180deg,#f7fbff 0%,#eef6ff 100%)!important;
+}
+.mensagem-painel{
+  position:relative!important;
+  width:fit-content!important;
+  max-width:min(82%,620px)!important;
+  padding:11px 13px 12px!important;
+  border-radius:18px!important;
+  border:1px solid transparent!important;
+  box-shadow:0 10px 24px #20466f12!important;
+}
+.mensagem-painel.da-suzy{
+  align-self:flex-start!important;
+  margin-right:auto!important;
+  background:#ffffff!important;
+  color:#1d2a3e!important;
+  border-color:#d7e5f8!important;
+  border-bottom-left-radius:6px!important;
+}
+.mensagem-painel.do-cliente{
+  align-self:flex-end!important;
+  margin-left:auto!important;
+  background:linear-gradient(135deg,#256fff,#5f9cff)!important;
+  color:#ffffff!important;
+  border-color:#4488ff!important;
+  border-bottom-right-radius:6px!important;
+}
+.mensagem-painel header{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  justify-content:space-between!important;
+  margin-bottom:6px!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+}
+.mensagem-painel.do-cliente header{color:#dceaff!important}
+.mensagem-painel.da-suzy header{color:#637188!important}
+.mensagem-painel header strong{font-size:11px!important;font-weight:800!important}
+.mensagem-painel header time{font-size:9px!important;white-space:nowrap!important;opacity:.86!important}
+.mensagem-painel p{margin:0!important;font-size:13px!important;line-height:1.55!important}
+@media(max-width:520px){
+  .historico-painel{padding:10px!important}
+  .mensagem-painel{max-width:92%!important}
+}
+
+/* Correção final do modo escuro dentro do painel autenticado. */
+.app-shell[data-theme="dark"]{
+  min-height:100dvh!important;
+  background:
+    radial-gradient(circle at 8% 0%,#173761 0,transparent 34%),
+    radial-gradient(circle at 92% 18%,#112c50 0,transparent 28%),
+    linear-gradient(180deg,#07111f 0%,#081321 100%)!important;
+  color:#edf5ff!important;
+}
+.app-shell[data-theme="dark"] .app-principal,
+.app-shell[data-theme="dark"] .app-conteudo,
+.app-shell[data-theme="dark"] .painel{
+  background:transparent!important;
+  color:#edf5ff!important;
+}
+.app-shell[data-theme="dark"] .app-navegacao{
+  background:linear-gradient(180deg,#0b1727 0%,#081321 100%)!important;
+  border-color:#243a58!important;
+  box-shadow:18px 0 50px #00000038!important;
+}
+.app-shell[data-theme="dark"] .app-topo{
+  background:rgba(10,22,38,.9)!important;
+  border-color:#243a58!important;
+  color:#edf5ff!important;
+  backdrop-filter:blur(16px)!important;
+}
+.app-shell[data-theme="dark"] .app-marca>span,
+.app-shell[data-theme="dark"] .app-usuario>span{
+  background:linear-gradient(135deg,#3f86ff,#8bb9ff)!important;
+  border-color:#5b94ed!important;
+  color:#061225!important;
+  box-shadow:0 14px 30px #3f86ff33!important;
+}
+.app-shell[data-theme="dark"] :is(.app-marca strong,.app-topo strong,.painel h1,.painel h2,.painel h3,.indicador strong,.painel td strong,.dados-ficha dd,.ficha-projeto>p){
+  color:#f3f8ff!important;
+}
+.app-shell[data-theme="dark"] :is(.app-topo small,.app-usuario small,.texto-suave,.nota,.contagem,.painel td small,.dados-ficha dt,.estado-vazio,.carregando-empresa,.filtros label,.indicador span){
+  color:#9fb2cc!important;
+}
+.app-shell[data-theme="dark"] :is(.lista-painel,.ficha-projeto,.indicador,.nova-empresa,.confirmar-exclusao,.assinatura-card){
+  background:linear-gradient(180deg,#111f33 0%,#0d192a 100%)!important;
+  border-color:#2a4262!important;
+  color:#edf5ff!important;
+  box-shadow:0 24px 70px #00000040!important;
+}
+.app-shell[data-theme="dark"] .indicador{
+  border-radius:18px!important;
+}
+.app-shell[data-theme="dark"] .indicador:after{
+  background:#3f86ff!important;
+  opacity:.24!important;
+}
+.app-shell[data-theme="dark"] .sobretitulo{
+  color:#79adff!important;
+}
+.app-shell[data-theme="dark"] :is(.app-navegacao nav button,.abas-lista button,.botao-texto,.app-usuario button){
+  color:#b9cff5!important;
+}
+.app-shell[data-theme="dark"] .app-navegacao nav button:hover{
+  background:#172b49!important;
+  color:#ffffff!important;
+}
+.app-shell[data-theme="dark"] .app-navegacao nav button[aria-pressed=true]{
+  background:linear-gradient(135deg,#1f4a8a,#173861)!important;
+  border-color:#3f73bd!important;
+  color:#ffffff!important;
+}
+.app-shell[data-theme="dark"] .abas-lista{
+  border-color:#2a4262!important;
+}
+.app-shell[data-theme="dark"] .abas-lista button[aria-pressed=true]{
+  border-bottom-color:#79adff!important;
+  color:#9fc2ff!important;
+}
+.app-shell[data-theme="dark"] :is(.filtros input,.filtros select,.orcamento input,.orcamento select,.orcamento textarea,.seletor-marcenaria select,.seletor-marcenaria button,.nova-empresa input,.nova-empresa select){
+  background:#091524!important;
+  color:#edf5ff!important;
+  border-color:#335072!important;
+}
+.app-shell[data-theme="dark"] :is(input,textarea)::placeholder{
+  color:#8294ad!important;
+}
+.app-shell[data-theme="dark"] :is(.botao-secundario,.paginacao button,.ficha-projeto>header button,.nova-empresa button){
+  background:#142641!important;
+  border-color:#375779!important;
+  color:#c9dcff!important;
+}
+.app-shell[data-theme="dark"] :is(.botao-secundario,.paginacao button,.ficha-projeto>header button,.nova-empresa button):hover{
+  background:#1c3456!important;
+  color:#ffffff!important;
+}
+.app-shell[data-theme="dark"] .botao-texto:hover{
+  color:#ffffff!important;
+}
+.app-shell[data-theme="dark"] .painel th{
+  background:#13243d!important;
+  color:#a9bad3!important;
+}
+.app-shell[data-theme="dark"] .painel td{
+  border-color:#2a4262!important;
+}
+.app-shell[data-theme="dark"] :is(.painel tbody tr:hover,.painel tr.selecionado){
+  background:#142946!important;
+}
+.app-shell[data-theme="dark"] :is(.paginacao,.dados-ficha,.app-usuario){
+  border-color:#2a4262!important;
+}
+.app-shell[data-theme="dark"] :is(.selo,.aviso){
+  background:#17283f!important;
+  border-color:#365476!important;
+  color:#d0def0!important;
+}
+.app-shell[data-theme="dark"] .selo.pendente,
+.app-shell[data-theme="dark"] .aviso{
+  background:#3a2f18!important;
+  border-color:#765a26!important;
+  color:#f8d99a!important;
+}
+.app-shell[data-theme="dark"] :is(.selo.completo,.aviso.sucesso){
+  background:#123728!important;
+  border-color:#307653!important;
+  color:#aaf0cb!important;
+}
+.app-shell[data-theme="dark"] :is(.aviso.erro,.botao-excluir-cliente){
+  background:#3d2021!important;
+  border-color:#7a4241!important;
+  color:#ffbab3!important;
+}
+
+/* Histórico da ficha como chat de verdade. */
+.historico-baloes{
+  max-height:520px!important;
+  overflow-y:auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:12px!important;
+  padding:16px!important;
+  border:1px solid #cfe0ff!important;
+  border-radius:20px!important;
+  background:
+    radial-gradient(circle at 16px 16px,#dcecff 1.4px,transparent 1.6px) 0 0/28px 28px,
+    linear-gradient(180deg,#f7fbff 0%,#edf6ff 100%)!important;
+}
+.historico-baloes .balao-conversa{
+  position:relative!important;
+  width:fit-content!important;
+  max-width:min(84%,640px)!important;
+  padding:12px 14px!important;
+  border-radius:18px!important;
+  border:1px solid transparent!important;
+  box-shadow:0 12px 26px #20466f16!important;
+  font-size:13px!important;
+}
+.historico-baloes .balao-conversa::after{
+  content:""!important;
+  position:absolute!important;
+  bottom:0!important;
+  width:14px!important;
+  height:14px!important;
+}
+.historico-baloes .mensagem-suzy{
+  align-self:flex-start!important;
+  margin-right:auto!important;
+  background:#ffffff!important;
+  color:#1d2a3e!important;
+  border-color:#d6e5f8!important;
+  border-bottom-left-radius:5px!important;
+}
+.historico-baloes .mensagem-suzy::after{
+  left:-6px!important;
+  background:#ffffff!important;
+  border-left:1px solid #d6e5f8!important;
+  border-bottom:1px solid #d6e5f8!important;
+  clip-path:polygon(0 100%,100% 0,100% 100%)!important;
+}
+.historico-baloes .mensagem-cliente{
+  align-self:flex-end!important;
+  margin-left:auto!important;
+  background:linear-gradient(135deg,#256fff,#67a2ff)!important;
+  color:#ffffff!important;
+  border-color:#4488ff!important;
+  border-bottom-right-radius:5px!important;
+}
+.historico-baloes .mensagem-cliente::after{
+  right:-6px!important;
+  background:#67a2ff!important;
+  border-right:1px solid #4488ff!important;
+  border-bottom:1px solid #4488ff!important;
+  clip-path:polygon(0 0,100% 100%,0 100%)!important;
+}
+.historico-baloes .balao-conversa header{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  margin-bottom:6px!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+}
+.historico-baloes .balao-conversa header strong{
+  font-size:11px!important;
+  font-weight:850!important;
+  letter-spacing:.02em!important;
+}
+.historico-baloes .balao-conversa header time{
+  font-size:9px!important;
+  opacity:.82!important;
+  white-space:nowrap!important;
+}
+.historico-baloes .mensagem-suzy header{
+  color:#637188!important;
+}
+.historico-baloes .mensagem-cliente header{
+  color:#e2efff!important;
+}
+.historico-baloes .balao-conversa p{
+  margin:0!important;
+  line-height:1.55!important;
+  white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;
+}
+.app-shell[data-theme="dark"] .historico-baloes{
+  border-color:#2a4262!important;
+  background:
+    radial-gradient(circle at 16px 16px,#1b304b 1.4px,transparent 1.6px) 0 0/28px 28px,
+    linear-gradient(180deg,#0b1727 0%,#081321 100%)!important;
+}
+.app-shell[data-theme="dark"] .historico-baloes .mensagem-suzy{
+  background:#14243b!important;
+  color:#edf5ff!important;
+  border-color:#2d4869!important;
+  box-shadow:0 14px 28px #00000035!important;
+}
+.app-shell[data-theme="dark"] .historico-baloes .mensagem-suzy::after{
+  background:#14243b!important;
+  border-color:#2d4869!important;
+}
+.app-shell[data-theme="dark"] .historico-baloes .mensagem-cliente{
+  background:linear-gradient(135deg,#2f7cff,#72adff)!important;
+  color:#061225!important;
+  border-color:#74abff!important;
+  box-shadow:0 14px 30px #2f7cff33!important;
+}
+.app-shell[data-theme="dark"] .historico-baloes .mensagem-cliente::after{
+  background:#72adff!important;
+  border-color:#74abff!important;
+}
+.app-shell[data-theme="dark"] .historico-baloes .mensagem-suzy header{
+  color:#a9bad3!important;
+}
+.app-shell[data-theme="dark"] .historico-baloes .mensagem-cliente header{
+  color:#102a54!important;
+}
+@media(max-width:520px){
+  .historico-baloes{padding:10px!important}
+  .historico-baloes .balao-conversa{max-width:92%!important}
+}

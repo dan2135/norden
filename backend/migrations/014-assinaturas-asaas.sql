@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS assinaturas (
   status VARCHAR(30) NOT NULL DEFAULT 'trial',
   valor_centavos INTEGER NOT NULL DEFAULT 9000 CHECK (valor_centavos >= 0),
   trial_inicio_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  trial_fim_em TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days'),
+  trial_fim_em TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '15 days'),
   asaas_customer_id VARCHAR(80),
   asaas_subscription_id VARCHAR(80),
   proxima_cobranca_em DATE,

@@ -6,6 +6,7 @@ const { analisarSolicitacao, responderSolicitacao } = require('./segmentos');
 const { validarTelefone, selecionarProjeto, obterCliente, historicoProjeto, erroHttp } = require('./projetos');
 
 function configurarWhatsApp(env = process.env) {
+  // Configuração global/legada usada como fallback quando a empresa ainda não tem WhatsApp próprio salvo.
   return {
     token: env.WHATSAPP_TOKEN || '',
     phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID || '',
@@ -17,6 +18,7 @@ function configurarWhatsApp(env = process.env) {
 }
 
 function configurarEmbeddedSignup(env = process.env) {
+  // Credenciais do app Meta que habilitam o botão "Conectar WhatsApp pela Meta" no painel.
   return {
     appId: env.META_APP_ID || env.META_API_ID || env.FACEBOOK_APP_ID || '',
     appSecret: env.META_APP_SECRET || env.FACEBOOK_APP_SECRET || '',
@@ -26,6 +28,7 @@ function configurarEmbeddedSignup(env = process.env) {
 }
 
 function mensagensDoWebhook(payload = {}) {
+  // A Meta pode enviar vários eventos no mesmo webhook; aqui ficam só mensagens de texto atendíveis.
   const mensagens = [];
   for (const entry of payload.entry || []) {
     for (const change of entry.changes || []) {
@@ -41,12 +44,14 @@ function mensagensDoWebhook(payload = {}) {
 }
 
 function mascararTelefone(telefone = '') {
+  // Ajuda no diagnóstico sem imprimir o telefone completo nos logs.
   const limpo = String(telefone).replace(/\D/g, '');
   if (!limpo) return 'desconhecido';
   return `***${limpo.slice(-4)}`;
 }
 
 function resumoWebhook(payload = {}) {
+  // Resume eventos sem texto, status e tipos recebidos para debug seguro do webhook.
   const resumo = { entries: 0, changes: 0, campos: [], tipos: [], status: 0 };
   for (const entry of payload.entry || []) {
     resumo.entries += 1;
@@ -68,6 +73,7 @@ function resumoWebhook(payload = {}) {
 }
 
 function empresaComConfigWhatsApp(registro, config) {
+  // Anexa token e Phone Number ID à empresa encontrada, preservando fallback por variáveis de ambiente.
   const { whatsapp_token, whatsapp_phone_number_id, whatsapp_api_version, ...empresa } = registro;
   empresa.whatsapp = {
     token: whatsapp_token || config.token,
@@ -78,6 +84,7 @@ function empresaComConfigWhatsApp(registro, config) {
 }
 
 async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp(), phoneNumberId = '') {
+  // Roteia cada mensagem para a empresa dona daquele Phone Number ID.
   const numeroRecebido = String(phoneNumberId || '').trim();
   if (numeroRecebido) {
     const resultado = await banco.query(
@@ -101,6 +108,7 @@ async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp(), pho
 }
 
 async function enviarWhatsApp(para, texto, config = configurarWhatsApp()) {
+  // Envia a resposta pela Cloud API; o corte evita ultrapassar limite de mensagem de texto.
   if (!config.token || !config.phoneNumberId) throw erroHttp(503, 'WhatsApp não configurado no servidor.');
   const resposta = await fetch(`https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/messages`, {
     method: 'POST',
@@ -116,6 +124,7 @@ async function enviarWhatsApp(para, texto, config = configurarWhatsApp()) {
 }
 
 function validarConfiguracaoWhatsApp(body = {}, existente = null, env = process.env) {
+  // Validação do formulário manual: IDs numéricos, token presente e versão da API no padrão da Meta.
   const phoneNumberId = String(body.phone_number_id || '').replace(/\D/g, '');
   if (!/^[0-9]{5,40}$/.test(phoneNumberId)) throw erroHttp(400, 'Informe o Phone Number ID do WhatsApp.');
   const wabaId = String(body.waba_id || '').replace(/\D/g, '').slice(0, 40);
@@ -130,6 +139,7 @@ function validarConfiguracaoWhatsApp(body = {}, existente = null, env = process.
 }
 
 function validarConclusaoEmbeddedSignup(body = {}) {
+  // Validação do retorno do popup antes de trocar authorization code por token.
   const code = typeof body.code === 'string' ? body.code.trim() : '';
   if (!code || code.length > 2000) throw erroHttp(400, 'Autorização da Meta inválida ou expirada.');
   const wabaId = String(body.waba_id || body.wabaId || '').replace(/\D/g, '');
@@ -151,6 +161,7 @@ function validarConclusaoEmbeddedSignup(body = {}) {
 }
 
 async function chamarGraph(caminho, { token = '', method = 'GET', body = null, apiVersion = 'v25.0', consultar = fetch } = {}) {
+  // Cliente mínimo da Graph API. "consultar" é injetável para testes automatizados.
   const url = caminho.startsWith('https://') ? caminho : `https://graph.facebook.com/${apiVersion}/${caminho.replace(/^\//, '')}`;
   let resposta;
   try {
@@ -188,6 +199,7 @@ async function chamarGraph(caminho, { token = '', method = 'GET', body = null, a
 }
 
 async function trocarCodigoEmbeddedSignup(code, config = configurarEmbeddedSignup(), consultar = fetch, redirectUri = '') {
+  // O redirect_uri precisa ser o mesmo usado para abrir o popup, senão a Meta recusa a troca.
   if (!config.appId || !config.appSecret || !config.configId) throw erroHttp(503, 'Embedded Signup da Meta não configurado no servidor.');
   const params = new URLSearchParams({ client_id: config.appId, client_secret: config.appSecret, code });
   if (redirectUri) params.set('redirect_uri', redirectUri);
@@ -197,6 +209,7 @@ async function trocarCodigoEmbeddedSignup(code, config = configurarEmbeddedSignu
 }
 
 function idsWabaDoDebugToken(dados = {}) {
+  // Extrai WABA IDs autorizados a partir do debug_token quando o postMessage não trouxe WABA direto.
   const ids = new Set();
   for (const granular of dados.data?.granular_scopes || []) {
     if (!String(granular.scope || '').startsWith('whatsapp_business_')) continue;
@@ -209,12 +222,14 @@ function idsWabaDoDebugToken(dados = {}) {
 }
 
 async function wabasCompartilhadasPeloToken(token, config = configurarEmbeddedSignup(), consultar = fetch) {
+  // Descobre WABAs compartilhadas com o app Meta pelo usuário conectado.
   const params = new URLSearchParams({ input_token: token, access_token: `${config.appId}|${config.appSecret}` });
   const debug = await chamarGraph(`debug_token?${params}`, { apiVersion: config.apiVersion, consultar });
   return idsWabaDoDebugToken(debug);
 }
 
 async function detalhesNumeroMeta({ token, wabaId, phoneNumberId, config = configurarEmbeddedSignup(), consultar = fetch }) {
+  // Obtém o número conectado; se vier só WABA, pega o primeiro telefone daquela conta.
   if (phoneNumberId) {
     const numero = await chamarGraph(`${phoneNumberId}?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
     return { wabaId, phoneNumberId: numero.id || phoneNumberId, numero: numero.display_phone_number || '' };
@@ -230,6 +245,7 @@ async function detalhesNumeroMeta({ token, wabaId, phoneNumberId, config = confi
 }
 
 async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch, env = process.env }) {
+  // Fluxo completo do Embedded Signup: token, WABA, Phone Number ID, assinatura de webhook e gravação.
   const config = configurarEmbeddedSignup(env);
   const entrada = validarConclusaoEmbeddedSignup(body);
   const token = await trocarCodigoEmbeddedSignup(entrada.code, config, consultar, entrada.redirectUri);
@@ -254,6 +270,7 @@ async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch,
 }
 
 function registroPublicoWhatsApp(registro) {
+  // Nunca devolve access_token para o frontend; apenas informa se já existe token salvo.
   return registro ? {
     numero: registro.numero,
     waba_id: registro.waba_id,
@@ -265,6 +282,7 @@ function registroPublicoWhatsApp(registro) {
 }
 
 function registrarWhatsAppConfiguracoes(app, banco, rota) {
+  // Rotas privadas usadas pela aba "Minha empresa" para configurar WhatsApp.
   app.get('/api/whatsapp-embedded-config', rota(async (req, res) => {
     const config = configurarEmbeddedSignup();
     res.json({
@@ -316,6 +334,7 @@ function registrarWhatsAppConfiguracoes(app, banco, rota) {
 }
 
 async function responderMensagem({ banco, extrair, logger, telefone, texto, empresa }) {
+  // Atendimento recebido pelo WhatsApp: salva mensagem, coleta dados, gera resposta e persiste histórico.
   const telefoneValidado = validarTelefone(telefone);
   const db = await banco.connect();
   try {
@@ -327,6 +346,7 @@ async function responderMensagem({ banco, extrair, logger, telefone, texto, empr
       [cliente.id, projetoSelecionado.id, 'cliente', texto.trim(), empresa.id],
     );
     const historicoBanco = { rows: await historicoProjeto(db, cliente.id, projetoSelecionado.id, empresa.id) };
+    // Histórico no formato de chat permite reutilizar a mesma lógica de IA das rotas manuais.
     const historico = historicoBanco.rows.map(item => ({ role: item.remetente === 'cliente' ? 'user' : 'assistant', content: item.texto }));
     const geral = (empresa.segmento || 'marcenaria') !== 'marcenaria';
     const analise = geral ? analisarSolicitacao(texto.trim(), projetoSelecionado, cliente) : analisarMensagem(texto.trim(), projetoSelecionado, cliente);
@@ -340,6 +360,7 @@ async function responderMensagem({ banco, extrair, logger, telefone, texto, empr
     const primeiroContato = !historicoBanco.rows.some(item => item.remetente === 'sistema');
     let respostaSistema = geral ? responderSolicitacao(analise, cliente, empresa, primeiroContato) : responder(analise, projetoSelecionado, cliente, { marcenaria: empresa.nome, primeiroContato });
     if (process.env.IA_PROVIDER === 'openai') {
+      // Se a OpenAI falhar, a resposta por regras continua sendo enviada para não travar atendimento.
       try { respostaSistema = await require('./openai').responderComOpenAI({ historico, empresa, respostaBase: respostaSistema }); }
       catch (erro) { logger.warn('[WHATSAPP IA] Resposta guiada utilizada:', erro.message); }
     }
@@ -365,6 +386,7 @@ async function responderMensagem({ banco, extrair, logger, telefone, texto, empr
 }
 
 function registrarWhatsApp(app, banco, rota, { extrair, logger = console } = {}) {
+  // Endpoint público configurado na Meta: GET verifica webhook, POST recebe mensagens/status.
   app.get('/api/webhooks/whatsapp', (req, res) => {
     const config = configurarWhatsApp();
     if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === config.verifyToken) return res.status(200).send(req.query['hub.challenge']);

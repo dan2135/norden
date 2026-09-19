@@ -3,13 +3,13 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { configurarAsaas, resumoAssinatura, validarFormaPagamento } = require('../asaas');
+const { configurarAsaas, resumoAssinatura, validarDocumentoCobranca, validarFormaPagamento } = require('../asaas');
 
-test('configuração do Asaas usa HTTPS, valor e trial padrão', () => {
+test('configuração do Asaas usa HTTPS, valor e trial limitado a 15 dias', () => {
   const config = configurarAsaas({ ASAAS_API_KEY:'chave', ASAAS_BASE_URL:'https://api.asaas.com/v3/', NORDEN_PLANO_VALOR:'9000', NORDEN_TRIAL_DIAS:'30' });
   assert.equal(config.baseUrl, 'https://api.asaas.com/v3');
   assert.equal(config.valorCentavos, 9000);
-  assert.equal(config.trialDias, 30);
+  assert.equal(config.trialDias, 15);
 });
 
 test('aceita variável legada digitada sem L final para evitar erro no Render', () => {
@@ -35,8 +35,15 @@ test('aceita Pix como forma padrão e valida cartão sem armazenar dados', () =>
   assert.equal(pagamento.billingType, 'CREDIT_CARD');
   assert.equal(pagamento.creditCard.number, '4111111111111111');
   assert.equal(pagamento.creditCard.expiryMonth, '09');
+  assert.equal(pagamento.creditCardHolderInfo.mobilePhone, '11999999999');
 });
 
 test('cartão exige dados do cartão e do titular', () => {
   assert.throws(() => validarFormaPagamento({ billingType:'CREDIT_CARD', creditCard:{}, creditCardHolderInfo:{} }), /cartão/i);
+});
+
+test('cobrança exige CPF ou CNPJ válido para criar cliente no Asaas', () => {
+  assert.equal(validarDocumentoCobranca('', '123.456.789-09'), '12345678909');
+  assert.throws(() => validarDocumentoCobranca('', ''), /CPF ou CNPJ/i);
+  assert.throws(() => validarDocumentoCobranca('', '111.111.111-11'), /válido|inválido/i);
 });

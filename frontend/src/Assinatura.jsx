@@ -16,6 +16,8 @@ function statusTexto(assinatura) {
 export default function Assinatura({ podeEditar }) {
   const [assinatura, setAssinatura] = useState(null);
   const [configurado, setConfigurado] = useState(false);
+  const [documentoObrigatorio, setDocumentoObrigatorio] = useState(false);
+  const [documentoCobranca, setDocumentoCobranca] = useState('');
   const [billingType, setBillingType] = useState('PIX');
   const [cartao, setCartao] = useState({ holderName:'', email:'', number:'', expiryMonth:'', expiryYear:'', ccv:'', cpfCnpj:'', postalCode:'', addressNumber:'', phone:'' });
   const [estado, setEstado] = useState({ carregando:true, processando:false, erro:'', sucesso:'' });
@@ -25,6 +27,7 @@ export default function Assinatura({ podeEditar }) {
     try {
       const resposta = await requisicao('/assinatura');
       setAssinatura(resposta.assinatura); setConfigurado(resposta.configurado);
+      setDocumentoObrigatorio(Boolean(resposta.documento_obrigatorio));
       setEstado(e => ({ ...e, carregando:false }));
     } catch (erro) { setEstado(e => ({ ...e, carregando:false, erro:erro.message })); }
   }
@@ -33,10 +36,12 @@ export default function Assinatura({ podeEditar }) {
   async function iniciar() {
     setEstado({ carregando:false, processando:true, erro:'', sucesso:'' });
     try {
+      const cpfCnpj = documentoCobranca || (billingType === 'CREDIT_CARD' ? cartao.cpfCnpj : '');
       const body = billingType === 'PIX'
-        ? { billingType:'PIX' }
+        ? { billingType:'PIX', cpfCnpj }
         : {
           billingType:'CREDIT_CARD',
+          cpfCnpj,
           creditCard: { holderName:cartao.holderName, number:cartao.number, expiryMonth:cartao.expiryMonth, expiryYear:cartao.expiryYear, ccv:cartao.ccv },
           creditCardHolderInfo: {
             name:cartao.holderName,
@@ -45,6 +50,7 @@ export default function Assinatura({ podeEditar }) {
             postalCode:cartao.postalCode,
             addressNumber:cartao.addressNumber,
             phone:cartao.phone,
+            mobilePhone:cartao.phone,
           },
         };
       const resposta = await requisicao('/assinatura/iniciar', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
@@ -53,20 +59,28 @@ export default function Assinatura({ podeEditar }) {
     } catch (erro) { setEstado({ carregando:false, processando:false, erro:erro.message, sucesso:'' }); }
   }
 
+  const assinaturaConectada = Boolean(assinatura?.asaas_subscription_id);
+  const faltaDocumento = documentoObrigatorio && !assinaturaConectada && !(documentoCobranca.trim() || (billingType === 'CREDIT_CARD' && cartao.cpfCnpj.trim()));
+
   return <section className="assinatura">
     <header><p>PLANO E COBRANÇA</p><h1>Meu plano</h1><span>{statusTexto(assinatura)}</span></header>
     {estado.erro && <p className="assinatura-alerta" role="alert">{estado.erro}</p>}
     {estado.sucesso && <p className="assinatura-sucesso" role="status">{estado.sucesso}</p>}
     {estado.carregando ? <p>Carregando plano…</p> : <div className="assinatura-card">
-      <div><small>Plano</small><strong>Norden Pro</strong><p>Primeiro mês grátis e depois cobrança mensal automática pelo Asaas.</p></div>
+      <div><small>Plano</small><strong>Norden Pro</strong><p>15 dias grátis e depois cobrança mensal automática pelo Asaas.</p></div>
       <div><small>Valor</small><strong>R$ {Number(assinatura?.valor_reais || 90).toLocaleString('pt-BR', { minimumFractionDigits:2 })}/mês</strong><p>Valor inicial de lançamento.</p></div>
       <div><small>Próxima cobrança</small><strong>{assinatura?.proxima_cobranca_em ? new Date(`${assinatura.proxima_cobranca_em}T00:00:00`).toLocaleDateString('pt-BR') : 'Após o teste grátis'}</strong><p>{assinatura?.billing_type === 'CREDIT_CARD' ? 'Cartão recorrente conectado.' : 'Pix de cobrança recorrente pelo Asaas.'}</p></div>
-      <fieldset className="formas-pagamento" disabled={Boolean(assinatura?.asaas_subscription_id)}>
+      <fieldset className="formas-pagamento" disabled={assinaturaConectada}>
         <legend>Forma de pagamento</legend>
         <label className={billingType === 'PIX' ? 'selecionado' : ''}><input type="radio" name="billingType" checked={billingType === 'PIX'} onChange={() => setBillingType('PIX')} /><span>Pix automático</span><small>O Asaas gera a cobrança recorrente e avisa o Norden quando receber.</small></label>
         <label className={billingType === 'CREDIT_CARD' ? 'selecionado' : ''}><input type="radio" name="billingType" checked={billingType === 'CREDIT_CARD'} onChange={() => setBillingType('CREDIT_CARD')} /><span>Cartão de crédito</span><small>Cobrança recorrente no cartão. O Norden não salva o número do cartão.</small></label>
       </fieldset>
-      {billingType === 'CREDIT_CARD' && !assinatura?.asaas_subscription_id && <div className="cartao-form">
+      {documentoObrigatorio && !assinaturaConectada && billingType === 'PIX' && <label className="documento-cobranca">CPF/CNPJ para cobrança
+        <input required inputMode="text" autoComplete="off" placeholder="CPF ou CNPJ do responsável" value={documentoCobranca} onChange={e=>setDocumentoCobranca(e.target.value)} />
+        <small>O Asaas exige esse dado para criar o cliente da cobrança.</small>
+      </label>}
+      {documentoObrigatorio && !assinaturaConectada && billingType === 'CREDIT_CARD' && <p className="assinatura-info">No cartão, o CPF/CNPJ do titular também será usado para cadastrar o cliente no Asaas.</p>}
+      {billingType === 'CREDIT_CARD' && !assinaturaConectada && <div className="cartao-form">
         <label>Nome no cartão<input required value={cartao.holderName} onChange={e=>setCartao({...cartao,holderName:e.target.value})} /></label>
         <label>E-mail do titular<input required type="email" value={cartao.email} onChange={e=>setCartao({...cartao,email:e.target.value})} /></label>
         <label>Número do cartão<input required inputMode="numeric" autoComplete="cc-number" value={cartao.number} onChange={e=>setCartao({...cartao,number:e.target.value})} /></label>
@@ -78,8 +92,8 @@ export default function Assinatura({ podeEditar }) {
         <label>Número do endereço<input required value={cartao.addressNumber} onChange={e=>setCartao({...cartao,addressNumber:e.target.value})} /></label>
         <label>Telefone<input required inputMode="tel" value={cartao.phone} onChange={e=>setCartao({...cartao,phone:e.target.value})} /></label>
       </div>}
-      <button className="botao-principal" disabled={!podeEditar || !configurado || estado.processando || Boolean(assinatura?.asaas_subscription_id)} onClick={iniciar}>
-        {assinatura?.asaas_subscription_id ? 'Assinatura conectada' : estado.processando ? 'Conectando…' : billingType === 'PIX' ? 'Ativar com Pix automático' : 'Ativar com cartão'}
+      <button className="botao-principal" disabled={!podeEditar || !configurado || estado.processando || assinaturaConectada || faltaDocumento} onClick={iniciar}>
+        {assinaturaConectada ? 'Assinatura conectada' : estado.processando ? 'Conectando…' : billingType === 'PIX' ? 'Ativar com Pix automático' : 'Ativar com cartão'}
       </button>
       {!configurado && <p className="assinatura-alerta">Configure ASAAS_API_KEY e ASAAS_BASE_URL no Render para ativar assinaturas reais.</p>}
       {!podeEditar && <p className="assinatura-alerta">Somente administradores podem ativar ou alterar o plano.</p>}

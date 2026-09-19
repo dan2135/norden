@@ -31,7 +31,18 @@ test('resposta usa somente contexto permitido e histórico limitado',async()=>{
   const r=await responderComOpenAI({empresa,historico,respostaBase:'Qual serviço você precisa?'},async(url,op)=>{
     const body=JSON.parse(op.body),entrada=JSON.parse(body.input);
     assert.equal(entrada.historico.length,8);assert.equal(entrada.historico[0].content.length,2000);
-    assert(!op.body.includes('nao-enviar'));assert(body.instructions.includes('Não invente preços'));
+    assert(!op.body.includes('nao-enviar'));assert(body.instructions.includes('Não calcule'));
     return ok('Qual serviço você precisa?');
   },env);assert.equal(r,'Qual serviço você precisa?');
+});
+test('resposta da OpenAI com valor calculado é descartada', async () => {
+  const respostaBase='Nesta versão eu não calculo valores por aqui; registro sua necessidade para a equipe avaliar.';
+  const r=await responderComOpenAI({empresa:{nome:'Empresa Teste',segmento:'servicos'},historico:[],respostaBase},async()=>ok('Esse projeto fica R$ 500,00.'),env);
+  assert.equal(r,respostaBase);
+});
+test('resposta da OpenAI com apresentação ou nome interno da empresa é descartada quando a base não pede', async () => {
+  const respostaBase='Você sabe a largura aproximada? Pode mandar com a unidade, tipo 80 cm.';
+  const empresa={nome:'Empresa principal',segmento:'marcenaria'};
+  const r1=await responderComOpenAI({empresa,historico:[{role:'assistant',content:'Oi! Sou a Suzy, atendente virtual.'}],respostaBase},async()=>ok('Sou a Suzy, assistente virtual da Empresa principal. Qual a largura?'),env);
+  assert.equal(r1,respostaBase);
 });

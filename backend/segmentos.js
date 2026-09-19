@@ -3,6 +3,8 @@
  */
 const { erroHttp } = require('./projetos');
 const segmentos = { outros:'Outros ramos', serralheria:'Serralheria e solda', comercio:'Comércio', servicos:'Prestação de serviços', marcenaria:'Marcenaria' };
+const assuntoComercial = /\b(preco|valor|custa|custo|orcamento|cotacao|desconto|prazo|entrega)\b|r\$/;
+const perguntaIdentidade = /\b(quem e voce|qual (?:e )?(?:o )?seu nome|se apresente)\b/;
 // Aceita apenas os ramos cadastrados na lista de segmentos.
 function validarSegmento(valor='outros') {
   if(!Object.hasOwn(segmentos,valor)) throw erroHttp(400,'Escolha um ramo de atividade válido.');
@@ -25,11 +27,13 @@ function analisarSolicitacao(texto, projeto, cliente) {
 // Escolhe a próxima informação pendente e apresenta a Suzy com o nome da empresa.
 function responderSolicitacao(a,cliente,empresa,primeiroContato) {
   let resposta;
-  if(!a.estado.geral.solicitacao) {a.estado.pergunta='solicitacao';resposta=empresa.segmento==='comercio'?'Qual produto você procura?':'Qual serviço ou pedido você gostaria de solicitar?';}
+  if(!a.estado.geral.solicitacao) {a.estado.pergunta='solicitacao';resposta='Como posso ajudar hoje?';}
   else if(!a.estado.geral.detalhes){a.estado.pergunta='detalhes_gerais';resposta='Pode me contar mais detalhes do que você precisa?';}
   else if(!(cliente.nome||a.nome)){a.estado.pergunta='nome';resposta='Como posso chamar você?';}
-  else {a.estado.pergunta=null;resposta='Seu pedido está registrado para avaliação da equipe. Preços, disponibilidade e prazos precisam ser confirmados pela empresa.';}
-  if(primeiroContato||a.saudacao)resposta=`Oi, eu sou a Suzy, assistente virtual da ${empresa.nome}. ${resposta}`;
+  else {a.estado.pergunta=null;resposta='Seu pedido está registrado para avaliação da equipe. Nesta versão a Suzy não calcula valores nem confirma prazos.';}
+  const texto=a.texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  if(assuntoComercial.test(texto)) resposta=`Nesta versão eu não calculo valores por aqui; registro sua necessidade para a equipe avaliar. ${resposta}`;
+  if(primeiroContato||a.saudacao||perguntaIdentidade.test(texto))resposta=`Oi! Sou a Suzy, atendente virtual. ${resposta}`;
   return resposta;
 }
 module.exports={segmentos,validarSegmento,analisarSolicitacao,responderSolicitacao};
