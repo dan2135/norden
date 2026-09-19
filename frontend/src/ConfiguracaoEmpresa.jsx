@@ -144,6 +144,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
         let retornou = false;
         window.FB.login(r => { retornou = true; resolve(r); }, {
           config_id: embeddedMeta.config_id,
+          auth_type: 'rerequest',
           response_type: 'code',
           override_default_response_type: true,
           display: 'popup',

@@ -156,7 +156,23 @@ async function chamarGraph(caminho, { token = '', method = 'GET', body = null, a
   }
   let dados = {};
   try { dados = await resposta.json(); } catch {}
-  if (!resposta.ok) throw erroHttp(502, 'Não foi possível concluir a conexão com a Meta.');
+  if (!resposta.ok) {
+    const metaErro = dados.error || {};
+    const mensagemMeta = String(metaErro.error_user_msg || metaErro.message || '').slice(0, 260);
+    console.error('[META EMBEDDED] falha na Graph API', {
+      endpoint: url.replace(/[?].*$/, ''),
+      status: resposta.status,
+      type: metaErro.type,
+      code: metaErro.code,
+      subcode: metaErro.error_subcode,
+      fbtrace_id: metaErro.fbtrace_id,
+      message: mensagemMeta,
+    });
+    const mensagem = mensagemMeta
+      ? `A Meta recusou a conexão: ${mensagemMeta}`
+      : 'Não foi possível concluir a conexão com a Meta.';
+    throw erroHttp(502, mensagem);
+  }
   return dados;
 }
 
