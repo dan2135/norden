@@ -147,7 +147,6 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
           response_type: 'code',
           override_default_response_type: true,
           display: 'popup',
-          scope: 'whatsapp_business_management,whatsapp_business_messaging',
           extras: {
             setup: {},
             featureType: 'whatsapp_business_app_onboarding',
