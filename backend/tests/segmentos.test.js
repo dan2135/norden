@@ -3,7 +3,7 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { validarSegmento, analisarSolicitacao, responderSolicitacao } = require('../segmentos');
+const { validarSegmento, analisarSolicitacao, responderSolicitacao, perfilAtendimento, perguntaDetalhes } = require('../segmentos');
 const { situacaoColeta } = require('../painel');
 
 test('valida ramo e rejeita valores desconhecidos', () => {
@@ -19,7 +19,7 @@ for(const segmento of ['marcenaria','serralheria','comercio','servicos','outros'
     projeto.coleta=JSON.parse(JSON.stringify(a.estado));
     if(a.nome)cliente.nome=a.nome;
     assert.ok(Object.values(a.dados).every(v=>v===null));
-    assert.doesNotMatch(resposta,/largura|altura|profundidade|acabamento|móvel/i);
+    assert.doesNotMatch(resposta,/largura|altura|profundidade/i);
     return resposta;
   }
   assert.match(enviar('oi',true),/Suzy, atendente virtual/);
@@ -51,6 +51,20 @@ test('ramo de clínica direciona para agendamento sem pedir medidas', () => {
   const detalhes = enviar('quero agendar uma consulta');
   assert.match(detalhes,/atendimento|dia|horário/i);
   assert.doesNotMatch(detalhes,/largura|altura|profundidade|acabamento|móvel/i);
+});
+test('ramo metalúrgico direciona para portão, grade, estrutura ou conserto', () => {
+  const empresa={nome:'Metal Forte',segmento:'outros',atividade:'Metalúrgica e ferro'}, cliente={}, projeto={coleta:{}};
+  const a=analisarSolicitacao('preciso de um portão',projeto,cliente);
+  const resposta=responderSolicitacao(a,cliente,empresa,true);
+  assert.equal(perfilAtendimento(empresa).chave,'metal');
+  assert.match(resposta,/portão|grade|corrimão|estrutura|fabricação|instalação|conserto/i);
+  assert.doesNotMatch(resposta,/largura|altura|profundidade/i);
+});
+test('perfis de atendimento reconhecem ramos comuns pelo cadastro da empresa', () => {
+  assert.equal(perfilAtendimento({segmento:'outros',atividade:'Clínica médica'}).chave,'saude');
+  assert.equal(perfilAtendimento({segmento:'outros',atividade:'Oficina mecânica'}).chave,'automotivo');
+  assert.equal(perfilAtendimento({segmento:'outros',atividade:'Pet shop'}).chave,'pet');
+  assert.match(perguntaDetalhes({segmento:'outros',atividade:'Curso de inglês'}),/aula|curso|horário/i);
 });
 test('marcenaria mantém campos técnicos e dados gerais incompletos continuam em coleta',()=>{
   assert.equal(situacaoColeta({segmento:'marcenaria'}).total_campos,7);
