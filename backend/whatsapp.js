@@ -196,16 +196,37 @@ async function trocarCodigoEmbeddedSignup(code, config = configurarEmbeddedSignu
   return dados.access_token;
 }
 
+function idsWabaDoDebugToken(dados = {}) {
+  const ids = new Set();
+  for (const granular of dados.data?.granular_scopes || []) {
+    if (!String(granular.scope || '').startsWith('whatsapp_business_')) continue;
+    for (const id of granular.target_ids || []) {
+      const limpo = String(id || '').replace(/\D/g, '');
+      if (/^[0-9]{5,40}$/.test(limpo)) ids.add(limpo);
+    }
+  }
+  return [...ids];
+}
+
+async function wabasCompartilhadasPeloToken(token, config = configurarEmbeddedSignup(), consultar = fetch) {
+  const params = new URLSearchParams({ input_token: token, access_token: `${config.appId}|${config.appSecret}` });
+  const debug = await chamarGraph(`debug_token?${params}`, { apiVersion: config.apiVersion, consultar });
+  return idsWabaDoDebugToken(debug);
+}
+
 async function detalhesNumeroMeta({ token, wabaId, phoneNumberId, config = configurarEmbeddedSignup(), consultar = fetch }) {
   if (phoneNumberId) {
     const numero = await chamarGraph(`${phoneNumberId}?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
-    return { phoneNumberId: numero.id || phoneNumberId, numero: numero.display_phone_number || '' };
+    return { wabaId, phoneNumberId: numero.id || phoneNumberId, numero: numero.display_phone_number || '' };
   }
-  if (!wabaId) throw erroHttp(400, 'A Meta não informou o número conectado.');
-  const lista = await chamarGraph(`${wabaId}/phone_numbers?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
-  const primeiro = lista.data?.[0];
-  if (!primeiro?.id) throw erroHttp(400, 'Nenhum número foi conectado pela Meta.');
-  return { phoneNumberId: primeiro.id, numero: primeiro.display_phone_number || '' };
+  const wabaIds = wabaId ? [wabaId] : await wabasCompartilhadasPeloToken(token, config, consultar);
+  if (!wabaIds.length) throw erroHttp(400, 'A Meta não informou o número conectado.');
+  for (const id of wabaIds) {
+    const lista = await chamarGraph(`${id}/phone_numbers?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
+    const primeiro = lista.data?.[0];
+    if (primeiro?.id) return { wabaId: id, phoneNumberId: primeiro.id, numero: primeiro.display_phone_number || '' };
+  }
+  throw erroHttp(400, 'Nenhum número foi conectado pela Meta.');
 }
 
 async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch, env = process.env }) {
@@ -213,7 +234,8 @@ async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch,
   const entrada = validarConclusaoEmbeddedSignup(body);
   const token = await trocarCodigoEmbeddedSignup(entrada.code, config, consultar, entrada.redirectUri);
   const numero = await detalhesNumeroMeta({ token, wabaId: entrada.wabaId, phoneNumberId: entrada.phoneNumberId, config, consultar });
-  if (entrada.wabaId) await chamarGraph(`${entrada.wabaId}/subscribed_apps`, { token, method: 'POST', apiVersion: config.apiVersion, consultar });
+  const wabaIdFinal = entrada.wabaId || numero.wabaId;
+  if (wabaIdFinal) await chamarGraph(`${wabaIdFinal}/subscribed_apps`, { token, method: 'POST', apiVersion: config.apiVersion, consultar });
   const registro = (await banco.query(
     `INSERT INTO whatsapp_configuracoes (marcenaria_id,numero,waba_id,phone_number_id,access_token,api_version,ativo)
      VALUES ($1,$2,$3,$4,$5,$6,TRUE)
@@ -226,7 +248,7 @@ async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch,
        ativo=TRUE,
        atualizado_em=CURRENT_TIMESTAMP
      RETURNING numero,waba_id,phone_number_id,api_version,ativo,access_token`,
-    [empresa.id, numero.numero, entrada.wabaId, numero.phoneNumberId, token, config.apiVersion],
+    [empresa.id, numero.numero, wabaIdFinal, numero.phoneNumberId, token, config.apiVersion],
   )).rows[0];
   return registroPublicoWhatsApp(registro);
 }
