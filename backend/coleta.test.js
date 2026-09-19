@@ -104,8 +104,8 @@ test('negação de acabamento não apaga dado; exige decisão explícita', () =>
   assert.match(a.resposta, /acabamento/);
   assert.equal(enviar('preto').projeto.acabamento, 'preto');
 });
-test('não inventa preços e não promete encaminhamento externo', () => {
+test('pedido comercial não recebe trava de versão básica', () => {
   const a = conversa({ movel: 'mesa', uso: 'sala', largura_cm: 120, altura_cm: 80, profundidade_cm: 60, acabamento: 'branco' }, { nome: 'Daniel' })('quanto custa?');
-  assert.match(a.resposta, /não calculo valores/);
-  assert.doesNotMatch(a.resposta, /R\$|encaminhados|enviados/);
+  assert.match(a.resposta, /registrei as informações/);
+  assert.doesNotMatch(a.resposta, /não calculo valores|não calcula valores|não confirma prazos/);
 });

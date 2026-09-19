@@ -9,7 +9,6 @@ const campos = ['movel', 'uso', ...Object.keys(dimensoes), 'acabamento', 'detalh
 const moveis = /\b(gaveteiro|giverteiro|gaverteiro|guarda[ -]roupa|armario|mesa|bancada|estante|balcao|painel|prateleira|rack|gabinete|gaveta)\b/;
 const locais = /\b(?:no|na|nos|nas|para o|para a|para)\s+(?:(?:meu|minha|meus|minhas)\s+)?(quarto|sala(?: de jantar| de estar)?|cozinha|banheiro|escritorio|ecritorio|escrtorio|lavanderia|area de servico|varanda|loja|comercio|comércio)\b/;
 const cores = /\b(madeirado|branco|branca|preto|preta|cinza|azul|verde|bege|fosco|fosca|brilhante)\b/g;
-const assuntoComercial = /\b(preco|valor|custa|custo|orcamento|cotacao|desconto|prazo|entrega)\b|r\$/;
 const saudacaoSimples = /^(oi|ola|bom dia|boa tarde|boa noite)[.!\s]*$/;
 const perguntaIdentidade = /\b(quem e voce|qual (?:e )?(?:o )?seu nome|se apresente)\b/;
 
@@ -146,8 +145,7 @@ function responder(analise, projeto, cliente, contexto = {}) {
   else if (!p.uso) resposta = perguntar('uso', 'Entendi. Me conta onde isso vai ser usado ou qual é a ideia do projeto.');
   else if (!p.acabamento) resposta = perguntar('acabamento', 'Você tem alguma preferência de cor, acabamento ou material?');
   else if (!(analise.nome || cliente.nome)) resposta = perguntar('nome', 'Como posso chamar você?');
-  else { estado.pergunta = null; resposta = 'Os dados principais estão registrados para análise da equipe. Nesta versão a Suzy não calcula valores nem confirma prazos.'; }
-  if (assuntoComercial.test(texto)) resposta = `Nesta versão eu não calculo valores por aqui; registro sua necessidade para a equipe avaliar. ${resposta}`;
+  else { estado.pergunta = null; resposta = 'Perfeito, registrei as informações para a equipe continuar seu atendimento.'; }
   const apresentacao = contexto.primeiroContato || perguntaIdentidade.test(texto);
   if (apresentacao) resposta = `Oi! Sou a Suzy, atendente virtual. ${resposta}`;
   return resposta;

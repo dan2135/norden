@@ -29,8 +29,8 @@ for(const segmento of ['marcenaria','serralheria','comercio','servicos','outros'
   enviar('Visita na segunda-feira');
   enviar('Ana Silva');
   const preco=enviar('quanto custa?');
-  assert.match(preco,/não calculo valores/);
-  assert.doesNotMatch(preco,/R\$/);
+  assert.match(preco,/registrei as informações|continuar seu atendimento/);
+  assert.doesNotMatch(preco,/não calculo valores|não calcula valores|não confirma prazos/);
   assert.equal(cliente.nome,'Ana Silva');
   assert.equal(projeto.coleta.geral.solicitacao,'Preciso de manutenção');
   assert.equal(projeto.coleta.geral.detalhes,'Visita na segunda-feira');

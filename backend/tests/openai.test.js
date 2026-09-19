@@ -31,14 +31,15 @@ test('resposta usa somente contexto permitido e histórico limitado',async()=>{
   const r=await responderComOpenAI({empresa,historico,respostaBase:'Qual serviço você precisa?'},async(url,op)=>{
     const body=JSON.parse(op.body),entrada=JSON.parse(body.input);
     assert.equal(entrada.historico.length,8);assert.equal(entrada.historico[0].content.length,2000);
-    assert(!op.body.includes('nao-enviar'));assert(body.instructions.includes('Não calcule'));
+    assert(!op.body.includes('nao-enviar'));assert(body.instructions.includes('entender a necessidade do cliente'));
+    assert(!body.instructions.includes('Não calcule'));
     return ok('Qual serviço você precisa?');
   },env);assert.equal(r,'Qual serviço você precisa?');
 });
-test('resposta da OpenAI com valor calculado é descartada', async () => {
-  const respostaBase='Nesta versão eu não calculo valores por aqui; registro sua necessidade para a equipe avaliar.';
+test('resposta da OpenAI com valor pode ser usada enquanto planos não limitam conversa', async () => {
+  const respostaBase='Perfeito, registrei as informações para a equipe continuar seu atendimento.';
   const r=await responderComOpenAI({empresa:{nome:'Empresa Teste',segmento:'servicos'},historico:[],respostaBase},async()=>ok('Esse projeto fica R$ 500,00.'),env);
-  assert.equal(r,respostaBase);
+  assert.equal(r,'Esse projeto fica R$ 500,00.');
 });
 test('resposta da OpenAI com apresentação ou nome interno da empresa é descartada quando a base não pede', async () => {
   const respostaBase='Você sabe a largura aproximada? Pode mandar com a unidade, tipo 80 cm.';

@@ -5,7 +5,6 @@ const { validarTextoAnalise } = require('./seguranca');
 const campos = ['movel', 'uso', 'largura_cm', 'altura_cm', 'profundidade_cm', 'acabamento', 'detalhes'];
 const dimensoes = { largura_cm: 'largura', altura_cm: 'altura', profundidade_cm: 'profundidade' };
 const normalizar = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-const assuntoComercial = /\b(preco|valor|custa|custo|orcamento|cotacao|desconto|prazo|entrega)\b|r\$|\b\d+(?:[.,]\d{2})?\s*(?:reais|real)\b/;
 
 // Converte m, cm ou mm para centímetros e rejeita resultados fora do limite.
 function converterMedida(valor, unidade) {
@@ -65,7 +64,6 @@ function validarExtracao(extraido, historico) {
       const limite = campo === 'detalhes' ? 2000 : 100;
       if (typeof item.valor !== 'string' || !item.valor.trim() || item.valor.length > limite
         || !normalizar(item.trecho).includes(normalizar(item.valor.trim()))) { rejeitar(); continue; }
-      if (campo === 'detalhes' && assuntoComercial.test(normalizar(item.valor))) { rejeitar(); continue; }
       dados[campo] = item.valor.trim();
     }
   }

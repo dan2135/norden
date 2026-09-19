@@ -3,7 +3,6 @@
  */
 const { erroHttp } = require('./projetos');
 const segmentos = { outros:'Outros ramos', serralheria:'Serralheria e solda', comercio:'Comércio', servicos:'Prestação de serviços', marcenaria:'Marcenaria' };
-const assuntoComercial = /\b(preco|valor|custa|custo|orcamento|cotacao|desconto|prazo|entrega)\b|r\$/;
 const perguntaIdentidade = /\b(quem e voce|qual (?:e )?(?:o )?seu nome|se apresente)\b/;
 const normalizar = texto => String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const perfisAtendimento = [
@@ -65,9 +64,8 @@ function responderSolicitacao(a,cliente,empresa,primeiroContato) {
   if(!a.estado.geral.solicitacao) {a.estado.pergunta='solicitacao';resposta='Como posso ajudar hoje?';}
   else if(!a.estado.geral.detalhes){a.estado.pergunta='detalhes_gerais';resposta=perguntaDetalhes(empresa);}
   else if(!(cliente.nome||a.nome)){a.estado.pergunta='nome';resposta='Como posso chamar você?';}
-  else {a.estado.pergunta=null;resposta='Seu pedido está registrado para avaliação da equipe. Nesta versão a Suzy não calcula valores nem confirma prazos.';}
+  else {a.estado.pergunta=null;resposta='Perfeito, registrei as informações para a equipe continuar seu atendimento.';}
   const texto=normalizar(a.texto);
-  if(assuntoComercial.test(texto)) resposta=`Nesta versão eu não calculo valores por aqui; registro sua necessidade para a equipe avaliar. ${resposta}`;
   if(primeiroContato||a.saudacao||perguntaIdentidade.test(texto))resposta=`Oi! Sou a Suzy, atendente virtual. ${resposta}`;
   return resposta;
 }

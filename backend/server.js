@@ -155,7 +155,7 @@ const historico = historicoBanco.rows.map((item) => ({
 
 
   const geral = true;
-  // Versão básica: o atendimento pelo chat usa coleta geral por ramo e não conduz briefing técnico.
+  // O atendimento pelo chat usa coleta geral por ramo e evita briefing técnico rígido.
   const analise = analisarSolicitacao(mensagem.trim(), projetoSelecionado, cliente);
   // Só consulta o modelo quando as regras não identificam nenhum dado.
   const precisaIA = !Object.values(analise.dados).some(v => v !== null) && !analise.nome
