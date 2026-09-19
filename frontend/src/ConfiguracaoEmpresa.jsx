@@ -58,6 +58,10 @@ function carregarSdkFacebook(appId, apiVersion = 'v25.0') {
   });
 }
 
+function obterRedirectUriMeta() {
+  return `${window.location.origin}/`;
+}
+
 export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [empresa, setEmpresa] = useState(null);
   const [whatsapp, setWhatsapp] = useState(whatsappInicial);
@@ -140,10 +144,12 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       if (!embeddedMeta.configurado) throw new Error('Conexão rápida da Meta ainda não configurada no servidor. Configure META_APP_ID, META_APP_SECRET e META_EMBEDDED_SIGNUP_CONFIG_ID no Render.');
       if (!sdkMetaPronto || !window.FB) throw new Error('A janela da Meta ainda não carregou. Aguarde alguns segundos, recarregue a página e tente de novo. Se continuar, desative bloqueador de pop-up/anúncios para este site.');
       embeddedInfoRef.current = {};
+      const redirectUri = obterRedirectUriMeta();
       const resposta = await new Promise((resolve, reject) => {
         let retornou = false;
         window.FB.login(r => { retornou = true; resolve(r); }, {
           config_id: embeddedMeta.config_id,
+          redirect_uri: redirectUri,
           auth_type: 'rerequest',
           response_type: 'code',
           override_default_response_type: true,
@@ -162,7 +168,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       const resultado = await requisicao('/whatsapp-embedded-signup', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ code, waba_id: info.waba_id, phone_number_id: info.phone_number_id }),
+        body:JSON.stringify({ code, waba_id: info.waba_id, phone_number_id: info.phone_number_id, redirect_uri: redirectUri }),
       });
       setWhatsapp({ ...whatsappInicial, ...resultado.whatsapp, access_token: '' });
       setSucessoWhatsApp('WhatsApp conectado pela Meta. A partir de agora, as mensagens desse número chegam neste painel.');

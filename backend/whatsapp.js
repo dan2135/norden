@@ -134,9 +134,20 @@ function validarConclusaoEmbeddedSignup(body = {}) {
   if (!code || code.length > 2000) throw erroHttp(400, 'Autorização da Meta inválida ou expirada.');
   const wabaId = String(body.waba_id || body.wabaId || '').replace(/\D/g, '');
   const phoneNumberId = String(body.phone_number_id || body.phoneNumberId || '').replace(/\D/g, '');
+  const redirectUri = typeof body.redirect_uri === 'string'
+    ? body.redirect_uri.trim()
+    : typeof body.redirectUri === 'string'
+      ? body.redirectUri.trim()
+      : '';
   if (wabaId && !/^[0-9]{5,40}$/.test(wabaId)) throw erroHttp(400, 'WABA ID inválido.');
   if (phoneNumberId && !/^[0-9]{5,40}$/.test(phoneNumberId)) throw erroHttp(400, 'Phone Number ID inválido.');
-  return { code, wabaId, phoneNumberId };
+  if (redirectUri) {
+    let url;
+    try { url = new URL(redirectUri); } catch { throw erroHttp(400, 'Redirect URI da Meta inválida.'); }
+    const localhost = ['localhost', '127.0.0.1'].includes(url.hostname);
+    if (redirectUri.length > 500 || (url.protocol !== 'https:' && !(localhost && url.protocol === 'http:'))) throw erroHttp(400, 'Redirect URI da Meta inválida.');
+  }
+  return { code, wabaId, phoneNumberId, redirectUri };
 }
 
 async function chamarGraph(caminho, { token = '', method = 'GET', body = null, apiVersion = 'v25.0', consultar = fetch } = {}) {
@@ -176,9 +187,10 @@ async function chamarGraph(caminho, { token = '', method = 'GET', body = null, a
   return dados;
 }
 
-async function trocarCodigoEmbeddedSignup(code, config = configurarEmbeddedSignup(), consultar = fetch) {
+async function trocarCodigoEmbeddedSignup(code, config = configurarEmbeddedSignup(), consultar = fetch, redirectUri = '') {
   if (!config.appId || !config.appSecret || !config.configId) throw erroHttp(503, 'Embedded Signup da Meta não configurado no servidor.');
   const params = new URLSearchParams({ client_id: config.appId, client_secret: config.appSecret, code });
+  if (redirectUri) params.set('redirect_uri', redirectUri);
   const dados = await chamarGraph(`https://graph.facebook.com/${config.apiVersion}/oauth/access_token?${params}`, { consultar });
   if (!dados.access_token) throw erroHttp(502, 'A Meta não retornou o token do WhatsApp.');
   return dados.access_token;
@@ -199,7 +211,7 @@ async function detalhesNumeroMeta({ token, wabaId, phoneNumberId, config = confi
 async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch, env = process.env }) {
   const config = configurarEmbeddedSignup(env);
   const entrada = validarConclusaoEmbeddedSignup(body);
-  const token = await trocarCodigoEmbeddedSignup(entrada.code, config, consultar);
+  const token = await trocarCodigoEmbeddedSignup(entrada.code, config, consultar, entrada.redirectUri);
   const numero = await detalhesNumeroMeta({ token, wabaId: entrada.wabaId, phoneNumberId: entrada.phoneNumberId, config, consultar });
   if (entrada.wabaId) await chamarGraph(`${entrada.wabaId}/subscribed_apps`, { token, method: 'POST', apiVersion: config.apiVersion, consultar });
   const registro = (await banco.query(

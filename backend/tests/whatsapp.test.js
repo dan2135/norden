@@ -78,15 +78,20 @@ test('valida conclusão do embedded signup', () => {
     code:' abc ',
     waba_id:'waba 987654',
     phone_number_id:'phone 123456',
-  }), { code:'abc', wabaId:'987654', phoneNumberId:'123456' });
+    redirect_uri:'https://norden-a0bb.onrender.com/',
+  }), { code:'abc', wabaId:'987654', phoneNumberId:'123456', redirectUri:'https://norden-a0bb.onrender.com/' });
   assert.throws(() => validarConclusaoEmbeddedSignup({}), /Autorização da Meta/i);
+  assert.throws(() => validarConclusaoEmbeddedSignup({ code:'abc', redirect_uri:'http://norden-a0bb.onrender.com/' }), /Redirect URI/i);
 });
 
 test('conclui embedded signup e salva WhatsApp da empresa', async () => {
   const chamadas = [];
   const consultar = async (url, opcoes = {}) => {
     chamadas.push({ url, method: opcoes.method || 'GET', body: opcoes.body ? JSON.parse(opcoes.body) : null });
-    if (url.includes('/oauth/access_token')) return { ok:true, json:async () => ({ access_token:'token-meta' }) };
+    if (url.includes('/oauth/access_token')) {
+      assert.equal(new URL(url).searchParams.get('redirect_uri'), 'https://norden-a0bb.onrender.com/');
+      return { ok:true, json:async () => ({ access_token:'token-meta' }) };
+    }
     if (url.includes('/123456789?fields=')) return { ok:true, json:async () => ({ id:'123456789', display_phone_number:'+55 11 99999-0000' }) };
     if (url.includes('/987654/subscribed_apps')) return { ok:true, json:async () => ({ success:true }) };
     throw new Error(`Chamada inesperada: ${url}`);
@@ -99,7 +104,7 @@ test('conclui embedded signup e salva WhatsApp da empresa', async () => {
   const whatsapp = await concluirEmbeddedSignup({
     banco,
     empresa:{ id:5 },
-    body:{ code:'code-meta', waba_id:'987654', phone_number_id:'123456789' },
+    body:{ code:'code-meta', waba_id:'987654', phone_number_id:'123456789', redirect_uri:'https://norden-a0bb.onrender.com/' },
     consultar,
     env:{ META_APP_ID:'app', META_APP_SECRET:'secret', META_EMBEDDED_SIGNUP_CONFIG_ID:'config', WHATSAPP_API_VERSION:'v26.0' },
   });
