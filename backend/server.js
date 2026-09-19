@@ -154,9 +154,9 @@ const historico = historicoBanco.rows.map((item) => ({
 }));
 
 
-  const geral = (req.marcenaria.segmento || 'marcenaria') !== 'marcenaria';
-  // Outros ramos usam perguntas gerais; marcenaria usa campos técnicos e extração opcional.
-  const analise = geral ? analisarSolicitacao(mensagem.trim(), projetoSelecionado, cliente) : analisarMensagem(mensagem.trim(), projetoSelecionado, cliente);
+  const geral = true;
+  // Versão básica: o atendimento pelo chat usa coleta geral por ramo e não conduz briefing técnico.
+  const analise = analisarSolicitacao(mensagem.trim(), projetoSelecionado, cliente);
   // Só consulta o modelo quando as regras não identificam nenhum dado.
   const precisaIA = !Object.values(analise.dados).some(v => v !== null) && !analise.nome
     && !analise.pendencias.length && !Object.keys(analise.estado.medidas).length
@@ -171,7 +171,7 @@ const historico = historicoBanco.rows.map((item) => ({
   const dadosProjeto = analise.dados;
   const pendencias = analise.pendencias;
   const primeiroContato = !historicoBanco.rows.some(item => item.remetente === 'sistema');
-  let respostaSistema = geral ? responderSolicitacao(analise,cliente,req.marcenaria,primeiroContato) : responder(analise, projetoSelecionado, cliente, { marcenaria: req.marcenaria.nome, primeiroContato });
+  let respostaSistema = responderSolicitacao(analise,cliente,req.marcenaria,primeiroContato);
   let modoIA = 'regras';
   if (process.env.IA_PROVIDER === 'openai') {
     // OpenAI refina a resposta da Suzy, mas se falhar o atendimento continua com a resposta por regras.

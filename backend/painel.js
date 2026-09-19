@@ -10,7 +10,7 @@ const campos = {
 
 // Classifica o projeto pelo que falta coletar ou confirmar, sem gravar essa classificação.
 function situacaoColeta(projeto) {
-  if (projeto.segmento && projeto.segmento !== 'marcenaria') {
+  if (projeto.coleta?.geral || (projeto.segmento && projeto.segmento !== 'marcenaria')) {
     const faltantes = [['Solicitação', projeto.coleta?.geral?.solicitacao], ['Detalhes', projeto.coleta?.geral?.detalhes], ['Nome do cliente', projeto.cliente_nome]].filter(([,v])=>!v?.trim()).map(([k])=>k);
     return {categoria:faltantes.length?'em_coleta':'completo',faltantes,pendencias:[],preenchidos:3-faltantes.length,total_campos:3};
   }

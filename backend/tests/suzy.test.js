@@ -41,3 +41,11 @@ test('ambiente loja é entendido sem repetir a mesma pergunta', () => {
   assert.doesNotMatch(resposta, /onde isso vai ser usado/);
   assert.match(resposta, /cor|acabamento|material/);
 });
+
+test('não inicia perguntas de medida depois de entender o pedido básico', () => {
+  const projeto = { movel:'bancada', uso:'loja' };
+  const a = analisarMensagem('madeirado', projeto, {});
+  const resposta = responder(a, projeto, {}, {});
+  assert.doesNotMatch(resposta, /largura|altura|profundidade/);
+  assert.match(resposta, /Como posso chamar/);
+});

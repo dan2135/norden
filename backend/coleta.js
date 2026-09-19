@@ -145,9 +145,6 @@ function responder(analise, projeto, cliente, contexto = {}) {
   } else if (!p.movel) resposta = perguntar('movel', 'Me conta o que você precisa hoje.');
   else if (!p.uso) resposta = perguntar('uso', 'Entendi. Me conta onde isso vai ser usado ou qual é a ideia do projeto.');
   else if (!p.acabamento) resposta = perguntar('acabamento', 'Você tem alguma preferência de cor, acabamento ou material?');
-  else if (!p.largura_cm) resposta = perguntar('largura_cm', 'Você sabe a largura aproximada? Pode mandar com a unidade, tipo 80 cm.');
-  else if (!p.altura_cm) resposta = perguntar('altura_cm', 'E a altura aproximada? Pode mandar em cm, m ou mm.');
-  else if (!p.profundidade_cm) resposta = perguntar('profundidade_cm', 'Qual seria a profundidade aproximada? Pode mandar com a unidade.');
   else if (!(analise.nome || cliente.nome)) resposta = perguntar('nome', 'Como posso chamar você?');
   else { estado.pergunta = null; resposta = 'Os dados principais estão registrados para análise da equipe. Nesta versão a Suzy não calcula valores nem confirma prazos.'; }
   if (assuntoComercial.test(texto)) resposta = `Nesta versão eu não calculo valores por aqui; registro sua necessidade para a equipe avaliar. ${resposta}`;

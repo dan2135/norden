@@ -11,7 +11,7 @@ test('valida ramo e rejeita valores desconhecidos', () => {
   for (const ramo of ['marcenaria','serralheria','comercio','servicos','outros']) assert.equal(validarSegmento(ramo), ramo);
   for (const ramo of ['invalido',null,'toString']) assert.throws(()=>validarSegmento(ramo));
 });
-for(const segmento of ['serralheria','comercio','servicos','outros']) test(`coleta ${segmento} sem exigir dados de móveis`,()=>{
+for(const segmento of ['marcenaria','serralheria','comercio','servicos','outros']) test(`coleta ${segmento} sem exigir dados de móveis`,()=>{
   const empresa={nome:'Empresa teste',segmento}, cliente={}, projeto={coleta:{}};
   function enviar(texto,primeiro=false){
     const a=analisarSolicitacao(texto,projeto,cliente);
@@ -38,8 +38,25 @@ for(const segmento of ['serralheria','comercio','servicos','outros']) test(`cole
   enviar('oi');
   assert.equal(projeto.coleta.geral.solicitacao,'Preciso de manutenção');
 });
+test('ramo de clínica direciona para agendamento sem pedir medidas', () => {
+  const empresa={nome:'Clínica teste',segmento:'outros',atividade:'Clínica odontológica'}, cliente={}, projeto={coleta:{}};
+  const enviar = texto => {
+    const a=analisarSolicitacao(texto,projeto,cliente);
+    const resposta=responderSolicitacao(a,cliente,empresa,!projeto.coleta?.geral?.solicitacao);
+    projeto.coleta=JSON.parse(JSON.stringify(a.estado));
+    if(a.nome)cliente.nome=a.nome;
+    return resposta;
+  };
+  assert.match(enviar('oi'),/Como posso ajudar/);
+  const detalhes = enviar('quero agendar uma consulta');
+  assert.match(detalhes,/atendimento|dia|horário/i);
+  assert.doesNotMatch(detalhes,/largura|altura|profundidade|acabamento|móvel/i);
+});
 test('marcenaria mantém campos técnicos e dados gerais incompletos continuam em coleta',()=>{
   assert.equal(situacaoColeta({segmento:'marcenaria'}).total_campos,7);
+  assert.deepEqual(situacaoColeta({segmento:'marcenaria',coleta:{geral:{solicitacao:'bancada'}},cliente_nome:''}), {
+    categoria:'em_coleta', faltantes:['Detalhes','Nome do cliente'], pendencias:[], preenchidos:1, total_campos:3
+  });
   assert.equal(situacaoColeta({segmento:'servicos'}).total_campos,3);
   assert.equal(situacaoColeta({segmento:'servicos'}).categoria,'em_coleta');
 });

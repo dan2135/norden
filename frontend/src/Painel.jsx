@@ -184,7 +184,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
           <thead><tr>{(mostrandoProjetos ? ['Projeto', 'Cliente', aba === 'lixeira-projetos' ? 'Situação do cliente' : 'Coleta', aba === 'lixeira-projetos' ? 'Excluído em' : 'Atualização', 'Ação'] : ['Cliente', 'Telefone', 'Projetos', aba === 'lixeira' ? 'Excluído em' : 'Última mensagem', 'Ação'])
             .map(nome => <th key={nome} scope="col">{nome}</th>)}</tr></thead>
           <tbody>{visiveis.map(item => mostrandoProjetos ? <tr key={item.id} className={selecionado === item.id ? 'selecionado' : ''}>
-            <td><strong>{item.coleta?.geral?.solicitacao || item.movel || 'Pedido não informado'}</strong><small>#{item.id} · {item.uso || (segmento === 'marcenaria' ? 'Ambiente não informado' : 'Solicitação')}</small></td>
+            <td><strong>{item.coleta?.geral?.solicitacao || item.movel || 'Pedido não informado'}</strong><small>#{item.id} · {item.coleta?.geral?.detalhes || item.uso || 'Solicitação'}</small></td>
             <td>{item.cliente_nome || 'Sem nome'}<small>{item.telefone}</small></td>
             <td>{aba==='lixeira-projetos' ? (item.cliente_excluido_em?'Cliente na lixeira':'Cliente ativo') : <><span className={`selo ${item.situacao.categoria}`}>{categorias[item.situacao.categoria]}</span>
               <small>{item.situacao.preenchidos}/{item.situacao.total_campos} campos principais</small></>}</td>
@@ -221,7 +221,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
           <h3>{p.coleta?.geral?.solicitacao || p.movel || 'Pedido não informado'}</h3><p>{p.cliente_nome || 'Cliente sem nome'} · {p.telefone}</p>
           <span className={`selo ${p.situacao.categoria}`}>{categorias[p.situacao.categoria]}</span>
           <dl className="dados-ficha">
-            {(segmento !== 'marcenaria' ? [['Solicitação', p.coleta?.geral?.solicitacao || 'Não informada'], ['Detalhes', p.coleta?.geral?.detalhes || 'Não informados']] : [['Ambiente', p.uso || 'Não informado'], ['Largura', formatarMedida(p.largura_cm)], ['Altura', formatarMedida(p.altura_cm)],
+            {(p.coleta?.geral || segmento !== 'marcenaria' ? [['Solicitação', p.coleta?.geral?.solicitacao || 'Não informada'], ['Detalhes', p.coleta?.geral?.detalhes || 'Não informados']] : [['Ambiente', p.uso || 'Não informado'], ['Largura', formatarMedida(p.largura_cm)], ['Altura', formatarMedida(p.altura_cm)],
               ['Profundidade', formatarMedida(p.profundidade_cm)], ['Acabamento', p.acabamento || 'Não informado'],
               ['Detalhes', p.detalhes || 'Não informados']]).map(([nome, valor]) => <div key={nome}><dt>{nome}</dt><dd>{valor}</dd></div>)}
           </dl>

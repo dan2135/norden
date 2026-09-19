@@ -30,6 +30,10 @@ test('campos ausentes, sem nome e medidas inválidas aparecem como incompletos',
 test('coleta antiga ou malformada não derruba o painel', () => {
   for (const coleta of [null, {}, { medidas: [], duvidas: 'texto' }]) assert.equal(situacaoColeta({ ...completo, coleta }).categoria, 'completo');
 });
+test('coleta geral usa campos básicos mesmo em marcenaria', () => {
+  const s = situacaoColeta({ segmento:'marcenaria', coleta:{ geral:{ solicitacao:'agendar visita', detalhes:'terça de manhã' } }, cliente_nome:'Ana' });
+  assert.deepEqual(s, { categoria:'completo', faltantes:[], pendencias:[], preenchidos:3, total_campos:3 });
+});
 test('resumo inclui cliente sem projeto e categorias são exclusivas', () => {
   const projetos = [completo, {}, { ...completo, coleta: { medidas: { largura_cm: 120 } } }].map(p => ({ situacao: situacaoColeta(p) }));
   assert.deepEqual(resumoPainel([{}, {}], projetos), { clientes: 2, projetos: 3, em_coleta: 1, pendentes: 1, completos: 1 });

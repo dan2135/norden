@@ -348,8 +348,8 @@ async function responderMensagem({ banco, extrair, logger, telefone, texto, empr
     const historicoBanco = { rows: await historicoProjeto(db, cliente.id, projetoSelecionado.id, empresa.id) };
     // Histórico no formato de chat permite reutilizar a mesma lógica de IA das rotas manuais.
     const historico = historicoBanco.rows.map(item => ({ role: item.remetente === 'cliente' ? 'user' : 'assistant', content: item.texto }));
-    const geral = (empresa.segmento || 'marcenaria') !== 'marcenaria';
-    const analise = geral ? analisarSolicitacao(texto.trim(), projetoSelecionado, cliente) : analisarMensagem(texto.trim(), projetoSelecionado, cliente);
+    const geral = true;
+    const analise = analisarSolicitacao(texto.trim(), projetoSelecionado, cliente);
     const precisaIA = !Object.values(analise.dados).some(v => v !== null) && !analise.nome
       && !analise.pendencias.length && !Object.keys(analise.estado.medidas).length
       && !/^(oi|ol[aá]|bom dia|boa tarde|boa noite|sim|ok|obrigad[oa])[.!\s]*$/i.test(texto.trim());
@@ -358,7 +358,7 @@ async function responderMensagem({ banco, extrair, logger, telefone, texto, empr
       catch (erro) { analise.descartados.push('IA indisponível'); logger.warn('[WHATSAPP IA]', erro.message); }
     }
     const primeiroContato = !historicoBanco.rows.some(item => item.remetente === 'sistema');
-    let respostaSistema = geral ? responderSolicitacao(analise, cliente, empresa, primeiroContato) : responder(analise, projetoSelecionado, cliente, { marcenaria: empresa.nome, primeiroContato });
+    let respostaSistema = responderSolicitacao(analise, cliente, empresa, primeiroContato);
     if (process.env.IA_PROVIDER === 'openai') {
       // Se a OpenAI falhar, a resposta por regras continua sendo enviada para não travar atendimento.
       try { respostaSistema = await require('./openai').responderComOpenAI({ historico, empresa, respostaBase: respostaSistema }); }
