@@ -16,8 +16,27 @@ import './Empresa.css';
 export default function App() {
   // A página pública não exige sessão; login, cadastro e links de recuperação abrem a aplicação.
   const parametros = new URLSearchParams(window.location.search);
+  const callbackMeta = parametros.has('code') && parametros.get('state')?.startsWith('norden-meta-');
+  if (callbackMeta || parametros.get('tela') === 'meta-callback') return <CallbackMetaOAuth parametros={parametros} />;
   const acessar = ['login','cadastro','painel'].includes(parametros.get('tela')) || parametros.has('confirmar') || parametros.has('redefinir');
   return acessar ? <><Aplicacao /><BotaoTema flutuante /></> : <LandingPage />;
+}
+
+function CallbackMetaOAuth({ parametros }) {
+  useEffect(() => {
+    const dados = {
+      type: 'NORDEN_META_OAUTH',
+      code: parametros.get('code') || '',
+      state: parametros.get('state') || '',
+      error: parametros.get('error') || '',
+      error_description: parametros.get('error_description') || parametros.get('error_message') || '',
+    };
+    if (window.opener) window.opener.postMessage(dados, window.location.origin);
+    const timer = setTimeout(() => { if (window.opener) window.close(); }, 1200);
+    return () => clearTimeout(timer);
+  }, [parametros]);
+  const erro = parametros.get('error_description') || parametros.get('error_message') || parametros.get('error');
+  return <div className="tela-carregamento"><span>N</span><p>{erro ? `A Meta recusou a conexão: ${erro}` : 'Conexão recebida. Você já pode voltar para a Norden…'}</p></div>;
 }
 
 function Aplicacao() {

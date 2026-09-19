@@ -21,45 +21,78 @@ const exemplosAtividade = {
 };
 const whatsappInicial = { numero: '', waba_id: '', phone_number_id: '', access_token: '', api_version: 'v25.0', ativo: true, configurado: false };
 
-function carregarSdkFacebook(appId, apiVersion = 'v25.0') {
-  if (!appId) return Promise.reject(new Error('App ID da Meta não configurado no servidor.'));
-  return new Promise((resolve, reject) => {
-    let resolvido = false;
-    const concluir = fn => valor => {
-      if (resolvido) return;
-      resolvido = true;
-      clearTimeout(tempoLimite);
-      fn(valor);
-    };
-    const resolver = concluir(resolve);
-    const rejeitar = concluir(reject);
-    const tempoLimite = setTimeout(() => rejeitar(new Error('A Meta demorou para carregar. Verifique bloqueador de pop-up/anúncios e recarregue a página.')), 15000);
-    const inicializar = () => {
-      window.FB.init({
-        appId,
-        cookie: true,
-        xfbml: true,
-        version: apiVersion || 'v25.0',
-      });
-      resolver(window.FB);
-    };
-    if (window.FB) { inicializar(); return; }
-    const existente = document.getElementById('facebook-jssdk');
-    window.fbAsyncInit = inicializar;
-    if (existente) return;
-    const script = document.createElement('script');
-    script.id = 'facebook-jssdk';
-    script.src = 'https://connect.facebook.net/pt_BR/sdk.js';
-    script.async = true;
-    script.defer = true;
-    script.crossOrigin = 'anonymous';
-    script.onerror = () => rejeitar(new Error('Não foi possível carregar a janela de conexão da Meta. Verifique bloqueador de pop-up/anúncios.'));
-    document.body.appendChild(script);
-  });
-}
-
 function obterRedirectUriMeta() {
   return `${window.location.origin}/`;
+}
+
+function gerarEstadoMeta() {
+  const prefixo = `norden-meta-${Date.now()}`;
+  if (!window.crypto?.getRandomValues) return `${prefixo}-${Math.random().toString(36).slice(2)}`;
+  const bytes = new Uint8Array(12);
+  window.crypto.getRandomValues(bytes);
+  return `${prefixo}-${Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function montarUrlOAuthMeta({ appId, configId, apiVersion, redirectUri, state }) {
+  const params = new URLSearchParams({
+    client_id: appId,
+    config_id: configId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    override_default_response_type: 'true',
+    auth_type: 'rerequest',
+    display: 'popup',
+    state,
+    extras: JSON.stringify({
+      setup: {},
+      featureType: 'whatsapp_business_app_onboarding',
+      sessionInfoVersion: '3',
+    }),
+  });
+  return `https://www.facebook.com/${apiVersion || 'v25.0'}/dialog/oauth?${params}`;
+}
+
+function aguardarOAuthMeta(url, state) {
+  return new Promise((resolve, reject) => {
+    const largura = 560;
+    const altura = 720;
+    const esquerda = Math.max(0, Math.round(window.screenX + (window.outerWidth - largura) / 2));
+    const topo = Math.max(0, Math.round(window.screenY + (window.outerHeight - altura) / 2));
+    const popup = window.open(url, 'norden-meta-whatsapp', `width=${largura},height=${altura},left=${esquerda},top=${topo},resizable=yes,scrollbars=yes,status=yes`);
+    if (!popup) {
+      reject(new Error('O navegador bloqueou a janela da Meta. Libere pop-ups para a Norden e tente novamente.'));
+      return;
+    }
+    let finalizado = false;
+    let intervalo;
+    let tempoLimite;
+    function concluir(erro, dados) {
+      if (finalizado) return;
+      finalizado = true;
+      clearInterval(intervalo);
+      clearTimeout(tempoLimite);
+      window.removeEventListener('message', ouvir);
+      try { if (!popup.closed) popup.close(); } catch {}
+      if (erro) reject(erro);
+      else resolve(dados);
+    }
+    function ouvir(event) {
+      if (event.origin !== window.location.origin) return;
+      const dados = event.data || {};
+      if (dados.type !== 'NORDEN_META_OAUTH' || dados.state !== state) return;
+      if (dados.error) concluir(new Error(dados.error_description || dados.error || 'A Meta recusou a conexão.'));
+      else if (dados.code) concluir(null, dados);
+      else concluir(new Error('A Meta não retornou autorização para conectar o WhatsApp.'));
+    }
+    window.addEventListener('message', ouvir);
+    intervalo = setInterval(() => {
+      try {
+        if (popup.closed) concluir(new Error('A janela da Meta foi fechada antes de concluir a conexão.'));
+      } catch {}
+    }, 700);
+    tempoLimite = setTimeout(() => concluir(new Error('A janela da Meta demorou demais para concluir. Tente novamente e finalize o cadastro sem fechar o popup.')), 90000);
+    try { popup.focus(); } catch {}
+  });
 }
 
 export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
@@ -72,8 +105,6 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [ocupado, setOcupado] = useState(false);
   const [salvandoWhatsApp, setSalvandoWhatsApp] = useState(false);
   const [conectandoMeta, setConectandoMeta] = useState(false);
-  const [sdkMetaPronto, setSdkMetaPronto] = useState(false);
-  const [erroSdkMeta, setErroSdkMeta] = useState('');
   const [embeddedMeta, setEmbeddedMeta] = useState({ configurado: false, app_id: '', config_id: '', api_version: 'v25.0' });
   const [tentativa, setTentativa] = useState(0);
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
@@ -92,20 +123,6 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   useEffect(() => {
     requisicao('/whatsapp-embedded-config').then(config => setEmbeddedMeta(config || {})).catch(() => {});
   }, []);
-  useEffect(() => {
-    if (!embeddedMeta.configurado) return;
-    let cancelado = false;
-    setErroSdkMeta('');
-    carregarSdkFacebook(embeddedMeta.app_id, embeddedMeta.api_version || 'v25.0')
-      .then(() => { if (!cancelado) setSdkMetaPronto(true); })
-      .catch(erro => {
-        if (!cancelado) {
-          setSdkMetaPronto(false);
-          setErroSdkMeta(erro.message);
-        }
-      });
-    return () => { cancelado = true; };
-  }, [embeddedMeta.configurado, embeddedMeta.app_id, embeddedMeta.api_version]);
   useEffect(() => {
     function ouvirMeta(event) {
       try {
@@ -142,28 +159,20 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     setConectandoMeta(true); setErroWhatsApp(''); setSucessoWhatsApp('');
     try {
       if (!embeddedMeta.configurado) throw new Error('Conexão rápida da Meta ainda não configurada no servidor. Configure META_APP_ID, META_APP_SECRET e META_EMBEDDED_SIGNUP_CONFIG_ID no Render.');
-      if (!sdkMetaPronto || !window.FB) throw new Error('A janela da Meta ainda não carregou. Aguarde alguns segundos, recarregue a página e tente de novo. Se continuar, desative bloqueador de pop-up/anúncios para este site.');
       embeddedInfoRef.current = {};
       const redirectUri = obterRedirectUriMeta();
-      const resposta = await new Promise((resolve, reject) => {
-        let retornou = false;
-        window.FB.login(r => { retornou = true; resolve(r); }, {
-          config_id: embeddedMeta.config_id,
-          redirect_uri: redirectUri,
-          auth_type: 'rerequest',
-          response_type: 'code',
-          override_default_response_type: true,
-          display: 'popup',
-          extras: {
-            setup: {},
-            featureType: 'whatsapp_business_app_onboarding',
-            sessionInfoVersion: '3',
-          },
-        });
-        setTimeout(() => { if (!retornou) reject(new Error('A janela da Meta não abriu ou não retornou autorização. Libere pop-ups para este site, confira se o domínio da Norden está permitido no app da Meta e tente novamente.')); }, 30000);
+      const state = gerarEstadoMeta();
+      const urlOAuth = montarUrlOAuthMeta({
+        appId: embeddedMeta.app_id,
+        configId: embeddedMeta.config_id,
+        apiVersion: embeddedMeta.api_version || 'v25.0',
+        redirectUri,
+        state,
       });
-      const code = resposta?.authResponse?.code;
+      const resposta = await aguardarOAuthMeta(urlOAuth, state);
+      const code = resposta?.code;
       if (!code) throw new Error('A conexão com a Meta foi cancelada ou não retornou autorização.');
+      await new Promise(resolve => setTimeout(resolve, 600));
       const info = embeddedInfoRef.current || {};
       const resultado = await requisicao('/whatsapp-embedded-signup', {
         method:'POST',
@@ -206,10 +215,9 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
               <strong>Conectar pelo site</strong>
               <p>Abra a janela oficial da Meta, escolha a conta/WhatsApp da empresa e a Norden salva token, WABA ID e Phone Number ID automaticamente.</p>
               {!embeddedMeta.configurado && <small>Para ativar este botão, configure no Render: <code>META_APP_ID</code>, <code>META_APP_SECRET</code> e <code>META_EMBEDDED_SIGNUP_CONFIG_ID</code>.</small>}
-              {embeddedMeta.configurado && !sdkMetaPronto && !erroSdkMeta && <small>Carregando a janela oficial da Meta…</small>}
-              {erroSdkMeta && <small>{erroSdkMeta}</small>}
+              {embeddedMeta.configurado && <small>A conexão abre uma janela oficial da Meta. Se o navegador pedir, libere pop-ups para este site.</small>}
             </div>
-            <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || salvandoWhatsApp || !podeEditar || !embeddedMeta.configurado || !sdkMetaPronto}>{conectandoMeta ? 'Conectando…' : sdkMetaPronto ? 'Conectar WhatsApp pela Meta' : 'Carregando Meta…'}</button>
+            <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || salvandoWhatsApp || !podeEditar || !embeddedMeta.configurado}>{conectandoMeta ? 'Conectando…' : 'Conectar WhatsApp pela Meta'}</button>
           </div>
           <p className="nota-whatsapp">Se precisar, você ainda pode preencher manualmente os campos abaixo.</p>
           <label>Número do WhatsApp<input maxLength={30} placeholder="+55 11 99999-9999" value={whatsapp.numero || ''} onChange={e=>setWhatsapp({...whatsapp,numero:e.target.value})}/></label>
