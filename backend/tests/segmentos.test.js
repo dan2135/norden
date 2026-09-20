@@ -66,6 +66,40 @@ test('perfis de atendimento reconhecem ramos comuns pelo cadastro da empresa', (
   assert.equal(perfilAtendimento({segmento:'outros',atividade:'Pet shop'}).chave,'pet');
   assert.match(perguntaDetalhes({segmento:'outros',atividade:'Curso de inglês'}),/aula|curso|horário/i);
 });
+test('conversa completa aceita saudação, alteração e acréscimo sem encerrar genericamente', () => {
+  const empresa={nome:'Empresa teste',segmento:'marcenaria',atividade:'Marcenaria'}, cliente={nome:'Daniel'}, projeto={coleta:{geral:{solicitacao:'Bancada preta',detalhes:'Loja, 30 cm de profundidade'}}};
+  const enviar = texto => {
+    const a=analisarSolicitacao(texto,projeto,cliente);
+    const resposta=responderSolicitacao(a,cliente,empresa,false);
+    projeto.coleta=JSON.parse(JSON.stringify(a.estado));
+    return resposta;
+  };
+  assert.match(enviar('Oi'),/Como posso ajudar agora/);
+  assert.doesNotMatch(enviar('Oi eu queria fazer uma alteração'),/registrei|continue|continuidade/i);
+  assert.match(projeto.coleta.pergunta,/alteracao_detalhes/);
+  assert.match(enviar('Mas quero fazer agr'),/o que você quer alterar/i);
+  assert.doesNotMatch(enviar('Eu quero acrescentar outro móvel'),/registrei|continue|continuidade/i);
+  assert.match(projeto.coleta.pergunta,/acrescimo_detalhes/);
+  const registrado = enviar('uma prateleira preta também');
+  assert.match(registrado,/anotei esse acréscimo/i);
+  assert.match(projeto.coleta.geral.detalhes,/Acréscimo solicitad[oa]: uma prateleira preta também/i);
+});
+test('entende variações soltas de mudanças e itens adicionais', () => {
+  const empresa={nome:'Empresa teste',segmento:'marcenaria',atividade:'Marcenaria'}, cliente={nome:'Daniel'};
+  const base=()=>({coleta:{geral:{solicitacao:'Bancada preta',detalhes:'Loja'}}});
+  const responder = (texto, projeto=base()) => {
+    const a=analisarSolicitacao(texto,projeto,cliente);
+    const resposta=responderSolicitacao(a,cliente,empresa,false);
+    projeto.coleta=JSON.parse(JSON.stringify(a.estado));
+    return {resposta,projeto};
+  };
+  assert.match(responder('quero fazer umas mudanças').resposta,/o que você quer alterar/i);
+  assert.match(responder('quero adicionar mais um item').resposta,/o que você quer acrescentar/i);
+  assert.match(responder('quero fazer mais um item').resposta,/o que você quer acrescentar/i);
+  const {resposta,projeto}=responder('quero fazer mais um balcão');
+  assert.match(resposta,/anotei esse acréscimo/i);
+  assert.match(projeto.coleta.geral.detalhes,/mais um balcão/i);
+});
 test('marcenaria mantém campos técnicos e dados gerais incompletos continuam em coleta',()=>{
   assert.equal(situacaoColeta({segmento:'marcenaria'}).total_campos,7);
   assert.deepEqual(situacaoColeta({segmento:'marcenaria',coleta:{geral:{solicitacao:'bancada'}},cliente_nome:''}), {

@@ -4,6 +4,8 @@
 const { erroHttp } = require('./projetos');
 const segmentos = { outros:'Outros ramos', serralheria:'Serralheria e solda', comercio:'Comércio', servicos:'Prestação de serviços', marcenaria:'Marcenaria' };
 const perguntaIdentidade = /\b(quem e voce|qual (?:e )?(?:o )?seu nome|se apresente)\b/;
+const intencaoAlteracao = /\b(alterar|alteracao|alteracoes|mudanca|mudancas|mudar|modificar|ajustar|trocar|corrigir|correcao|correcoes|editar|atualizar)\b/;
+const intencaoAcrescimo = /\b(acrescentar|adicionar|incluir|colocar|somar)\b|\b(?:outro|outra|mais um|mais uma|mais uns|mais umas)\b/;
 const normalizar = texto => String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const perfisAtendimento = [
   { chave:'saude', padrao:/(clinic|consultorio|medic|odont|dent|fisio|psic|terapia|saude|saud|nutri|fono|exame|laboratorio)/,
@@ -36,19 +38,56 @@ function validarSegmento(valor='outros') {
   if(!Object.hasOwn(segmentos,valor)) throw erroHttp(400,'Escolha um ramo de atividade válido.');
   return valor;
 }
+// Junta novas informações sem apagar o que a conversa anterior já tinha registrado.
+function anexarDetalhe(atual, texto) {
+  const detalhe = String(texto || '').trim();
+  if (!detalhe) return atual;
+  if (!atual) return detalhe.slice(0, 2000);
+  if (normalizar(atual).includes(normalizar(detalhe))) return atual;
+  return `${atual}; ${detalhe}`.slice(0, 2000);
+}
+// Frases como "quero fazer uma alteração" dizem a intenção, mas ainda não dizem o que muda.
+function detalheVago(simples) {
+  const compacto = simples
+    .replace(/\b(oi|ola|eu|mas|so|só|queria|quero|gostaria|preciso|fazer|uma|um|umas|uns|agora|agr|alterar|alteracao|alteracoes|mudanca|mudancas|mudar|modificar|ajustar|trocar|corrigir|correcao|correcoes|editar|atualizar|acrescentar|adicionar|incluir|colocar|somar|outro|outra|mais|movel|móvel|item|coisa|pedido)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+  return compacto.length < 3;
+}
+function primeiroNome(nome) {
+  return String(nome || '').trim().split(/\s+/)[0] || '';
+}
 // Atualiza o estado do pedido geral conforme a pergunta anterior, preservando dados já coletados.
 function analisarSolicitacao(texto, projeto, cliente) {
   const estado={...projeto.coleta, medidas:{}, duvidas:[], geral:{...projeto.coleta?.geral}};
   const simples=texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   const saudacao=/^(oi|ola|bom dia|boa tarde|boa noite)[.!\s]*$/.test(simples)||/\b(quem e voce|seu nome|se apresente)\b/.test(simples);
   let nome=null;
+  let acao=null;
   if(!saudacao) {
+    const nomeDeclarado = texto.match(/\b(?:me chamo|meu nome [ée])\s+([\p{L}][\p{L} '-]{0,99}?)(?=\s+e\s+|[,.!?]|$)/iu);
     if(estado.pergunta==='nome'&&!cliente.nome) {
-      if(/^[\p{L}][\p{L} '-]{1,99}$/u.test(texto.trim())) nome=texto.trim();
+      if(nomeDeclarado) nome=nomeDeclarado[1].trim();
+      else if(/^[\p{L}][\p{L} '-]{1,99}$/u.test(texto.trim())) nome=texto.trim();
+    } else if(estado.pergunta==='alteracao_detalhes'||estado.pergunta==='acrescimo_detalhes') {
+      const tipo=intencaoAcrescimo.test(simples)?'acrescimo':intencaoAlteracao.test(simples)?'alteracao':estado.pergunta==='acrescimo_detalhes'?'acrescimo':'alteracao';
+      if(detalheVago(simples)) { estado.geral.pendente=tipo; acao=`${tipo}_pendente`; }
+      else {
+        estado.geral.detalhes=anexarDetalhe(estado.geral.detalhes, `${tipo==='acrescimo'?'Acréscimo':'Alteração'} solicitada: ${texto.trim()}`);
+        delete estado.geral.pendente;
+        acao=`${tipo}_registrado`;
+      }
+    } else if(estado.geral.solicitacao && (intencaoAlteracao.test(simples)||intencaoAcrescimo.test(simples))) {
+      const tipo=intencaoAcrescimo.test(simples)?'acrescimo':'alteracao';
+      if(detalheVago(simples)) { estado.geral.pendente=tipo; acao=`${tipo}_pendente`; }
+      else {
+        estado.geral.detalhes=anexarDetalhe(estado.geral.detalhes, `${tipo==='acrescimo'?'Acréscimo':'Alteração'} solicitada: ${texto.trim()}`);
+        delete estado.geral.pendente;
+        acao=`${tipo}_registrado`;
+      }
     } else if(!estado.geral.solicitacao) estado.geral.solicitacao=texto.trim();
     else if(estado.pergunta==='detalhes_gerais') estado.geral.detalhes=texto.trim();
   }
-  return {dados:Object.fromEntries(['movel','uso','largura_cm','altura_cm','profundidade_cm','acabamento','detalhes'].map(c=>[c,null])),estado,nome,pendencias:[],descartados:[],texto,saudacao};
+  return {dados:Object.fromEntries(['movel','uso','largura_cm','altura_cm','profundidade_cm','acabamento','detalhes'].map(c=>[c,null])),estado,nome,pendencias:[],descartados:[],texto,saudacao,acao};
 }
 // Ajusta a próxima pergunta ao ramo cadastrado, sem expor rótulos internos ao cliente.
 function perfilAtendimento(empresa = {}) {
@@ -61,12 +100,28 @@ function perguntaDetalhes(empresa = {}) {
 // Escolhe a próxima informação pendente e apresenta a Suzy com o nome da empresa.
 function responderSolicitacao(a,cliente,empresa,primeiroContato) {
   let resposta;
-  if(!a.estado.geral.solicitacao) {a.estado.pergunta='solicitacao';resposta='Como posso ajudar hoje?';}
+  const nome = primeiroNome(a.nome || cliente.nome);
+  if(a.acao==='alteracao_pendente'||a.estado.geral.pendente==='alteracao') {
+    a.estado.pergunta='alteracao_detalhes';
+    resposta='Claro. Me conta o que você quer alterar no pedido.';
+  } else if(a.acao==='acrescimo_pendente'||a.estado.geral.pendente==='acrescimo') {
+    a.estado.pergunta='acrescimo_detalhes';
+    resposta='Claro. Me conta o que você quer acrescentar.';
+  } else if(a.acao==='alteracao_registrado') {
+    a.estado.pergunta=null;
+    resposta='Certo, anotei essa alteração. Se quiser, pode me passar mais algum detalhe agora.';
+  } else if(a.acao==='acrescimo_registrado') {
+    a.estado.pergunta=null;
+    resposta='Certo, anotei esse acréscimo. Se quiser, pode me passar mais algum detalhe agora.';
+  } else if(a.saudacao && a.estado.geral.solicitacao && a.estado.geral.detalhes) {
+    a.estado.pergunta='continuidade';
+    resposta=`Oi${nome ? `, ${nome}` : ''}! Como posso ajudar agora?`;
+  } else if(!a.estado.geral.solicitacao) {a.estado.pergunta='solicitacao';resposta='Como posso ajudar hoje?';}
   else if(!a.estado.geral.detalhes){a.estado.pergunta='detalhes_gerais';resposta=perguntaDetalhes(empresa);}
   else if(!(cliente.nome||a.nome)){a.estado.pergunta='nome';resposta='Como posso chamar você?';}
   else {a.estado.pergunta=null;resposta='Perfeito, registrei as informações para a equipe continuar seu atendimento.';}
   const texto=normalizar(a.texto);
-  if(primeiroContato||a.saudacao||perguntaIdentidade.test(texto))resposta=`Oi! Sou a Suzy, atendente virtual. ${resposta}`;
+  if(primeiroContato||perguntaIdentidade.test(texto))resposta=`Oi! Sou a Suzy, atendente virtual. ${resposta}`;
   return resposta;
 }
 module.exports={segmentos,validarSegmento,analisarSolicitacao,responderSolicitacao,perguntaDetalhes,perfilAtendimento};
