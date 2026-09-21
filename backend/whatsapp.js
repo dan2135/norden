@@ -144,6 +144,8 @@ function validarConclusaoEmbeddedSignup(body = {}) {
   if (!code || code.length > 2000) throw erroHttp(400, 'Autorização da Meta inválida ou expirada.');
   const wabaId = String(body.waba_id || body.wabaId || '').replace(/\D/g, '');
   const phoneNumberId = String(body.phone_number_id || body.phoneNumberId || '').replace(/\D/g, '');
+  const businessId = String(body.business_id || body.businessId || '').replace(/\D/g, '');
+  const coexistencia = body.coexistencia === true || body.coexistence === true || body.coexistencia === 'true' || body.coexistence === 'true';
   const redirectUri = typeof body.redirect_uri === 'string'
     ? body.redirect_uri.trim()
     : typeof body.redirectUri === 'string'
@@ -151,13 +153,14 @@ function validarConclusaoEmbeddedSignup(body = {}) {
       : '';
   if (wabaId && !/^[0-9]{5,40}$/.test(wabaId)) throw erroHttp(400, 'WABA ID inválido.');
   if (phoneNumberId && !/^[0-9]{5,40}$/.test(phoneNumberId)) throw erroHttp(400, 'Phone Number ID inválido.');
+  if (businessId && !/^[0-9]{5,40}$/.test(businessId)) throw erroHttp(400, 'Business ID inválido.');
   if (redirectUri) {
     let url;
     try { url = new URL(redirectUri); } catch { throw erroHttp(400, 'Redirect URI da Meta inválida.'); }
     const localhost = ['localhost', '127.0.0.1'].includes(url.hostname);
     if (redirectUri.length > 500 || (url.protocol !== 'https:' && !(localhost && url.protocol === 'http:'))) throw erroHttp(400, 'Redirect URI da Meta inválida.');
   }
-  return { code, wabaId, phoneNumberId, redirectUri };
+  return { code, wabaId, phoneNumberId, businessId, coexistencia, redirectUri };
 }
 
 async function chamarGraph(caminho, { token = '', method = 'GET', body = null, apiVersion = 'v25.0', consultar = fetch } = {}) {
@@ -228,20 +231,24 @@ async function wabasCompartilhadasPeloToken(token, config = configurarEmbeddedSi
   return idsWabaDoDebugToken(debug);
 }
 
-async function detalhesNumeroMeta({ token, wabaId, phoneNumberId, config = configurarEmbeddedSignup(), consultar = fetch }) {
+async function detalhesNumeroMeta({ token, wabaId, phoneNumberId, coexistencia = false, config = configurarEmbeddedSignup(), consultar = fetch }) {
   // Obtém o número conectado; se vier só WABA, pega o primeiro telefone daquela conta.
   if (phoneNumberId) {
     const numero = await chamarGraph(`${phoneNumberId}?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
     return { wabaId, phoneNumberId: numero.id || phoneNumberId, numero: numero.display_phone_number || '' };
   }
   const wabaIds = wabaId ? [wabaId] : await wabasCompartilhadasPeloToken(token, config, consultar);
-  if (!wabaIds.length) throw erroHttp(400, 'A Meta não informou o número conectado.');
+  if (!wabaIds.length) throw erroHttp(400, coexistencia
+    ? 'A Meta autorizou a coexistência, mas não informou a conta do WhatsApp. Confirme a conexão no WhatsApp Business do celular e tente novamente.'
+    : 'A Meta não informou o número conectado.');
   for (const id of wabaIds) {
     const lista = await chamarGraph(`${id}/phone_numbers?fields=id,display_phone_number`, { token, apiVersion: config.apiVersion, consultar });
     const primeiro = lista.data?.[0];
     if (primeiro?.id) return { wabaId: id, phoneNumberId: primeiro.id, numero: primeiro.display_phone_number || '' };
   }
-  throw erroHttp(400, 'Nenhum número foi conectado pela Meta.');
+  throw erroHttp(400, coexistencia
+    ? 'A Meta autorizou a coexistência, mas nenhum número apareceu na conta. Confirme no WhatsApp Business do celular e tente novamente.'
+    : 'Nenhum número foi conectado pela Meta.');
 }
 
 async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch, env = process.env }) {
@@ -249,7 +256,7 @@ async function concluirEmbeddedSignup({ banco, empresa, body, consultar = fetch,
   const config = configurarEmbeddedSignup(env);
   const entrada = validarConclusaoEmbeddedSignup(body);
   const token = await trocarCodigoEmbeddedSignup(entrada.code, config, consultar, entrada.redirectUri);
-  const numero = await detalhesNumeroMeta({ token, wabaId: entrada.wabaId, phoneNumberId: entrada.phoneNumberId, config, consultar });
+  const numero = await detalhesNumeroMeta({ token, wabaId: entrada.wabaId, phoneNumberId: entrada.phoneNumberId, coexistencia: entrada.coexistencia, config, consultar });
   const wabaIdFinal = entrada.wabaId || numero.wabaId;
   if (wabaIdFinal) await chamarGraph(`${wabaIdFinal}/subscribed_apps`, { token, method: 'POST', apiVersion: config.apiVersion, consultar });
   const registro = (await banco.query(

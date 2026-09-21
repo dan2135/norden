@@ -78,8 +78,10 @@ test('valida conclusão do embedded signup', () => {
     code:' abc ',
     waba_id:'waba 987654',
     phone_number_id:'phone 123456',
+    business_id:'business 555666',
+    coexistencia:true,
     redirect_uri:'https://norden-a0bb.onrender.com/',
-  }), { code:'abc', wabaId:'987654', phoneNumberId:'123456', redirectUri:'https://norden-a0bb.onrender.com/' });
+  }), { code:'abc', wabaId:'987654', phoneNumberId:'123456', businessId:'555666', coexistencia:true, redirectUri:'https://norden-a0bb.onrender.com/' });
   assert.throws(() => validarConclusaoEmbeddedSignup({}), /Autorização da Meta/i);
   assert.throws(() => validarConclusaoEmbeddedSignup({ code:'abc', redirect_uri:'http://norden-a0bb.onrender.com/' }), /Redirect URI/i);
 });
@@ -142,6 +144,35 @@ test('conclui embedded signup buscando WABA pelo token quando o popup não infor
   });
   assert.equal(chamadas.length, 4);
   assert.equal(whatsapp.waba_id, '987654');
+  assert.equal(whatsapp.phone_number_id, '123456789');
+  assert.equal(whatsapp.configurado, true);
+});
+
+test('coexistência usa WABA retornada e descobre número no backend', async () => {
+  const chamadas = [];
+  const consultar = async (url, opcoes = {}) => {
+    chamadas.push({ url, method: opcoes.method || 'GET' });
+    if (url.includes('/oauth/access_token')) return { ok:true, json:async () => ({ access_token:'token-meta' }) };
+    if (url.includes('/987654/phone_numbers')) return { ok:true, json:async () => ({
+      data:[{ id:'123456789', display_phone_number:'+55 11 93908-8948' }],
+    }) };
+    if (url.includes('/987654/subscribed_apps')) return { ok:true, json:async () => ({ success:true }) };
+    throw new Error(`Chamada inesperada: ${url}`);
+  };
+  const banco = { async query(sql, params) {
+    assert.match(sql, /INSERT INTO whatsapp_configuracoes/);
+    assert.deepEqual(params, [5, '+55 11 93908-8948', '987654', '123456789', 'token-meta', 'v26.0']);
+    return { rows:[{ numero:params[1], waba_id:params[2], phone_number_id:params[3], api_version:params[5], ativo:true, access_token:params[4] }] };
+  } };
+  const whatsapp = await concluirEmbeddedSignup({
+    banco,
+    empresa:{ id:5 },
+    body:{ code:'code-meta', waba_id:'987654', coexistencia:true },
+    consultar,
+    env:{ META_APP_ID:'app', META_APP_SECRET:'secret', META_EMBEDDED_SIGNUP_CONFIG_ID:'config', WHATSAPP_API_VERSION:'v26.0' },
+  });
+  assert.equal(chamadas.length, 3);
+  assert.equal(whatsapp.numero, '+55 11 93908-8948');
   assert.equal(whatsapp.phone_number_id, '123456789');
   assert.equal(whatsapp.configurado, true);
 });

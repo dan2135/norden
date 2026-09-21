@@ -20,6 +20,7 @@ const exemplosAtividade = {
   outros: 'Ex.: serralheria, comércio, manutenção, instalação, produção sob medida…',
 };
 const whatsappInicial = { numero: '', waba_id: '', phone_number_id: '', access_token: '', api_version: 'v25.0', ativo: true, configurado: false };
+let facebookSdkPromise = null;
 
 function obterRedirectUriMeta() {
   // A Meta exige que a URL usada para abrir o OAuth seja idêntica à URL enviada no backend ao trocar o code.
@@ -36,7 +37,7 @@ function gerarEstadoMeta() {
 }
 
 function montarUrlOAuthMeta({ appId, configId, apiVersion, redirectUri, state }) {
-  // Monta a janela oficial do Embedded Signup; a Norden não pede senha da Meta nem manipula login manual.
+  // Fallback por URL. O fluxo principal usa FB.login mais abaixo, que é o caminho recomendado para Embedded Signup.
   const params = new URLSearchParams({
     client_id: appId,
     config_id: configId,
@@ -53,6 +54,91 @@ function montarUrlOAuthMeta({ appId, configId, apiVersion, redirectUri, state })
     }),
   });
   return `https://www.facebook.com/${apiVersion || 'v25.0'}/dialog/oauth?${params}`;
+}
+
+function opcoesEmbeddedSignupMeta({ configId, state }) {
+  // O featureType abaixo é o seletor de coexistência: ele pede à Meta o fluxo para WhatsApp Business App existente.
+  return {
+    config_id: configId,
+    response_type: 'code',
+    override_default_response_type: true,
+    auth_type: 'rerequest',
+    state,
+    extras: {
+      setup: {},
+      featureType: 'whatsapp_business_app_onboarding',
+      sessionInfoVersion: '3',
+    },
+  };
+}
+
+function carregarFacebookSdk({ appId, apiVersion }) {
+  // Carrega o SDK antes do clique para o popup do FB.login não ser bloqueado pelo navegador.
+  if (window.FB?.login) {
+    window.FB.init?.({ appId, xfbml: false, version: apiVersion || 'v25.0' });
+    return Promise.resolve(window.FB);
+  }
+  if (facebookSdkPromise) return facebookSdkPromise;
+  facebookSdkPromise = new Promise((resolve, reject) => {
+    const id = 'facebook-jssdk';
+    const anterior = window.fbAsyncInit;
+    const falhar = mensagem => {
+      facebookSdkPromise = null;
+      clearTimeout(timeout);
+      reject(new Error(mensagem));
+    };
+    const timeout = setTimeout(() => falhar('Não foi possível carregar o SDK da Meta.'), 12000);
+    window.fbAsyncInit = function fbAsyncInitNorden() {
+      try { if (typeof anterior === 'function') anterior(); } catch {}
+      try {
+        window.FB.init({ appId, xfbml: false, version: apiVersion || 'v25.0' });
+        clearTimeout(timeout);
+        resolve(window.FB);
+      } catch {
+        falhar('Não foi possível iniciar o SDK da Meta.');
+      }
+    };
+    if (document.getElementById(id)) {
+      setTimeout(() => {
+        if (window.FB?.login) {
+          clearTimeout(timeout);
+          resolve(window.FB);
+        } else {
+          falhar('Não foi possível carregar o SDK da Meta.');
+        }
+      }, 2500);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = id;
+    script.async = true;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+    script.src = 'https://connect.facebook.net/pt_BR/sdk.js';
+    script.onerror = () => falhar('Não foi possível carregar o SDK da Meta.');
+    document.body.appendChild(script);
+  });
+  return facebookSdkPromise;
+}
+
+async function loginEmbeddedSignupMeta({ appId, configId, apiVersion, state }) {
+  const fb = await carregarFacebookSdk({ appId, apiVersion });
+  return new Promise((resolve, reject) => {
+    let finalizado = false;
+    const timeout = setTimeout(() => {
+      if (finalizado) return;
+      finalizado = true;
+      reject(new Error('A janela da Meta demorou demais para concluir. Tente novamente e finalize o cadastro sem fechar o popup.'));
+    }, 120000);
+    fb.login(response => {
+      if (finalizado) return;
+      finalizado = true;
+      clearTimeout(timeout);
+      const code = response?.authResponse?.code;
+      if (code) resolve({ code, origem: 'sdk' });
+      else reject(new Error('A Meta não retornou autorização para conectar o WhatsApp.'));
+    }, opcoesEmbeddedSignupMeta({ configId, state }));
+  });
 }
 
 function aguardarOAuthMeta(url, state) {
@@ -135,13 +221,26 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     requisicao('/whatsapp-embedded-config').then(config => setEmbeddedMeta(config || {})).catch(() => {});
   }, []);
   useEffect(() => {
+    if (!embeddedMeta.configurado) return;
+    carregarFacebookSdk({ appId: embeddedMeta.app_id, apiVersion: embeddedMeta.api_version || 'v25.0' }).catch(() => {});
+  }, [embeddedMeta]);
+  useEffect(() => {
     // Durante o Embedded Signup, a Meta envia WABA ID e Phone Number ID por postMessage antes do OAuth terminar.
     function ouvirMeta(event) {
       try {
         const host = new URL(event.origin).hostname;
         if (!host.endsWith('facebook.com')) return;
         const dados = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (dados?.type === 'WA_EMBEDDED_SIGNUP') embeddedInfoRef.current = { ...embeddedInfoRef.current, ...(dados.data || {}) };
+        if (dados?.type === 'WA_EMBEDDED_SIGNUP') {
+          const evento = dados.event || '';
+          embeddedInfoRef.current = {
+            ...embeddedInfoRef.current,
+            ...(dados.data || {}),
+            evento,
+            coexistencia: evento === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' || dados.data?.is_wa_login_user === true,
+            erro_meta: evento === 'ERROR' ? dados.data?.error_message || 'A Meta recusou o cadastro do WhatsApp.' : '',
+          };
+        }
       } catch {}
     }
     window.addEventListener('message', ouvirMeta);
@@ -177,25 +276,44 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       embeddedInfoRef.current = {};
       const redirectUri = obterRedirectUriMeta();
       const state = gerarEstadoMeta();
-      const urlOAuth = montarUrlOAuthMeta({
-        appId: embeddedMeta.app_id,
-        configId: embeddedMeta.config_id,
-        apiVersion: embeddedMeta.api_version || 'v25.0',
-        redirectUri,
-        state,
-      });
-      const resposta = await aguardarOAuthMeta(urlOAuth, state);
+      let resposta;
+      try {
+        resposta = await loginEmbeddedSignupMeta({
+          appId: embeddedMeta.app_id,
+          configId: embeddedMeta.config_id,
+          apiVersion: embeddedMeta.api_version || 'v25.0',
+          state,
+        });
+      } catch (erroSdk) {
+        if (!/SDK da Meta|carregar o SDK|iniciar o SDK/i.test(erroSdk.message || '')) throw erroSdk;
+        const urlOAuth = montarUrlOAuthMeta({
+          appId: embeddedMeta.app_id,
+          configId: embeddedMeta.config_id,
+          apiVersion: embeddedMeta.api_version || 'v25.0',
+          redirectUri,
+          state,
+        });
+        resposta = { ...(await aguardarOAuthMeta(urlOAuth, state)), origem: 'redirect', redirectUri };
+      }
       const code = resposta?.code;
       if (!code) throw new Error('A conexão com a Meta foi cancelada ou não retornou autorização.');
       await new Promise(resolve => setTimeout(resolve, 600));
       const info = embeddedInfoRef.current || {};
+      if (info.erro_meta) throw new Error(info.erro_meta);
       const resultado = await requisicao('/whatsapp-embedded-signup', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ code, waba_id: info.waba_id, phone_number_id: info.phone_number_id, redirect_uri: redirectUri }),
+        body:JSON.stringify({
+          code,
+          waba_id: info.waba_id,
+          phone_number_id: info.phone_number_id,
+          business_id: info.business_id,
+          coexistencia: Boolean(info.coexistencia),
+          redirect_uri: resposta.origem === 'redirect' ? resposta.redirectUri : '',
+        }),
       });
       setWhatsapp({ ...whatsappInicial, ...resultado.whatsapp, access_token: '' });
-      setSucessoWhatsApp('WhatsApp conectado pela Meta. A partir de agora, as mensagens desse número chegam neste painel.');
+      setSucessoWhatsApp(info.coexistencia ? 'WhatsApp conectado em coexistência. O número pode continuar no WhatsApp Business do celular e também chegar neste painel.' : 'WhatsApp conectado pela Meta. A partir de agora, as mensagens desse número chegam neste painel.');
     } catch (erro) {
       setErroWhatsApp(erro.message);
     } finally {
