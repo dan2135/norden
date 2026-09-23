@@ -23,7 +23,7 @@ export const paginasInstitucionais = {
     ['Como recuperar a senha?', 'Na tela de login, clique em Esqueci minha senha e informe o e-mail cadastrado. Nesta fase local, as mensagens são simuladas; o envio real ainda precisa ser configurado.'],
     ['O WhatsApp já responde sozinho?', 'Sim. Depois que o número comercial for conectado, a Suzy pode organizar as conversas e o histórico fica disponível no Painel para conferência antes de qualquer orçamento ou produção.'],
   ] },
-  privacidade: { titulo: 'Política de privacidade', rascunho: true, blocos: [
+  privacidade: { titulo: 'Política de privacidade', blocos: [
     ['Dados que usamos', 'A Norden pode tratar dados do cadastro, como nome, e-mail, CPF ou CNPJ, além dos dados da empresa. Também são tratados clientes, conversas, projetos, orçamentos e informações enviadas pelo WhatsApp quando a integração estiver ativa.'],
     ['Como usamos esses dados', 'Usamos as informações para criar e proteger a conta, organizar atendimentos, apresentar o histórico de cada projeto, preparar orçamentos, processar assinaturas e oferecer suporte.'],
     ['Compartilhamento necessário', 'Os dados só são compartilhados quando isso for necessário para operar a Norden, como com os serviços de hospedagem, e-mail, pagamento e integração de mensagens. Cada serviço recebe somente o necessário para executar sua função.'],
@@ -33,7 +33,7 @@ export const paginasInstitucionais = {
     ['Pedidos sobre dados pessoais', 'Para solicitar acesso, correção ou exclusão de dados, envie um e-mail para norden0910@gmail.com com o assunto “Dados pessoais Norden” e informe o e-mail usado na conta. Para sua proteção, a Norden poderá confirmar sua identidade antes de responder. Não envie senhas, códigos de acesso ou dados de cartões na mensagem.'],
     ['Responsável e atualização deste texto', 'A Norden é responsável pelo tratamento dos dados dentro da plataforma. Enquanto a empresa estiver em formalização, o contato para assuntos de privacidade é norden0910@gmail.com. Este texto será atualizado com a razão social e o CNPJ quando estiverem definidos.'],
   ] },
-  termos: { titulo: 'Termos de uso', rascunho: true, blocos: [
+  termos: { titulo: 'Termos de uso', blocos: [
     ['Finalidade da plataforma', 'A Norden ajuda empresas a organizar atendimentos, clientes, projetos, conversas e orçamentos. O usuário deve utilizar a plataforma apenas em atividades legítimas e relacionadas ao seu negócio.'],
     ['Conta e acesso', 'Informe dados corretos, mantenha a senha em sigilo e use somente contas para as quais você tem autorização. O responsável pela empresa deve definir quem pode acessar cada conta.'],
     ['Uso das informações', 'Quem utiliza a Norden é responsável por ter autorização para registrar dados de clientes, conversas e projetos. Não envie informações desnecessárias ou conteúdo que viole direitos de terceiros.'],
