@@ -68,7 +68,7 @@ export default function Assinatura({ podeEditar }) {
     {estado.sucesso && <p className="assinatura-sucesso" role="status">{estado.sucesso}</p>}
     {estado.carregando ? <p>Carregando plano…</p> : <div className="assinatura-card">
       <div><small>Plano</small><strong>Norden Pro</strong><p>15 dias grátis e depois cobrança mensal automática pelo Asaas.</p></div>
-      <div><small>Valor</small><strong>R$ {Number(assinatura?.valor_reais || 90).toLocaleString('pt-BR', { minimumFractionDigits:2 })}/mês</strong><p>Valor inicial de lançamento.</p></div>
+      <div><small>Valor</small><strong>R$ {Number(assinatura?.valor_reais || 110).toLocaleString('pt-BR', { minimumFractionDigits:2 })}/mês</strong><p>Valor inicial de lançamento.</p></div>
       <div><small>Próxima cobrança</small><strong>{assinatura?.proxima_cobranca_em ? new Date(`${assinatura.proxima_cobranca_em}T00:00:00`).toLocaleDateString('pt-BR') : 'Após o teste grátis'}</strong><p>{assinatura?.billing_type === 'CREDIT_CARD' ? 'Cartão recorrente conectado.' : 'Pix de cobrança recorrente pelo Asaas.'}</p></div>
       <fieldset className="formas-pagamento" disabled={assinaturaConectada}>
         <legend>Forma de pagamento</legend>

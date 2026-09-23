@@ -14,7 +14,7 @@ function configurarAsaas(env = process.env) {
     apiKey: env.ASAAS_API_KEY || '',
     baseUrl: (env.ASAAS_BASE_URL || env.ASAAS_BASE_UR || 'https://api.asaas.com/v3').replace(/\/+$/, ''),
     webhookToken: env.ASAAS_WEBHOOK_TOKEN || '',
-    valorCentavos: Math.max(0, Number.parseInt(env.NORDEN_PLANO_VALOR || '9000', 10) || 9000),
+    valorCentavos: Math.max(0, Number.parseInt(env.NORDEN_PLANO_VALOR || '11000', 10) || 11000),
     trialDias,
   };
 }

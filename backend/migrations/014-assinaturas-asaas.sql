@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS assinaturas (
   marcenaria_id INTEGER NOT NULL REFERENCES marcenarias(id) ON DELETE CASCADE,
   plano VARCHAR(40) NOT NULL DEFAULT 'pro',
   status VARCHAR(30) NOT NULL DEFAULT 'trial',
-  valor_centavos INTEGER NOT NULL DEFAULT 9000 CHECK (valor_centavos >= 0),
+  valor_centavos INTEGER NOT NULL DEFAULT 11000 CHECK (valor_centavos >= 0),
   trial_inicio_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   trial_fim_em TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '15 days'),
   asaas_customer_id VARCHAR(80),

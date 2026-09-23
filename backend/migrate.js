@@ -31,6 +31,7 @@ async function main() {
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/017-whatsapp-configuracoes.sql'), 'utf8'));
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/018-trial-15-dias.sql'), 'utf8'));
     await db.query(await fs.readFile(path.join(__dirname, 'migrations/019-desativar-empresas-teste.sql'), 'utf8'));
+    await db.query(await fs.readFile(path.join(__dirname, 'migrations/020-valor-plano-110.sql'), 'utf8'));
     const resultado = await db.query('SELECT COUNT(*) AS total FROM mensagens WHERE projeto_id IS NULL');
     console.log('Migração concluída. Mensagens antigas sem vínculo:', resultado.rows[0].total);
   } catch (erro) {
