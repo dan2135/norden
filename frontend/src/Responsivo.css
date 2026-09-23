@@ -1,0 +1,77 @@
+/* Ajustes de dimensão compartilhados, carregados depois dos temas.
+   A rolagem horizontal fica restrita às tabelas, sem esconder conteúdo da página. */
+.app-marca .tema-botao { margin-left:auto; flex-shrink:0; }
+.app-marca { min-width:0; }
+.configuracao-empresa fieldset,
+.itens-orcamento fieldset,
+.formas-pagamento,
+.cartao-form { min-width:0; }
+.configuracao-empresa label,
+.novo-material > *,
+.material-catalogo > * { min-width:0; }
+.configuracao-empresa input,
+.configuracao-empresa select { max-width:100%; }
+.meta-connect-card { flex-wrap:wrap; }
+.meta-connect-card > div { flex:1 1 240px; min-width:0; }
+.meta-connect-card button { max-width:100%; white-space:normal; }
+.app-topo > div:first-child { min-width:0; overflow-wrap:anywhere; }
+.seletor-marcenaria { min-width:0; max-width:100%; }
+.seletor-marcenaria select { min-width:0; }
+.nova-empresa input,
+.nova-empresa select { width:100%; min-width:0; }
+.rodape-pagina { overflow-wrap:anywhere; }
+.tabela-scroll:focus-visible { outline:2px solid #315de8; outline-offset:-2px; }
+
+@media screen and (max-width:760px) {
+  /* Duas linhas previsíveis: marca/ações e três abas com áreas de toque iguais. */
+  .app-navegacao { display:grid; grid-template-columns:minmax(0,1fr) 44px; gap:10px; padding:12px; }
+  .app-marca { gap:10px; }
+  .app-marca strong { display:block; }
+  .app-navegacao nav { grid-column:1/-1; grid-row:2; display:grid; grid-template-columns:1fr 1.4fr 1fr; width:100%; margin:0; gap:4px; }
+  .app-navegacao nav button { justify-content:center; padding:10px 6px; min-height:44px; font-size:13px; }
+  .app-navegacao nav button > span { display:none; }
+  .app-usuario { display:block; grid-column:2; grid-row:1; margin:0; width:44px; }
+  .app-usuario button { width:44px; height:44px; }
+  .app-topo { padding:12px; }
+  .seletor-marcenaria select,
+  .seletor-marcenaria button { min-height:44px; }
+  .painel,.configuracao-empresa,.assinatura { padding:22px 12px; }
+  .indicador { padding:16px; }
+  .indicador strong { font-size:30px; overflow-wrap:anywhere; }
+  .indicador span { overflow-wrap:anywhere; }
+  .ficha-projeto { padding:16px; }
+  .filtros { padding:16px 12px 10px; }
+  .filtros label,.filtros label.busca { min-width:0; flex-basis:100%; }
+  .abas-lista { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 8px; padding-inline:12px; }
+  .abas-lista button { min-height:44px; }
+  .paginacao { flex-wrap:wrap; justify-content:center; gap:10px; padding:14px 10px; }
+  .titulo-orcamento,.cabecalho-previa { flex-wrap:wrap; }
+  .botao-secundario,.botao-principal,.botao-whatsapp,.botao-excluir-cliente,
+  .paginacao button,.ficha-projeto > header button,.botao-texto,
+  .remover-item,.rodape-links button,.login-acoes button { min-height:44px; }
+  .botao-secundario,.botao-principal,.botao-whatsapp { white-space:normal; }
+  .nova-empresa { margin:12px; padding:16px; }
+  .nova-empresa label { flex-basis:100%; min-width:0; }
+  .nova-empresa button { min-height:44px; }
+  .assinatura-card { padding:14px; }
+  .configuracao-empresa fieldset { padding:14px; }
+  .meta-connect-card { padding:14px; }
+  .meta-connect-card > div { flex-basis:auto; }
+  .mensagem-painel header { flex-wrap:wrap; }
+  .confirmar-exclusao { padding:20px; max-height:calc(100dvh - 32px); }
+  .acoes-cliente { flex-wrap:wrap; }
+  /* Campos de 16px evitam o zoom automático ao editar no Safari do iPhone. */
+  #root input:not([type="checkbox"]):not([type="radio"]),
+  #root select,#root textarea { font-size:16px; }
+  .login-acoes { flex-wrap:wrap; }
+  .login-area { padding-bottom:80px; }
+}
+
+@media screen and (max-width:380px) {
+  .material-catalogo,.novo-material { grid-template-columns:minmax(0,1fr); }
+  .novo-material .descricao { grid-column:1/-1; }
+  .dados-ficha { grid-template-columns:minmax(0,1fr); }
+  .lp-preview-stats { gap:6px; }
+  .lp-preview-stats > div { padding:9px 7px; min-width:0; overflow-wrap:anywhere; }
+  .lp-nav-sections { flex-wrap:wrap; gap:8px 14px; }
+}

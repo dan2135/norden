@@ -179,7 +179,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
           <h2>{(busca || cliente || categoria) ? 'Nenhum resultado para esses filtros' : `Nenhum ${aba === 'projetos' ? 'projeto' : 'cliente'} cadastrado ainda`}</h2>
           <p>{(busca || cliente || categoria) ? 'Limpe os filtros ou tente outra busca.' : aba === 'lixeira' ? 'A lixeira está vazia.' : 'Os registros aparecerão aqui conforme os atendimentos forem iniciados.'}</p>
         </div>}
-        {visiveis.length > 0 && <div className="tabela-scroll"><table>
+        {visiveis.length > 0 && <div className="tabela-scroll" tabIndex={0} role="region" aria-label="Resultados da consulta. Deslize para ver todas as colunas."><table>
           <caption className="somente-leitor">{aba === 'projetos' ? 'Projetos cadastrados, ordenados por atualização' : 'Clientes cadastrados'}</caption>
           <thead><tr>{(mostrandoProjetos ? ['Projeto', 'Cliente', aba === 'lixeira-projetos' ? 'Situação do cliente' : 'Coleta', aba === 'lixeira-projetos' ? 'Excluído em' : 'Atualização', 'Ação'] : ['Cliente', 'Telefone', 'Projetos', aba === 'lixeira' ? 'Excluído em' : 'Última mensagem', 'Ação'])
             .map(nome => <th key={nome} scope="col">{nome}</th>)}</tr></thead>

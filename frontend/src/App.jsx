@@ -20,7 +20,7 @@ export default function App() {
   const callbackMeta = parametros.has('code') && parametros.get('state')?.startsWith('norden-meta-');
   if (callbackMeta || parametros.get('tela') === 'meta-callback') return <CallbackMetaOAuth parametros={parametros} />;
   const acessar = ['login','cadastro','painel'].includes(parametros.get('tela')) || parametros.has('confirmar') || parametros.has('redefinir');
-  return acessar ? <><Aplicacao /><BotaoTema flutuante /></> : <LandingPage />;
+  return acessar ? <Aplicacao /> : <LandingPage />;
 }
 
 function CallbackMetaOAuth({ parametros }) {
@@ -111,12 +111,12 @@ function Aplicacao() {
     }
   }
   if (iniciando) return <div className="tela-carregamento"><span>N</span><p>Preparando seu painel…</p></div>;
-  if (!sessao) return <TelaLogin onEntrar={entrar} />;
-  if (sessao.trocar_senha) return <TrocarSenha aoSair={sair} aoConcluir={()=>{definirCsrf(null);definirMarcenaria(null);setSessao(null);setMarcenarias([]);setMarcenariaId('');}} />;
+  if (!sessao) return <><TelaLogin onEntrar={entrar} /><BotaoTema flutuante /></>;
+  if (sessao.trocar_senha) return <><TrocarSenha aoSair={sair} aoConcluir={()=>{definirCsrf(null);definirMarcenaria(null);setSessao(null);setMarcenarias([]);setMarcenariaId('');}} /><BotaoTema flutuante /></>;
   return <div className="app-shell" data-theme={temaEscuro ? 'dark' : 'light'}>
     {/* Navegação lateral fixa: troca abas sem recarregar a sessão nem perder a empresa ativa. */}
     <aside className="app-navegacao">
-      <div className="app-marca"><span>N</span><strong>Norden</strong></div>
+      <div className="app-marca"><span>N</span><strong>Norden</strong><BotaoTema /></div>
       <nav aria-label="Navegação principal">
         <button aria-pressed={aba === 'painel'} onClick={() => setAba('painel')}><span>⌁</span>Painel</button>
         <button aria-pressed={aba === 'empresa'} onClick={() => setAba('empresa')}><span>▣</span>Minha empresa</button>
