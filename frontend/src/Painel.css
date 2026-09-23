@@ -434,4 +434,5 @@
 /* Marca oficial Norden. */
 .app-marca-logo { display:block; width:136px; height:auto; max-height:42px; object-fit:contain; object-position:left center; }
 .tela-carregamento-logo { display:block; width:56px; height:56px; margin:auto; border-radius:15px; object-fit:cover; }
+.app-shell[data-theme="dark"] .app-marca-logo { filter:brightness(0) invert(1); }
 @media(max-width:760px) { .app-marca-logo { width:122px; max-height:38px; } }

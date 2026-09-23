@@ -57,4 +57,5 @@
 /* Marca oficial Norden. */
 .lp-brand img { display:block; width:148px; height:auto; max-height:46px; object-fit:contain; object-position:left center; }
 .lp-footer>.lp-brand img { width:132px; }
+.landing[data-theme="dark"] .lp-brand img { filter:brightness(0) invert(1); }
 @media(max-width:760px) { .lp-brand img { width:128px; max-height:40px; } }

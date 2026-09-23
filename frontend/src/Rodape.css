@@ -125,3 +125,4 @@
 
 /* Marca oficial Norden. */
 .rodape-norden-marca>img { display:block; width:136px; height:auto; max-height:42px; object-fit:contain; object-position:left center; }
+.app-shell[data-theme="dark"] .rodape-norden-marca>img { filter:brightness(0) invert(1); }
