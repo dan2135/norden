@@ -14,6 +14,8 @@ import Assinatura from './Assinatura';
 import { useTema } from './tema';
 import AvisoCookies from './AvisoCookies';
 import { lerPreferencia, salvarPreferencia } from './privacidade';
+import marcaNorden from './assets/norden-logo.png';
+import perfilNorden from './assets/norden-perfil.png';
 import './Empresa.css';
 
 export default function App() {
@@ -40,7 +42,7 @@ function CallbackMetaOAuth({ parametros }) {
     return () => clearTimeout(timer);
   }, [parametros]);
   const erro = parametros.get('error_description') || parametros.get('error_message') || parametros.get('error');
-  return <div className="tela-carregamento"><span>N</span><p>{erro ? `A Meta recusou a conexão: ${erro}` : 'Conexão recebida. Você já pode voltar para a Norden…'}</p></div>;
+  return <div className="tela-carregamento"><img className="tela-carregamento-logo" src={perfilNorden} alt="" /><p>{erro ? `A Meta recusou a conexão: ${erro}` : 'Conexão recebida. Você já pode voltar para a Norden…'}</p></div>;
 }
 
 function Aplicacao() {
@@ -112,13 +114,13 @@ function Aplicacao() {
       definirCsrf(null); definirMarcenaria(null); setSessao(null); setMarcenariaId(''); setMarcenarias([]);
     }
   }
-  if (iniciando) return <div className="tela-carregamento"><span>N</span><p>Preparando seu painel…</p></div>;
+  if (iniciando) return <div className="tela-carregamento"><img className="tela-carregamento-logo" src={perfilNorden} alt="" /><p>Preparando seu painel…</p></div>;
   if (!sessao) return <><TelaLogin onEntrar={entrar} /><BotaoTema flutuante /></>;
   if (sessao.trocar_senha) return <><TrocarSenha aoSair={sair} aoConcluir={()=>{definirCsrf(null);definirMarcenaria(null);setSessao(null);setMarcenarias([]);setMarcenariaId('');}} /><BotaoTema flutuante /></>;
   return <div className="app-shell" data-theme={temaEscuro ? 'dark' : 'light'}>
     {/* Navegação lateral fixa: troca abas sem recarregar a sessão nem perder a empresa ativa. */}
     <aside className="app-navegacao">
-      <div className="app-marca"><span>N</span><strong>Norden</strong><BotaoTema /></div>
+      <div className="app-marca"><img className="app-marca-logo" src={marcaNorden} alt="Norden" /><BotaoTema /></div>
       <nav aria-label="Navegação principal">
         <button aria-pressed={aba === 'painel'} onClick={() => setAba('painel')}><span>⌁</span>Painel</button>
         <button aria-pressed={aba === 'empresa'} onClick={() => setAba('empresa')}><span>▣</span>Minha empresa</button>

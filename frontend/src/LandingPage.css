@@ -53,3 +53,8 @@
 .lp-footer-contact a{width:100%;padding:12px 14px;border:1px solid #cfe0ff;border-radius:12px;background:#f5f9ff;color:#1f55bd!important;font-weight:700}
 .lp-footer small{width:auto!important}
 .landing[data-theme="dark"] .lp-footer-contact a{background:#182334;border-color:#344156;color:#b8c9ff!important}
+
+/* Marca oficial Norden. */
+.lp-brand img { display:block; width:148px; height:auto; max-height:46px; object-fit:contain; object-position:left center; }
+.lp-footer>.lp-brand img { width:132px; }
+@media(max-width:760px) { .lp-brand img { width:128px; max-height:40px; } }

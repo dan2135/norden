@@ -3,6 +3,7 @@
  */
 import { useRef, useState } from 'react';
 import { contatoNorden, paginasInstitucionais } from './institucional';
+import marcaNorden from './assets/norden-logo.png';
 import { revisarConsentimentoCookies } from './privacidade';
 import './Rodape.css';
 
@@ -23,7 +24,7 @@ export default function Rodape() {
 
   return <footer className="rodape-norden" aria-label="Informações da Norden">
     <div className="rodape-norden-linha">
-      <div className="rodape-norden-marca"><span aria-hidden="true">N</span>
+      <div className="rodape-norden-marca"><img src={marcaNorden} alt="Norden" />
         <div><strong>Norden</strong><p>Mais organização para sua empresa.</p></div>
       </div>
       <p className="rodape-norden-copyright">© {new Date().getFullYear()} Norden. Todos os direitos reservados.</p>

@@ -34,3 +34,6 @@
 .sugestoes-ramos button{border:1px solid #d5dce8;background:#fff;color:#315de8;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
 .sugestoes-ramos button:hover{background:#edf2ff;border-color:#b9c8ff}
 @media(max-width:800px){.login-pagina{grid-template-columns:1fr}.login-area{grid-column:1;grid-row:2;padding:32px 22px}.login-apresentacao{grid-column:1;grid-row:1;padding:24px;gap:24px}.login-chamada h1{font-size:34px;letter-spacing:-1px;margin-bottom:12px}.login-chamada>p,.login-recursos,.login-apresentacao>small{display:none}.etiqueta-tech{margin-bottom:12px}.login-card{padding:0}.login-icone{display:none}.login-card h2{font-size:28px}}
+
+/* Marca oficial Norden. */
+.login-marca img { display:block; width:155px; height:auto; max-height:52px; object-fit:contain; object-position:left center; }

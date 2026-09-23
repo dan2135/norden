@@ -3,6 +3,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { definirCsrf, requisicao } from './api';
+import marcaNorden from './assets/norden-logo.png';
 import './TelaLogin.css';
 
 export default function TelaLogin({ onEntrar }) {
@@ -48,7 +49,7 @@ export default function TelaLogin({ onEntrar }) {
 
   return <main className="login-pagina">
     <section className="login-apresentacao">
-      <div className="login-marca"><span className="marca-sinal">N</span><strong>Norden</strong></div>
+      <div className="login-marca"><img src={marcaNorden} alt="Norden" /></div>
       <div className="login-chamada">
         <span className="etiqueta-tech">FEITO PARA SUA EMPRESA</span>
         <h1>Sua próxima ideia.<br /><em>Seu próximo projeto.</em></h1>

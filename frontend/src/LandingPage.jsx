@@ -3,6 +3,7 @@
  */
 import { useTema } from './tema';
 import { contatoNorden } from './institucional';
+import marcaNorden from './assets/norden-logo.png';
 import './LandingPage.css';
 
 const entrar = '/?tela=login';
@@ -20,7 +21,7 @@ export default function LandingPage() {
   return <div className="landing" data-theme={escuro ? 'dark' : 'light'}>
     <a className="lp-skip" href="#conteudo">Pular para o conteúdo</a>
     <header className="lp-header"><nav className="lp-nav" aria-label="Navegação principal">
-      <a className="lp-brand" href="/" aria-label="Norden início"><span aria-hidden="true">n</span>norden<span className="lp-brand-dot">.</span></a>
+      <a className="lp-brand" href="/" aria-label="Norden início"><img src={marcaNorden} alt="Norden" /></a>
       <div className="lp-nav-sections"><a href="#beneficios">Por que Norden?</a><a href="#suzy">Conheça a Suzy</a><a href="#planos">Planos</a></div>
       <div className="lp-nav-access"><button type="button" className="lp-theme-toggle" onClick={alternarTema} aria-label="Modo escuro" aria-pressed={escuro} title={escuro ? 'Ativar modo claro' : 'Ativar modo escuro'}><span aria-hidden="true">{escuro ? '☀' : '☾'}</span></button><a href={entrar}>Entrar</a><a className="lp-button lp-small" href={registrar}>Criar conta <span aria-hidden="true">↗</span></a></div>
     </nav></header>
@@ -54,6 +55,6 @@ export default function LandingPage() {
       </div><p className="lp-plan-disclaimer">Preço inicial previsto para o lançamento: R$ 110 por mês após os 15 dias grátis. O período gratuito e a assinatura ainda estão em implementação. Criar um cadastro agora não ativa cobrança nem inicia um prazo de teste; limites e condições serão informados antes da contratação.</p></div></section>
       <section className="lp-final lp-container"><p className="lp-eyebrow">VAMOS ORGANIZAR O PRÓXIMO PASSO?</p><h2>Mais espaço para<br/>o seu negócio acontecer.</h2><a className="lp-button" href={registrar}>Criar minha conta <span aria-hidden="true">↗</span></a></section>
     </main>
-    <footer className="lp-footer lp-container"><a className="lp-brand" href="/">norden.</a><p>Gestão, WhatsApp e atendimento inteligente em uma rotina mais clara.</p><div><a href={entrar}>Entrar</a><a href={registrar}>Criar conta</a><a href="#planos">Planos</a></div><div className="lp-footer-contact"><a href={`mailto:${contatoNorden.email}?subject=${encodeURIComponent('Contato Norden')}`}>E-mail de contato</a><a href={`https://wa.me/${contatoNorden.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp comercial</a></div><small>© {new Date().getFullYear()} Norden.</small></footer>
+    <footer className="lp-footer lp-container"><a className="lp-brand" href="/" aria-label="Norden início"><img src={marcaNorden} alt="Norden" /></a><p>Gestão, WhatsApp e atendimento inteligente em uma rotina mais clara.</p><div><a href={entrar}>Entrar</a><a href={registrar}>Criar conta</a><a href="#planos">Planos</a></div><div className="lp-footer-contact"><a href={`mailto:${contatoNorden.email}?subject=${encodeURIComponent('Contato Norden')}`}>E-mail de contato</a><a href={`https://wa.me/${contatoNorden.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp comercial</a></div><small>© {new Date().getFullYear()} Norden.</small></footer>
   </div>;
 }

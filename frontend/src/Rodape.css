@@ -122,3 +122,6 @@
   .rodape-norden { padding:24px 18px 28px; }
   .rodape-contato-resumo a,.rodape-contatos a { width:100%; }
 }
+
+/* Marca oficial Norden. */
+.rodape-norden-marca>img { display:block; width:136px; height:auto; max-height:42px; object-fit:contain; object-position:left center; }
