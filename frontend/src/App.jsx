@@ -12,6 +12,8 @@ import TrocarSenha from './TrocarSenha';
 import ConfiguracaoEmpresa from './ConfiguracaoEmpresa';
 import Assinatura from './Assinatura';
 import { useTema } from './tema';
+import AvisoCookies from './AvisoCookies';
+import { lerPreferencia, salvarPreferencia } from './privacidade';
 import './Empresa.css';
 
 export default function App() {
@@ -20,7 +22,7 @@ export default function App() {
   const callbackMeta = parametros.has('code') && parametros.get('state')?.startsWith('norden-meta-');
   if (callbackMeta || parametros.get('tela') === 'meta-callback') return <CallbackMetaOAuth parametros={parametros} />;
   const acessar = ['login','cadastro','painel'].includes(parametros.get('tela')) || parametros.has('confirmar') || parametros.has('redefinir');
-  return acessar ? <Aplicacao /> : <LandingPage />;
+  return acessar ? <><Aplicacao /><AvisoCookies /></> : <><LandingPage /><AvisoCookies /></>;
 }
 
 function CallbackMetaOAuth({ parametros }) {
@@ -71,14 +73,14 @@ function Aplicacao() {
     definirCsrf(dados.csrf_token);
     setSessao(dados.usuario);
     const lista = dados.marcenarias || [];
-      const preferida = localStorage.getItem('marceneiro-ia:marcenaria');
+      const preferida = lerPreferencia('marceneiro-ia:marcenaria');
       const escolhida = lista.find(m => String(m.id) === preferida) || lista.find(m => m.slug === 'principal') || lista[0];
       setMarcenarias(lista); if (escolhida) { definirMarcenaria(escolhida.id); setMarcenariaId(String(escolhida.id)); }
     setIniciando(false);
   }
   function trocarMarcenaria(id) {
     // Trocar empresa muda o cabeçalho das próximas chamadas e força cada aba a ler seus próprios dados.
-    definirMarcenaria(id); localStorage.setItem('marceneiro-ia:marcenaria', id); setMarcenariaId(id);
+    definirMarcenaria(id); salvarPreferencia('marceneiro-ia:marcenaria', id); setMarcenariaId(id);
   }
   useEffect(() => {
     // Primeiro acesso cai direto em "Minha empresa" para completar ramo, materiais e WhatsApp.

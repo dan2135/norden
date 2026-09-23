@@ -3,6 +3,7 @@
  */
 import { useRef, useState } from 'react';
 import { contatoNorden, paginasInstitucionais } from './institucional';
+import { revisarConsentimentoCookies } from './privacidade';
 import './Rodape.css';
 
 export default function Rodape() {
@@ -35,7 +36,7 @@ export default function Rodape() {
       <header><h2 id="rodape-titulo" ref={titulo} tabIndex={-1}>{conteudo?.titulo || 'Suporte'}</h2><button type="button" onClick={fechar}>Fechar</button></header>
       {conteudo?.rascunho && <p className="rodape-rascunho">Rascunho para revisão — ainda não publicado como documento definitivo.</p>}
       {conteudo?.blocos.map(([subtitulo, texto]) => <div className="rodape-bloco" key={subtitulo}><h3>{subtitulo}</h3><p>{texto}</p></div>)}
-      {pagina === 'privacidade' && <p><a href="https://www.gov.br/anpd/pt-br/assuntos/titular-de-dados-1" target="_blank" rel="noreferrer">Informações da ANPD sobre dados pessoais (abre em nova aba)</a></p>}
+      {pagina === 'privacidade' && <><p><a href="https://www.gov.br/anpd/pt-br/assuntos/titular-de-dados-1" target="_blank" rel="noreferrer">Informações da ANPD sobre dados pessoais (abre em nova aba)</a></p><button type="button" onClick={() => { revisarConsentimentoCookies(); window.location.reload(); }}>Revisar preferências de cookies</button></>}
       {pagina === 'suporte' && <>
         <p>Precisa de ajuda com a Norden? Ao relatar um problema, informe a tela utilizada, o que estava tentando fazer e a mensagem de erro.</p>
         <p>Não envie senhas, links de recuperação ou dados pessoais de clientes no relato.</p>
