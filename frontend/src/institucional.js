@@ -21,7 +21,7 @@ export const paginasInstitucionais = {
     ['Onde vejo o histórico?', 'No Painel, encontre o projeto e abra sua ficha para consultar os dados e as mensagens. Use os filtros para localizar clientes, pedidos e situações da coleta.'],
     ['A estimativa já é o preço final?', 'Não. Quando houver estimativa automática disponível para o ramo, ela serve apenas como referência. Nos demais casos, preencha o orçamento manualmente. Confira materiais, perdas, mão de obra, transporte e demais custos antes de salvar e apresentar o orçamento.'],
     ['Como recuperar a senha?', 'Na tela de login, clique em Esqueci minha senha e informe o e-mail cadastrado. Nesta fase local, as mensagens são simuladas; o envio real ainda precisa ser configurado.'],
-    ['O WhatsApp já responde sozinho?', 'Sim, quando o número comercial estiver configurado com a integração da Meta, webhook ativo e chave de IA válida. O painel mantém o histórico para conferência antes de qualquer orçamento ou produção.'],
+    ['O WhatsApp já responde sozinho?', 'Sim. Depois que o número comercial for conectado, a Suzy pode organizar as conversas e o histórico fica disponível no Painel para conferência antes de qualquer orçamento ou produção.'],
   ] },
   privacidade: { titulo: 'Privacidade', rascunho: true, blocos: [
     ['Dados usados nesta versão', 'O cadastro registra nome, e-mail, CPF ou CNPJ e informações da empresa. As conversas pelo WhatsApp, clientes, projetos e orçamentos ficam vinculados ao painel. O login registra o último IP e a data de acesso.'],

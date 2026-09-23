@@ -55,7 +55,7 @@ export default function Assinatura({ podeEditar }) {
         };
       const resposta = await requisicao('/assinatura/iniciar', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       setAssinatura(resposta.assinatura);
-      setEstado({ carregando:false, processando:false, erro:'', sucesso:'Assinatura criada no Asaas. As cobranças serão acompanhadas pelo webhook.' });
+      setEstado({ carregando:false, processando:false, erro:'', sucesso:'Assinatura criada. As cobranças serão atualizadas automaticamente.' });
     } catch (erro) { setEstado({ carregando:false, processando:false, erro:erro.message, sucesso:'' }); }
   }
 
@@ -95,7 +95,7 @@ export default function Assinatura({ podeEditar }) {
       <button className="botao-principal" disabled={!podeEditar || !configurado || estado.processando || assinaturaConectada || faltaDocumento} onClick={iniciar}>
         {assinaturaConectada ? 'Assinatura conectada' : estado.processando ? 'Conectando…' : billingType === 'PIX' ? 'Ativar com Pix automático' : 'Ativar com cartão'}
       </button>
-      {!configurado && <p className="assinatura-alerta">Configure ASAAS_API_KEY e ASAAS_BASE_URL no Render para ativar assinaturas reais.</p>}
+      {!configurado && <p className="assinatura-alerta">A cobrança ainda está sendo preparada. Tente novamente mais tarde ou fale com o suporte.</p>}
       {!podeEditar && <p className="assinatura-alerta">Somente administradores podem ativar ou alterar o plano.</p>}
     </div>}
   </section>;

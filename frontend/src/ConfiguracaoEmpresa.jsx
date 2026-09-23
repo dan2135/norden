@@ -22,6 +22,12 @@ const exemplosAtividade = {
 const whatsappInicial = { numero: '', waba_id: '', phone_number_id: '', access_token: '', api_version: 'v25.0', ativo: true, configurado: false };
 let facebookSdkPromise = null;
 
+function mensagemWhatsApp(erro) {
+  // Falhas internas da integração não devem expor códigos ou configurações para quem usa o painel.
+  if (/cancelad/i.test(erro?.message || '')) return 'A conexão com o WhatsApp foi cancelada.';
+  return 'Não foi possível concluir a conexão com o WhatsApp agora. Tente novamente em alguns minutos ou fale com o suporte.';
+}
+
 function obterRedirectUriMeta() {
   // A Meta exige que a URL usada para abrir o OAuth seja idêntica à URL enviada no backend ao trocar o code.
   return `${window.location.origin}/`;
@@ -196,7 +202,6 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [erroWhatsApp, setErroWhatsApp] = useState('');
   const [sucessoWhatsApp, setSucessoWhatsApp] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [salvandoWhatsApp, setSalvandoWhatsApp] = useState(false);
   const [conectandoMeta, setConectandoMeta] = useState(false);
   const [embeddedMeta, setEmbeddedMeta] = useState({ configurado: false, app_id: '', config_id: '', api_version: 'v25.0' });
   const [tentativa, setTentativa] = useState(0);
@@ -256,23 +261,12 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       setEmpresa(resultado.empresa); aoSalvar(resultado.empresa); setSucesso('Empresa configurada. Você já pode preparar os materiais abaixo e iniciar suas conversas.');
     } catch (erro) { setErro(erro.message); } finally { setOcupado(false); }
   }
-  async function salvarWhatsApp(e) {
-    // Grava ou atualiza manualmente os IDs da Meta. O token só é enviado quando o usuário preenche o campo.
-    e.preventDefault();
-    if (salvandoWhatsApp) return;
-    setSalvandoWhatsApp(true); setErroWhatsApp(''); setSucessoWhatsApp('');
-    try {
-      const resultado = await requisicao('/whatsapp-configuracao', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(whatsapp) });
-      setWhatsapp({ ...whatsappInicial, ...resultado.whatsapp, access_token: '' });
-      setSucessoWhatsApp('WhatsApp conectado a esta empresa. O webhook vai direcionar as mensagens deste número para este painel.');
-    } catch (erro) { setErroWhatsApp(erro.message); } finally { setSalvandoWhatsApp(false); }
-  }
   async function conectarWhatsAppMeta() {
     // Fluxo facilitado: abre Meta, recebe code, envia code + IDs para o backend e salva tudo na empresa ativa.
     if (conectandoMeta) return;
     setConectandoMeta(true); setErroWhatsApp(''); setSucessoWhatsApp('');
     try {
-      if (!embeddedMeta.configurado) throw new Error('Conexão rápida da Meta ainda não configurada no servidor. Configure META_APP_ID, META_APP_SECRET e META_EMBEDDED_SIGNUP_CONFIG_ID no Render.');
+      if (!embeddedMeta.configurado) throw new Error('A conexão com o WhatsApp ainda está sendo preparada. Tente novamente mais tarde ou fale com o suporte da Norden.');
       embeddedInfoRef.current = {};
       const redirectUri = obterRedirectUriMeta();
       const state = gerarEstadoMeta();
@@ -315,12 +309,11 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       setWhatsapp({ ...whatsappInicial, ...resultado.whatsapp, access_token: '' });
       setSucessoWhatsApp(info.coexistencia ? 'WhatsApp conectado em coexistência. O número pode continuar no WhatsApp Business do celular e também chegar neste painel.' : 'WhatsApp conectado pela Meta. A partir de agora, as mensagens desse número chegam neste painel.');
     } catch (erro) {
-      setErroWhatsApp(erro.message);
+      setErroWhatsApp(mensagemWhatsApp(erro));
     } finally {
       setConectandoMeta(false);
     }
   }
-  const webhookUrl = `${window.location.origin}/api/webhooks/whatsapp`;
   return <section className="configuracao-empresa">
     {/* Cabeçalho explica o objetivo da tela: preparar o negócio antes de receber clientes pelo WhatsApp. */}
     <header><p>SEU NEGÓCIO, DO SEU JEITO</p><h1>Minha empresa</h1><p>Defina com o que você trabalha e deixe seus materiais prontos antes da primeira conversa.</p></header>
@@ -341,32 +334,24 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
         {!podeEditar && <p>Peça ao administrador da empresa para alterar o perfil.</p>}
       </form>
       {sucesso && <p role="status">{sucesso}</p>}
-      {/* WhatsApp da empresa: conecta o número oficial da Meta ou permite preenchimento manual dos IDs. */}
-      <form onSubmit={salvarWhatsApp}>
-        <fieldset disabled={salvandoWhatsApp || !podeEditar}>
+      {/* WhatsApp da empresa: o fluxo oficial da Meta salva os dados necessários sem expor etapas técnicas. */}
+      <section>
+        <fieldset disabled={conectandoMeta || !podeEditar}>
           <legend>WhatsApp da empresa</legend>
-          <p>Conecte o número desta empresa na Meta. O mesmo webhook pode atender várias empresas; a Norden identifica pelo Phone Number ID.</p>
+          <p>Conecte o número comercial da empresa para receber as conversas no painel.</p>
           <div className="meta-connect-card">
             <div>
-              <strong>Conectar pelo site</strong>
-              <p>Abra a janela oficial da Meta, escolha a conta/WhatsApp da empresa e a Norden salva token, WABA ID e Phone Number ID automaticamente.</p>
-              {!embeddedMeta.configurado && <small>Para ativar este botão, configure no Render: <code>META_APP_ID</code>, <code>META_APP_SECRET</code> e <code>META_EMBEDDED_SIGNUP_CONFIG_ID</code>.</small>}
+              <strong>Conecte seu WhatsApp</strong>
+              <p>Abra a janela oficial, escolha a conta e o número comercial da empresa. A Norden conclui a conexão automaticamente.</p>
+              {!embeddedMeta.configurado && <small>A conexão ainda está sendo preparada. Tente novamente mais tarde ou fale com o suporte.</small>}
               {embeddedMeta.configurado && <small>A conexão abre uma janela oficial da Meta. Se o navegador pedir, libere pop-ups para este site.</small>}
             </div>
-            <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || salvandoWhatsApp || !podeEditar || !embeddedMeta.configurado}>{conectandoMeta ? 'Conectando…' : 'Conectar WhatsApp pela Meta'}</button>
+            <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || !podeEditar || !embeddedMeta.configurado}>{conectandoMeta ? 'Conectando…' : 'Conectar WhatsApp'}</button>
           </div>
-          <p className="nota-whatsapp">Se precisar, você ainda pode preencher manualmente os campos abaixo.</p>
-          <label>Número do WhatsApp<input maxLength={30} placeholder="+55 11 99999-9999" value={whatsapp.numero || ''} onChange={e=>setWhatsapp({...whatsapp,numero:e.target.value})}/></label>
-          <label>Phone Number ID<input required inputMode="numeric" maxLength={40} placeholder="ID do número na Meta" value={whatsapp.phone_number_id || ''} onChange={e=>setWhatsapp({...whatsapp,phone_number_id:e.target.value})}/></label>
-          <label>WhatsApp Business Account ID<input inputMode="numeric" maxLength={40} placeholder="WABA ID, se tiver" value={whatsapp.waba_id || ''} onChange={e=>setWhatsapp({...whatsapp,waba_id:e.target.value})}/></label>
-          <label>Token de acesso da Meta<input type="password" autoComplete="off" maxLength={5000} placeholder={whatsapp.configurado ? 'Token já salvo; preencha só se quiser trocar' : 'Cole o token gerado na Meta'} value={whatsapp.access_token || ''} onChange={e=>setWhatsapp({...whatsapp,access_token:e.target.value})}/></label>
-          <label>Versão da API<input required maxLength={10} value={whatsapp.api_version || 'v25.0'} onChange={e=>setWhatsapp({...whatsapp,api_version:e.target.value})}/></label>
-          <label className="checkbox-config"><input type="checkbox" checked={whatsapp.ativo !== false} onChange={e=>setWhatsapp({...whatsapp,ativo:e.target.checked})}/> Atendimento ativo neste WhatsApp</label>
-          <p className="nota-whatsapp">Webhook na Meta: <code>{webhookUrl}</code>. Token de verificação: <code>norden_whatsapp_2026</code>.</p>
-          <button type="submit">{salvandoWhatsApp ? 'Salvando…' : whatsapp.configurado ? 'Atualizar WhatsApp' : 'Salvar WhatsApp'}</button>
+          {whatsapp.configurado && <p className="nota-whatsapp" role="status">WhatsApp conectado. As novas conversas chegarão neste painel.</p>}
         </fieldset>
         {!podeEditar && <p>Peça ao administrador da empresa para configurar o WhatsApp.</p>}
-      </form>
+      </section>
       {erroWhatsApp && <p role="alert">{erroWhatsApp}</p>}
       {sucessoWhatsApp && <p role="status">{sucessoWhatsApp}</p>}
       {/* Catálogo compartilhado da empresa: materiais/preços ficam disponíveis para futuros orçamentos. */}
