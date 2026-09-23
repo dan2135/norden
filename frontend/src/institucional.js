@@ -4,8 +4,8 @@
 // Canais oficiais compartilhados pelo painel e pela página pública.
 export const contatoNorden = {
   email: 'norden0910@gmail.com',
-  whatsapp: '5511919988939', // Número completo com código do país, somente dígitos.
-  whatsappFormatado: '+55 (11) 91998-8939',
+  whatsapp: '5511939088948', // Número completo com código do país, somente dígitos.
+  whatsappFormatado: '+55 (11) 93908-8948',
 };
 
 export const paginasInstitucionais = {
@@ -29,8 +29,9 @@ export const paginasInstitucionais = {
     ['Compartilhamento necessário', 'Os dados só são compartilhados quando isso for necessário para operar a Norden, como com os serviços de hospedagem, e-mail, pagamento e integração de mensagens. Cada serviço recebe somente o necessário para executar sua função.'],
     ['Segurança e acesso', 'O acesso ao painel depende de login. As senhas não ficam visíveis para a Norden, e cada empresa acessa apenas os próprios dados autorizados. Também adotamos medidas para reduzir acessos indevidos e usos não autorizados.'],
     ['Cookies e preferências', 'Usamos um cookie essencial para manter sua sessão segura enquanto você estiver conectado. O navegador também pode salvar, somente neste dispositivo, a preferência de tema e a última empresa selecionada. A Norden não usa cookies de publicidade.'],
-    ['Seus direitos e contato', 'Você pode solicitar informações, correção ou exclusão de dados quando aplicável. Para isso, entre em contato pelo e-mail norden0910@gmail.com. Não envie senhas, códigos de acesso ou dados de cartões na mensagem.'],
-    ['Revisão antes do lançamento comercial', 'Este texto será revisado quando os dados cadastrais da empresa, o domínio próprio e o canal comercial de suporte estiverem definidos.'],
+    ['Prazo de guarda', 'Os dados ficam guardados enquanto a conta estiver ativa e forem necessários para prestar o serviço. Após um pedido de encerramento ou exclusão, os dados serão eliminados ou anonimizados em até 30 dias, exceto quando a guarda for necessária para cumprir obrigação legal, cobrança, segurança ou prevenção a fraudes.'],
+    ['Pedidos sobre dados pessoais', 'Para solicitar acesso, correção ou exclusão de dados, envie um e-mail para norden0910@gmail.com com o assunto “Dados pessoais Norden” e informe o e-mail usado na conta. Para sua proteção, a Norden poderá confirmar sua identidade antes de responder. Não envie senhas, códigos de acesso ou dados de cartões na mensagem.'],
+    ['Responsável e atualização deste texto', 'A Norden é responsável pelo tratamento dos dados dentro da plataforma. Enquanto a empresa estiver em formalização, o contato para assuntos de privacidade é norden0910@gmail.com. Este texto será atualizado com a razão social e o CNPJ quando estiverem definidos.'],
   ] },
   termos: { titulo: 'Termos de uso', rascunho: true, blocos: [
     ['Finalidade da plataforma', 'A Norden ajuda empresas a organizar atendimentos, clientes, projetos, conversas e orçamentos. O usuário deve utilizar a plataforma apenas em atividades legítimas e relacionadas ao seu negócio.'],
