@@ -25,8 +25,8 @@ test('resumo mostra valor em reais e dias restantes do teste grátis', () => {
   assert.ok(resumo.dias_trial_restantes >= 1);
 });
 
-test('aceita Pix como forma padrão e valida cartão sem armazenar dados', () => {
-  assert.deepEqual(validarFormaPagamento({ billingType:'PIX' }), { billingType:'PIX' });
+test('aceita cartão e recusa Pix enquanto o Pix Automático não estiver disponível', () => {
+  assert.throws(() => validarFormaPagamento({ billingType:'PIX' }), /somente por cartão/i);
   const pagamento = validarFormaPagamento({
     billingType:'CREDIT_CARD',
     creditCard:{ holderName:'Daniel', number:'4111 1111 1111 1111', expiryMonth:'9', expiryYear:'2030', ccv:'123' },

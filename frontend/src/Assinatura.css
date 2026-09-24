@@ -32,3 +32,6 @@
 .assinatura-alerta{background:#fff1ec;border:1px solid #eccbc4;color:#983d2e}
 .assinatura-sucesso{background:#edf6e7;border:1px solid #d0e2c8;color:#466e35}
 @media(max-width:900px){.assinatura-card,.formas-pagamento,.cartao-form{grid-template-columns:1fr}.assinatura header{display:block}.assinatura header span{display:inline-block;margin-top:12px}}
+
+/* A única forma disponível ocupa toda a linha. */
+.formas-pagamento { grid-template-columns:1fr; }

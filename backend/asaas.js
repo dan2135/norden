@@ -40,8 +40,8 @@ function validarDocumentoCobranca(...valores) {
 }
 
 function validarFormaPagamento(body = {}) {
-  const billingType = body.billingType === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'PIX';
-  if (billingType === 'PIX') return { billingType };
+  if (body.billingType !== 'CREDIT_CARD') throw erroHttp(400, 'No momento, a Norden aceita assinatura somente por cartão de crédito.');
+  const billingType = 'CREDIT_CARD';
   const cartao = body.creditCard || {};
   const titular = body.creditCardHolderInfo || {};
   const dados = {

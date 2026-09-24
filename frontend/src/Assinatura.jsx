@@ -18,7 +18,7 @@ export default function Assinatura({ podeEditar }) {
   const [configurado, setConfigurado] = useState(false);
   const [documentoObrigatorio, setDocumentoObrigatorio] = useState(false);
   const [documentoCobranca, setDocumentoCobranca] = useState('');
-  const [billingType, setBillingType] = useState('PIX');
+  const billingType = 'CREDIT_CARD';
   const [cartao, setCartao] = useState({ holderName:'', email:'', number:'', expiryMonth:'', expiryYear:'', ccv:'', cpfCnpj:'', postalCode:'', addressNumber:'', phone:'' });
   const [estado, setEstado] = useState({ carregando:true, processando:false, erro:'', sucesso:'' });
 
@@ -37,22 +37,20 @@ export default function Assinatura({ podeEditar }) {
     setEstado({ carregando:false, processando:true, erro:'', sucesso:'' });
     try {
       const cpfCnpj = documentoCobranca || (billingType === 'CREDIT_CARD' ? cartao.cpfCnpj : '');
-      const body = billingType === 'PIX'
-        ? { billingType:'PIX', cpfCnpj }
-        : {
-          billingType:'CREDIT_CARD',
-          cpfCnpj,
-          creditCard: { holderName:cartao.holderName, number:cartao.number, expiryMonth:cartao.expiryMonth, expiryYear:cartao.expiryYear, ccv:cartao.ccv },
-          creditCardHolderInfo: {
-            name:cartao.holderName,
-            email:cartao.email,
-            cpfCnpj:cartao.cpfCnpj,
-            postalCode:cartao.postalCode,
-            addressNumber:cartao.addressNumber,
-            phone:cartao.phone,
-            mobilePhone:cartao.phone,
-          },
-        };
+      const body = {
+        billingType:'CREDIT_CARD',
+        cpfCnpj,
+        creditCard: { holderName:cartao.holderName, number:cartao.number, expiryMonth:cartao.expiryMonth, expiryYear:cartao.expiryYear, ccv:cartao.ccv },
+        creditCardHolderInfo: {
+          name:cartao.holderName,
+          email:cartao.email,
+          cpfCnpj:cartao.cpfCnpj,
+          postalCode:cartao.postalCode,
+          addressNumber:cartao.addressNumber,
+          phone:cartao.phone,
+          mobilePhone:cartao.phone,
+        },
+      };
       const resposta = await requisicao('/assinatura/iniciar', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       setAssinatura(resposta.assinatura);
       setEstado({ carregando:false, processando:false, erro:'', sucesso:'Assinatura criada. As cobranças serão atualizadas automaticamente.' });
@@ -69,17 +67,12 @@ export default function Assinatura({ podeEditar }) {
     {estado.carregando ? <p>Carregando plano…</p> : <div className="assinatura-card">
       <div><small>Plano</small><strong>Norden Pro</strong><p>15 dias grátis e depois cobrança mensal automática pelo Asaas.</p></div>
       <div><small>Valor</small><strong>R$ {Number(assinatura?.valor_reais || 110).toLocaleString('pt-BR', { minimumFractionDigits:2 })}/mês</strong><p>Valor inicial de lançamento.</p></div>
-      <div><small>Próxima cobrança</small><strong>{assinatura?.proxima_cobranca_em ? new Date(`${assinatura.proxima_cobranca_em}T00:00:00`).toLocaleDateString('pt-BR') : 'Após o teste grátis'}</strong><p>{assinatura?.billing_type === 'CREDIT_CARD' ? 'Cartão recorrente conectado.' : 'Pix de cobrança recorrente pelo Asaas.'}</p></div>
+      <div><small>Próxima cobrança</small><strong>{assinatura?.proxima_cobranca_em ? new Date(`${assinatura.proxima_cobranca_em}T00:00:00`).toLocaleDateString('pt-BR') : 'Após o teste grátis'}</strong><p>Cartão recorrente conectado.</p></div>
       <fieldset className="formas-pagamento" disabled={assinaturaConectada}>
         <legend>Forma de pagamento</legend>
-        <label className={billingType === 'PIX' ? 'selecionado' : ''}><input type="radio" name="billingType" checked={billingType === 'PIX'} onChange={() => setBillingType('PIX')} /><span>Pix automático</span><small>O Asaas gera a cobrança recorrente e avisa o Norden quando receber.</small></label>
-        <label className={billingType === 'CREDIT_CARD' ? 'selecionado' : ''}><input type="radio" name="billingType" checked={billingType === 'CREDIT_CARD'} onChange={() => setBillingType('CREDIT_CARD')} /><span>Cartão de crédito</span><small>Cobrança recorrente no cartão. O Norden não salva o número do cartão.</small></label>
+        <label className="selecionado"><input type="radio" name="billingType" checked readOnly /><span>Cartão de crédito</span><small>Cobrança recorrente no cartão. A Norden não salva o número do cartão.</small></label>
       </fieldset>
-      {documentoObrigatorio && !assinaturaConectada && billingType === 'PIX' && <label className="documento-cobranca">CPF/CNPJ para cobrança
-        <input required inputMode="text" autoComplete="off" placeholder="CPF ou CNPJ do responsável" value={documentoCobranca} onChange={e=>setDocumentoCobranca(e.target.value)} />
-        <small>O Asaas exige esse dado para criar o cliente da cobrança.</small>
-      </label>}
-      {documentoObrigatorio && !assinaturaConectada && billingType === 'CREDIT_CARD' && <p className="assinatura-info">No cartão, o CPF/CNPJ do titular também será usado para cadastrar o cliente no Asaas.</p>}
+      {documentoObrigatorio && !assinaturaConectada && <p className="assinatura-info">No cartão, o CPF/CNPJ do titular também será usado para cadastrar o cliente no Asaas.</p>}
       {billingType === 'CREDIT_CARD' && !assinaturaConectada && <div className="cartao-form">
         <label>Nome no cartão<input required value={cartao.holderName} onChange={e=>setCartao({...cartao,holderName:e.target.value})} /></label>
         <label>E-mail do titular<input required type="email" value={cartao.email} onChange={e=>setCartao({...cartao,email:e.target.value})} /></label>
