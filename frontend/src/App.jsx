@@ -18,6 +18,7 @@ import marcaNorden from './assets/norden-logo.png';
 import perfilNorden from './assets/norden-perfil.png';
 import './Empresa.css';
 
+// Ícones desenhados no próprio código para manter a navegação leve e sem depender de biblioteca externa.
 function IconeMenu({ tipo }) {
   const paths = {
     painel: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
@@ -68,6 +69,7 @@ function Aplicacao() {
   const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
   const empresaAtiva = marcenarias.find(m=>String(m.id)===marcenariaId);
+  // A busca só altera as opções exibidas; ela não troca a empresa ativa automaticamente.
   const empresasFiltradas = marcenarias.filter(empresa => empresa.nome.toLocaleLowerCase('pt-BR').includes(buscaEmpresa.trim().toLocaleLowerCase('pt-BR')));
   const segmento = empresaAtiva?.segmento || 'marcenaria';
   const podeConfigurarEmpresa = ['proprietario','administrador','superadministrador'].includes(empresaAtiva?.papel);
