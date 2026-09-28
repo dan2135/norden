@@ -445,3 +445,11 @@
   .app-navegacao .app-nav-spacer{display:block;flex:1;min-height:24px}
 }
 @media(max-width:760px){.app-navegacao .app-nav-spacer{display:none}}
+
+/* Busca rápida para contas que administram várias empresas. */
+.busca-marcenaria{position:relative;display:block;min-width:170px}
+.busca-marcenaria:before{content:"⌕";position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#5e7190;font-size:16px;pointer-events:none}
+.seletor-marcenaria .busca-marcenaria input{width:100%;padding:9px 10px 9px 31px;border:1px solid var(--norden-line,#cfdef2);border-radius:8px;background:#fff;color:var(--norden-text,#243247);font:inherit;font-size:12px}
+.seletor-marcenaria .busca-marcenaria input:focus{outline:2px solid #8db6ff;outline-offset:1px}
+@media(max-width:760px){.seletor-marcenaria{flex-wrap:wrap}.busca-marcenaria{order:3;width:100%}}
+.app-shell[data-theme="dark"] .seletor-marcenaria .busca-marcenaria input{background:#182334;color:#eef2ff;border-color:#40516b}

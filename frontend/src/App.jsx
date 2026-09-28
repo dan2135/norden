@@ -62,11 +62,13 @@ function Aplicacao() {
   const [iniciando, setIniciando] = useState(true);
   const [marcenarias, setMarcenarias] = useState([]);
   const [marcenariaId, setMarcenariaId] = useState('');
+  const [buscaEmpresa, setBuscaEmpresa] = useState('');
   const [erroEmpresa, setErroEmpresa] = useState('');
   const [novaEmpresa, setNovaEmpresa] = useState(null);
   const [salvandoEmpresa, setSalvandoEmpresa] = useState(false);
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
   const empresaAtiva = marcenarias.find(m=>String(m.id)===marcenariaId);
+  const empresasFiltradas = marcenarias.filter(empresa => empresa.nome.toLocaleLowerCase('pt-BR').includes(buscaEmpresa.trim().toLocaleLowerCase('pt-BR')));
   const segmento = empresaAtiva?.segmento || 'marcenaria';
   const podeConfigurarEmpresa = ['proprietario','administrador','superadministrador'].includes(empresaAtiva?.papel);
   useEffect(() => {
@@ -141,8 +143,8 @@ function Aplicacao() {
     <section className="app-principal">
       {/* Topo da área interna: mostra a empresa atual e permite criar/alternar empresas. */}
       <header className="app-topo"><div><small>ESPAÇO DE TRABALHO</small><strong>{marcenarias.find(m=>String(m.id)===marcenariaId)?.nome || 'Sua empresa'}</strong></div>
-        <div className="seletor-marcenaria"><select aria-label="Empresa ativa" value={marcenariaId} disabled={!marcenarias.length} onChange={e=>trocarMarcenaria(e.target.value)}>
-          {marcenarias.map(m=><option value={m.id} key={m.id}>{m.nome}</option>)}</select><button onClick={()=>setNovaEmpresa({nome:'',segmento:'outros',atividade:''})}>+ Nova empresa</button></div>
+        <div className="seletor-marcenaria"><label className="busca-marcenaria"><span className="somente-leitor">Pesquisar empresa</span><input aria-label="Pesquisar empresa" value={buscaEmpresa} onChange={e=>setBuscaEmpresa(e.target.value)} placeholder="Pesquisar empresa" /></label><select aria-label="Empresa ativa" value={empresasFiltradas.some(m=>String(m.id)===marcenariaId) ? marcenariaId : ''} disabled={!empresasFiltradas.length} onChange={e=>trocarMarcenaria(e.target.value)}>
+          {empresasFiltradas.length ? empresasFiltradas.map(m=><option value={m.id} key={m.id}>{m.nome}</option>) : <option value="">Nenhuma empresa encontrada</option>}</select><button onClick={()=>setNovaEmpresa({nome:'',segmento:'outros',atividade:''})}>+ Nova empresa</button></div>
       </header>
       {novaEmpresa && <form className="nova-empresa" onSubmit={criarMarcenaria}>
         <label>Nome da empresa<input required maxLength={120} value={novaEmpresa.nome} onChange={e=>setNovaEmpresa({...novaEmpresa,nome:e.target.value})} /></label>
