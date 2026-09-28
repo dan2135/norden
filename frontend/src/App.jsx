@@ -18,6 +18,15 @@ import marcaNorden from './assets/norden-logo.png';
 import perfilNorden from './assets/norden-perfil.png';
 import './Empresa.css';
 
+function IconeMenu({ tipo }) {
+  const paths = {
+    painel: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
+    empresa: <><path d="M4 21V5h16v16"/><path d="M8 9h2M14 9h2M8 13h2M14 13h2M10 21v-4h4v4"/></>,
+    plano: <><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M8.5 12h7M12 8.5v7"/></>,
+  };
+  return <span className="app-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[tipo]}</svg></span>;
+}
+
 export default function App() {
   // A página pública não exige sessão; login, cadastro e links de recuperação abrem a aplicação.
   const parametros = new URLSearchParams(window.location.search);
@@ -122,9 +131,10 @@ function Aplicacao() {
     <aside className="app-navegacao">
       <div className="app-marca"><img className="app-marca-logo" src={marcaNorden} alt="Norden" /><BotaoTema /></div>
       <nav aria-label="Navegação principal">
-        <button aria-pressed={aba === 'painel'} onClick={() => setAba('painel')}><span>⌁</span>Painel</button>
-        <button aria-pressed={aba === 'empresa'} onClick={() => setAba('empresa')}><span>▣</span>Minha empresa</button>
-        <button aria-pressed={aba === 'plano'} onClick={() => setAba('plano')}><span>◌</span>Meu plano</button>
+        <button aria-pressed={aba === 'painel'} onClick={() => setAba('painel')}><IconeMenu tipo="painel" />Painel</button>
+        <button aria-pressed={aba === 'empresa'} onClick={() => setAba('empresa')}><IconeMenu tipo="empresa" />Minha empresa</button>
+        <span className="app-nav-spacer" aria-hidden="true" />
+        <button aria-pressed={aba === 'plano'} onClick={() => setAba('plano')}><IconeMenu tipo="plano" />Meu plano</button>
       </nav>
       <div className="app-usuario"><span>{sessao.nome?.slice(0,1).toUpperCase()}</span><div><strong>{sessao.nome}</strong><small>{sessao.email}</small></div><button onClick={sair} title="Sair">↪</button></div>
     </aside>

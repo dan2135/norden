@@ -436,3 +436,12 @@
 .tela-carregamento-logo { display:block; width:56px; height:56px; margin:auto; border-radius:15px; object-fit:cover; }
 .app-shell[data-theme="dark"] .app-marca-logo { filter:brightness(0) invert(1); }
 @media(max-width:760px) { .app-marca-logo { width:122px; max-height:38px; } }
+
+/* Navegação do painel: ícones consistentes e plano separado no fim da barra lateral. */
+.app-menu-icon{display:inline-grid;place-items:center;width:20px;height:20px;flex:0 0 20px}
+.app-menu-icon svg{display:block;width:18px;height:18px}
+@media(min-width:761px){
+  .app-navegacao nav{flex:1}
+  .app-navegacao .app-nav-spacer{display:block;flex:1;min-height:24px}
+}
+@media(max-width:760px){.app-navegacao .app-nav-spacer{display:none}}
