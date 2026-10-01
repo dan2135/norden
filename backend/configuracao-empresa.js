@@ -5,13 +5,15 @@ const { copiarCatalogoModelo, sincronizarCatalogoEmpresaModelo } = require('./ra
 function validarConfiguracao(body = {}) {
   const nome = typeof body.nome === 'string' ? body.nome.trim() : '';
   const atividade = typeof body.atividade === 'string' ? body.atividade.trim() : '';
+  const horarios_atendimento = typeof body.horarios_atendimento === 'string' ? body.horarios_atendimento.trim() : '';
   if (!nome || nome.length > 120) throw erroHttp(400, 'Informe o nome da empresa (até 120 caracteres).');
   if (!atividade || atividade.length > 200) throw erroHttp(400, 'Conte com o que sua empresa trabalha (até 200 caracteres).');
-  return { nome, atividade, segmento: validarSegmento(body.segmento) };
+  if (horarios_atendimento.length > 1000) throw erroHttp(400, 'Os horários devem ter até 1.000 caracteres.');
+  return { nome, atividade, ...(horarios_atendimento ? { horarios_atendimento } : {}), segmento: validarSegmento(body.segmento) };
 }
 function registrarConfiguracaoEmpresa(app, banco, rota) {
   app.get('/api/empresa-configuracao', rota(async (req, res) => {
-    const empresa = (await banco.query('SELECT id,nome,segmento,atividade,configurada_em FROM marcenarias WHERE id=$1', [req.marcenaria.id])).rows[0];
+    const empresa = (await banco.query('SELECT id,nome,segmento,atividade,horarios_atendimento,configurada_em FROM marcenarias WHERE id=$1', [req.marcenaria.id])).rows[0];
     if (!empresa) throw erroHttp(404, 'Empresa não encontrada.');
     res.json({ empresa });
   }));
@@ -27,7 +29,7 @@ function registrarConfiguracaoEmpresa(app, banco, rota) {
       if (atual.segmento !== dados.segmento && (await db.query('SELECT EXISTS (SELECT 1 FROM projetos WHERE marcenaria_id=$1) AS existe', [req.marcenaria.id])).rows[0].existe) {
         throw erroHttp(409, 'Esta empresa já tem projetos. Para trabalhar em outro ramo, crie uma nova empresa; os projetos atuais serão preservados.');
       }
-      const empresa = (await db.query('UPDATE marcenarias SET nome=$1,segmento=$2,atividade=$3,configurada_em=COALESCE(configurada_em,NOW()) WHERE id=$4 RETURNING id,nome,segmento,atividade,configurada_em', [dados.nome,dados.segmento,dados.atividade,req.marcenaria.id])).rows[0];
+      const empresa = (await db.query('UPDATE marcenarias SET nome=$1,segmento=$2,atividade=$3,horarios_atendimento=$4,configurada_em=COALESCE(configurada_em,NOW()) WHERE id=$5 RETURNING id,nome,segmento,atividade,horarios_atendimento,configurada_em', [dados.nome,dados.segmento,dados.atividade,dados.horarios_atendimento || '',req.marcenaria.id])).rows[0];
       const copiados = await copiarCatalogoModelo(db, empresa);
       if (!copiados) await sincronizarCatalogoEmpresaModelo(db, empresa);
       await db.query('COMMIT');
