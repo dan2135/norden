@@ -235,8 +235,9 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
         {ficha.erro && <div className="aviso erro" role="alert">{ficha.erro}<button onClick={atualizar}>Tentar novamente</button></div>}
         {p && <>
           <h3>{p.coleta?.geral?.solicitacao || p.movel || 'Pedido não informado'}</h3><p>{p.cliente_nome || 'Cliente sem nome'} · {p.telefone}</p>
-          <span className={`selo ${p.situacao.categoria}`}>{categorias[p.situacao.categoria]}</span>
+          <span className={`selo ${p.atendimento_humano ? 'pendente' : p.situacao.categoria}`}>{p.atendimento_humano ? 'Aguardando atendimento humano' : categorias[p.situacao.categoria]}</span>
           <section className="controles-projeto"><label>Prioridade<select value={p.prioridade||'normal'} onChange={e=>atualizarProjeto('prioridade',{prioridade:e.target.value})}><option value="baixa">Baixa</option><option value="normal">Normal</option><option value="alta">Alta</option></select></label><button className="botao-secundario" onClick={()=>atualizarProjeto('atendimento-humano',{ativo:!p.atendimento_humano})}>{p.atendimento_humano?'Voltar para a Suzy':'Assumir atendimento humano'}</button>{p.atendimento_humano&&<p className="nota">A Suzy não responderá novas mensagens deste projeto até você liberar novamente.</p>}</section>
+          {p.atendimento_humano && <section className="aviso"><h3>Resumo para a equipe</h3><p><strong>Motivo:</strong> {p.motivo_atendimento_humano || 'Atendimento assumido no painel'}</p><p>{p.resumo_atendimento_humano || 'Confira o histórico abaixo para continuar o atendimento.'}</p></section>}
           <dl className="dados-ficha">
             {(p.coleta?.geral || segmento !== 'marcenaria' ? [['Solicitação', p.coleta?.geral?.solicitacao || 'Não informada'], ['Detalhes', p.coleta?.geral?.detalhes || 'Não informados']] : [['Ambiente', p.uso || 'Não informado'], ['Largura', formatarMedida(p.largura_cm)], ['Altura', formatarMedida(p.altura_cm)],
               ['Profundidade', formatarMedida(p.profundidade_cm)], ['Acabamento', p.acabamento || 'Não informado'],

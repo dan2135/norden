@@ -6,6 +6,10 @@ const { analisarSolicitacao, responderSolicitacao } = require('./segmentos');
 const { validarTelefone, selecionarProjeto, obterCliente, historicoProjeto, erroHttp } = require('./projetos');
 const { analisarAnexo } = require('./anexos');
 
+function pedidoHumano(texto = '') {
+  return /\b(?:falar com (?:um |uma )?(?:atendente|pessoa|humano)|quero (?:um |uma )?(?:atendente|pessoa)|me chama (?:algu[eé]m|uma pessoa)|atendimento humano)\b/i.test(texto);
+}
+
 function configurarWhatsApp(env = process.env) {
   // Configuração global/legada usada como fallback quando a empresa ainda não tem WhatsApp próprio salvo.
   return {
@@ -383,6 +387,13 @@ async function responderMensagem({ banco, extrair, logger, telefone, texto, empr
       'INSERT INTO mensagens (cliente_id, projeto_id, remetente, texto,marcenaria_id) VALUES ($1,$2,$3,$4,$5)',
       [cliente.id, projetoSelecionado.id, 'cliente', texto.trim(), empresa.id],
     );
+    if (pedidoHumano(texto)) {
+      const resumo = [projetoSelecionado.movel || projetoSelecionado.coleta?.geral?.solicitacao, projetoSelecionado.detalhes || projetoSelecionado.coleta?.geral?.detalhes].filter(Boolean).join(' — ') || 'Cliente pediu atendimento humano antes de informar os detalhes.';
+      const respostaHumana = 'Vou deixar seu pedido com nossa equipe para continuar direitinho. Assim que possível, alguém segue seu atendimento.';
+      await db.query("UPDATE projetos SET atendimento_humano=TRUE,prioridade='alta',motivo_atendimento_humano='Pedido direto do cliente',resumo_atendimento_humano=$1,atualizado_em=CURRENT_TIMESTAMP WHERE id=$2", [resumo.slice(0,4000),projetoSelecionado.id]);
+      await db.query('INSERT INTO mensagens (cliente_id, projeto_id, remetente, texto,marcenaria_id) VALUES ($1,$2,$3,$4,$5)', [cliente.id,projetoSelecionado.id,'sistema',respostaHumana,empresa.id]);
+      await db.query('COMMIT'); return respostaHumana;
+    }
     // Quando a equipe assume, a mensagem continua registrada, mas a Suzy não interrompe o atendimento humano.
     if (projetoSelecionado.atendimento_humano) { await db.query('COMMIT'); return null; }
     const historicoBanco = { rows: await historicoProjeto(db, cliente.id, projetoSelecionado.id, empresa.id) };
