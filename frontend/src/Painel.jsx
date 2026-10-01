@@ -101,6 +101,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
       setAnexoEstado({ enviando:false, erro:'', resumo:resultado.resumo }); setAtualizacao(v=>v+1);
     } catch (erro) { setAnexoEstado({ enviando:false, resumo:'', erro:erro.message }); }
   }
+  async function atualizarProjeto(caminho, corpo) { try { const r=await requisicao(`/projetos/${selecionado}/${caminho}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)}); setAvisoCliente(r.mensagem||'Projeto atualizado.'); setAtualizacao(v=>v+1); } catch(e){setAnexoEstado(a=>({...a,erro:e.message}));} }
 
   async function moverCliente(item, restaurar = false) {
     // Arquivar cliente preserva projetos e mensagens; exclusão definitiva exige outro fluxo de confirmação.
@@ -235,6 +236,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
         {p && <>
           <h3>{p.coleta?.geral?.solicitacao || p.movel || 'Pedido não informado'}</h3><p>{p.cliente_nome || 'Cliente sem nome'} · {p.telefone}</p>
           <span className={`selo ${p.situacao.categoria}`}>{categorias[p.situacao.categoria]}</span>
+          <section className="controles-projeto"><label>Prioridade<select value={p.prioridade||'normal'} onChange={e=>atualizarProjeto('prioridade',{prioridade:e.target.value})}><option value="baixa">Baixa</option><option value="normal">Normal</option><option value="alta">Alta</option></select></label><button className="botao-secundario" onClick={()=>atualizarProjeto('atendimento-humano',{ativo:!p.atendimento_humano})}>{p.atendimento_humano?'Voltar para a Suzy':'Assumir atendimento humano'}</button>{p.atendimento_humano&&<p className="nota">A Suzy não responderá novas mensagens deste projeto até você liberar novamente.</p>}</section>
           <dl className="dados-ficha">
             {(p.coleta?.geral || segmento !== 'marcenaria' ? [['Solicitação', p.coleta?.geral?.solicitacao || 'Não informada'], ['Detalhes', p.coleta?.geral?.detalhes || 'Não informados']] : [['Ambiente', p.uso || 'Não informado'], ['Largura', formatarMedida(p.largura_cm)], ['Altura', formatarMedida(p.altura_cm)],
               ['Profundidade', formatarMedida(p.profundidade_cm)], ['Acabamento', p.acabamento || 'Não informado'],

@@ -209,6 +209,8 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [embeddedMeta, setEmbeddedMeta] = useState({ configurado: false, app_id: '', config_id: '', api_version: 'v25.0' });
   const [tentativa, setTentativa] = useState(0);
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
+  const [automacoes, setAutomacoes] = useState({ campos:[], lembrete:{ativo:false,horas_espera:24} });
+  const [salvandoAutomacoes, setSalvandoAutomacoes] = useState(false);
   const embeddedInfoRef = useRef({});
   useEffect(() => {
     // Perfil principal da empresa: nome, ramo, atividade e data de configuração inicial.
@@ -220,6 +222,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     // Lista de ramos criados por usuários para sugerir opções em "Outros ramos".
     requisicao('/ramos-personalizados').then(({ ramos }) => setRamosPersonalizados(ramos || [])).catch(() => {});
   }, []);
+  useEffect(() => { requisicao('/automacoes').then(setAutomacoes).catch(()=>{}); }, []);
   useEffect(() => {
     // Configuração já salva do WhatsApp; o token volta vazio para não expor segredo no navegador.
     requisicao('/whatsapp-configuracao').then(({ whatsapp }) => setWhatsapp({ ...whatsappInicial, ...whatsapp, access_token: '' })).catch(() => {});
@@ -325,6 +328,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       setWhatsapp(whatsappInicial); setConfirmarDesconexao(false); setMotivoDesconexao(''); setSucessoWhatsApp(resultado.mensagem);
     } catch (erro) { setErroWhatsApp(erro.message); } finally { setDesconectando(false); }
   }
+  async function salvarAutomacoes() { setSalvandoAutomacoes(true); try { await requisicao('/automacoes',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(automacoes)}); setSucesso('Campos e lembretes salvos.'); } catch(e){setErro(e.message);} finally{setSalvandoAutomacoes(false);} }
   return <section className="configuracao-empresa">
     {/* Cabeçalho explica o objetivo da tela: preparar o negócio antes de receber clientes pelo WhatsApp. */}
     <header><p>SEU NEGÓCIO, DO SEU JEITO</p><h1>Minha empresa</h1><p>Defina com o que você trabalha e deixe seus materiais prontos antes da primeira conversa.</p></header>
@@ -366,6 +370,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       </section>
       {erroWhatsApp && <p role="alert">{erroWhatsApp}</p>}
       {sucessoWhatsApp && <p role="status">{sucessoWhatsApp}</p>}
+      <section><fieldset disabled={!podeEditar || salvandoAutomacoes}><legend>Organização do atendimento</legend><p>Crie campos que a Suzy deve considerar e escolha se quer lembrar clientes que pararam de responder.</p><div className="campos-personalizados">{automacoes.campos.map((campo,i)=><div key={i}><input value={campo.nome} maxLength={80} placeholder="Ex.: Endereço da obra" onChange={e=>setAutomacoes({...automacoes,campos:automacoes.campos.map((c,index)=>index===i?{...c,nome:e.target.value}:c)})}/><label className="checkbox-config"><input type="checkbox" checked={campo.obrigatorio} onChange={e=>setAutomacoes({...automacoes,campos:automacoes.campos.map((c,index)=>index===i?{...c,obrigatorio:e.target.checked}:c)})}/>Obrigatório</label><button type="button" onClick={()=>setAutomacoes({...automacoes,campos:automacoes.campos.filter((_,index)=>index!==i)})}>Remover</button></div>)}</div><button type="button" onClick={()=>setAutomacoes({...automacoes,campos:[...automacoes.campos,{nome:'',obrigatorio:false}]})} disabled={automacoes.campos.length>=12}>+ Campo personalizado</button><label className="checkbox-config"><input type="checkbox" checked={automacoes.lembrete.ativo} onChange={e=>setAutomacoes({...automacoes,lembrete:{...automacoes.lembrete,ativo:e.target.checked}})}/>Lembrar cliente que parou de responder</label><label>Enviar lembrete após<select value={automacoes.lembrete.horas_espera} onChange={e=>setAutomacoes({...automacoes,lembrete:{...automacoes.lembrete,horas_espera:Number(e.target.value)}})}><option value={24}>24 horas</option><option value={48}>48 horas</option><option value={72}>72 horas</option></select></label><button type="button" onClick={salvarAutomacoes}>{salvandoAutomacoes?'Salvando…':'Salvar organização do atendimento'}</button></fieldset></section>
       {confirmarDesconexao && <div className="modal-desconectar" role="dialog" aria-modal="true" aria-labelledby="titulo-desconectar"><div>
         <h2 id="titulo-desconectar">Você tem certeza que quer desconectar a Suzy?</h2>
         <p>Ah, que pena que você quer desconectar. Nos conte por quê? Seu retorno ajuda a melhorar a Norden.</p>

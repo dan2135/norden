@@ -22,6 +22,7 @@
 .meta-connect-card button { border:0; background:#1f6feb; color:#fff; font-weight:700; white-space:nowrap; box-shadow:0 10px 22px rgba(31,111,235,.18); }
 .meta-connect-card button:hover:not(:disabled) { filter:brightness(1.05); transform:translateY(-1px); }
 .botao-desconectar-whatsapp{justify-self:start;border-color:#e1b7b7!important;color:#9f2d2d!important;background:#fff7f7!important}
+.campos-personalizados{display:grid;gap:8px}.campos-personalizados>div{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}
 .modal-desconectar{position:fixed;z-index:50;inset:0;display:grid;place-items:center;padding:20px;background:#11182799}.modal-desconectar>div{width:min(520px,100%);padding:26px;border-radius:16px;background:#fff;color:#243247;box-shadow:0 24px 70px #0008}.modal-desconectar h2{margin-top:0;font-size:22px}.modal-desconectar textarea{min-height:110px;resize:vertical}.modal-desconectar>div>div{display:flex;justify-content:flex-end;gap:10px}.botao-confirmar-desconexao{background:#b73535!important;color:#fff!important;border-color:#b73535!important}
 .configuracao-empresa .material-catalogo { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .configuracao-empresa .material-catalogo>div:first-child { grid-column:1/-1; }

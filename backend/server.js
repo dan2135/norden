@@ -96,6 +96,7 @@ registrarOrcamentos(app, banco, rota);
 registrarEstimativa(app, banco, rota);
 registrarAssinaturasAsaas(app, banco, rota);
 require('./anexos').registrarAnexos(app, banco, rota);
+require('./automacoes').registrarAutomacoes(app, banco, rota);
 require('./configuracao-empresa').registrarConfiguracaoEmpresa(app, banco, rota);
 
 app.get("/api/projetos", rota(async (req, res) => {
@@ -257,8 +258,10 @@ if (require.main === module) {
   const { porta, host } = configuracaoHospedagem();
   const servidor = criarApp().listen(porta, host, () => console.log(`Norden rodando na porta ${porta}`));
   servidor.once('listening', () => {
-    const pararEmails = iniciarEmails(pool);
-    servidor.once('close', pararEmails);
+  const pararEmails = iniciarEmails(pool);
+  const pararLembretes = require('./whatsapp').iniciarLembretes(pool);
+  servidor.once('close', pararEmails);
+  servidor.once('close', () => clearInterval(pararLembretes));
   });
   servidor.on("error", erro => {
     console.error(erro.code === "EADDRINUSE" ? `A porta ${porta} já está em uso. Encerre o backend antigo antes de iniciar.` : erro.message);

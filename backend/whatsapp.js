@@ -383,6 +383,8 @@ async function responderMensagem({ banco, extrair, logger, telefone, texto, empr
       'INSERT INTO mensagens (cliente_id, projeto_id, remetente, texto,marcenaria_id) VALUES ($1,$2,$3,$4,$5)',
       [cliente.id, projetoSelecionado.id, 'cliente', texto.trim(), empresa.id],
     );
+    // Quando a equipe assume, a mensagem continua registrada, mas a Suzy não interrompe o atendimento humano.
+    if (projetoSelecionado.atendimento_humano) { await db.query('COMMIT'); return null; }
     const historicoBanco = { rows: await historicoProjeto(db, cliente.id, projetoSelecionado.id, empresa.id) };
     // Histórico no formato de chat permite reutilizar a mesma lógica de IA das rotas manuais.
     const historico = historicoBanco.rows.map(item => ({ role: item.remetente === 'cliente' ? 'user' : 'assistant', content: item.texto }));
@@ -451,11 +453,24 @@ function registrarWhatsApp(app, banco, rota, { extrair, logger = console } = {})
         texto = `${nome}:\n${resumoAnexo}`;
       }
       const resposta = await responderMensagem({ banco, extrair, logger, telefone: mensagem.de, texto, empresa });
-      await enviarWhatsApp(mensagem.de, resposta, empresa.whatsapp || config);
+      if (resposta) await enviarWhatsApp(mensagem.de, resposta, empresa.whatsapp || config);
       logger.log('[WHATSAPP] resposta enviada', JSON.stringify({ para: mascararTelefone(mensagem.de), empresa_id: empresa.id }));
     }
     res.json({ recebido: true, mensagens: mensagens.length });
   }));
 }
 
-module.exports = { configurarWhatsApp, configurarEmbeddedSignup, mensagensDoWebhook, registrarWhatsApp, registrarWhatsAppConfiguracoes, resolverEmpresaWhatsApp, validarConfiguracaoWhatsApp, validarConclusaoEmbeddedSignup, concluirEmbeddedSignup };
+function iniciarLembretes(banco, logger = console) {
+  // Uma vez por ciclo encontra pedidos parados e envia no máximo um lembrete por projeto.
+  const executar = async () => {
+    try { const itens = (await banco.query(`SELECT p.id,c.telefone,m.nome,w.access_token,w.phone_number_id,w.api_version
+      FROM projetos p JOIN clientes c ON c.id=p.cliente_id JOIN marcenarias m ON m.id=p.marcenaria_id
+      JOIN lembrete_configuracoes l ON l.marcenaria_id=p.marcenaria_id AND l.ativo=TRUE
+      JOIN whatsapp_configuracoes w ON w.marcenaria_id=p.marcenaria_id AND w.ativo=TRUE
+      WHERE p.atendimento_humano=FALSE AND p.lembrete_enviado_em IS NULL AND p.atualizado_em < NOW()-(l.horas_espera * INTERVAL '1 hour') LIMIT 20`)).rows;
+      for (const item of itens) { await enviarWhatsApp(item.telefone, `Olá! Podemos continuar seu atendimento na ${item.nome}? Se ainda precisar, me conte como posso ajudar.`, {token:item.access_token,phoneNumberId:item.phone_number_id,apiVersion:item.api_version}); await banco.query('UPDATE projetos SET lembrete_enviado_em=NOW() WHERE id=$1 AND lembrete_enviado_em IS NULL',[item.id]); }
+    } catch (erro) { logger.warn('[LEMBRETES]', erro.message); }
+  }; executar(); return setInterval(executar, 15 * 60 * 1000);
+}
+
+module.exports = { configurarWhatsApp, configurarEmbeddedSignup, mensagensDoWebhook, registrarWhatsApp, registrarWhatsAppConfiguracoes, resolverEmpresaWhatsApp, validarConfiguracaoWhatsApp, validarConclusaoEmbeddedSignup, concluirEmbeddedSignup, iniciarLembretes };
