@@ -83,6 +83,7 @@ registrarRotasRamos(app, banco, rota);
 const autenticar = registrarAuth(app, banco, rota);
 // A partir daqui as rotas exigem sessão. A seleção da empresa vem antes das consultas de negócio.
 app.use('/api', autenticarInjetado || autenticar);
+require('./feedback').registrarFeedbackAdmin(app, banco, rota);
 registrarMarcenarias(app, banco, rota);
 app.use('/api', (req,res,next) => resolverMarcenaria(req,res,next,banco));
 registrarWhatsAppConfiguracoes(app, banco, rota);

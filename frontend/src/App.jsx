@@ -11,6 +11,7 @@ import BotaoTema from './BotaoTema';
 import TrocarSenha from './TrocarSenha';
 import ConfiguracaoEmpresa from './ConfiguracaoEmpresa';
 import Assinatura from './Assinatura';
+import FeedbackDesconexao from './FeedbackDesconexao';
 import { useTema } from './tema';
 import AvisoCookies from './AvisoCookies';
 import { lerPreferencia, salvarPreferencia } from './privacidade';
@@ -139,6 +140,7 @@ function Aplicacao() {
         <button aria-pressed={aba === 'empresa'} onClick={() => setAba('empresa')}><IconeMenu tipo="empresa" />Minha empresa</button>
         <span className="app-nav-spacer" aria-hidden="true" />
         <button aria-pressed={aba === 'plano'} onClick={() => setAba('plano')}><IconeMenu tipo="plano" />Meu plano</button>
+        {sessao.superadministrador && <button aria-pressed={aba === 'feedback'} onClick={() => setAba('feedback')}><IconeMenu tipo="painel" />Feedback</button>}
       </nav>
       <div className="app-usuario"><span>{sessao.nome?.slice(0,1).toUpperCase()}</span><div><strong>{sessao.nome}</strong><small>{sessao.email}</small></div><button onClick={sair} title="Sair">↪</button></div>
     </aside>
@@ -169,6 +171,7 @@ function Aplicacao() {
           />}
         </div>
         <div hidden={aba !== 'plano'}>{aba === 'plano' && <Assinatura podeEditar={podeConfigurarEmpresa} />}</div>
+        <div hidden={aba !== 'feedback'}>{aba === 'feedback' && sessao.superadministrador && <FeedbackDesconexao />}</div>
       </div>}
       <Rodape />
     </section>
