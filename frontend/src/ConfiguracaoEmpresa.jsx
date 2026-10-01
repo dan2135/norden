@@ -203,6 +203,9 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [sucessoWhatsApp, setSucessoWhatsApp] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [conectandoMeta, setConectandoMeta] = useState(false);
+  const [desconectando, setDesconectando] = useState(false);
+  const [confirmarDesconexao, setConfirmarDesconexao] = useState(false);
+  const [motivoDesconexao, setMotivoDesconexao] = useState('');
   const [embeddedMeta, setEmbeddedMeta] = useState({ configurado: false, app_id: '', config_id: '', api_version: 'v25.0' });
   const [tentativa, setTentativa] = useState(0);
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
@@ -314,6 +317,14 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       setConectandoMeta(false);
     }
   }
+  async function desconectarWhatsApp() {
+    if (!motivoDesconexao.trim() || desconectando) return;
+    setDesconectando(true); setErroWhatsApp('');
+    try {
+      const resultado = await requisicao('/whatsapp-configuracao/desconectar', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ motivo:motivoDesconexao }) });
+      setWhatsapp(whatsappInicial); setConfirmarDesconexao(false); setMotivoDesconexao(''); setSucessoWhatsApp(resultado.mensagem);
+    } catch (erro) { setErroWhatsApp(erro.message); } finally { setDesconectando(false); }
+  }
   return <section className="configuracao-empresa">
     {/* Cabeçalho explica o objetivo da tela: preparar o negócio antes de receber clientes pelo WhatsApp. */}
     <header><p>SEU NEGÓCIO, DO SEU JEITO</p><h1>Minha empresa</h1><p>Defina com o que você trabalha e deixe seus materiais prontos antes da primeira conversa.</p></header>
@@ -349,11 +360,18 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
             <button type="button" onClick={conectarWhatsAppMeta} disabled={conectandoMeta || !podeEditar || !embeddedMeta.configurado}>{conectandoMeta ? 'Conectando…' : 'Conectar WhatsApp'}</button>
           </div>
           {whatsapp.configurado && <p className="nota-whatsapp" role="status">WhatsApp conectado. As novas conversas chegarão neste painel.</p>}
+          {whatsapp.configurado && <button type="button" className="botao-desconectar-whatsapp" onClick={()=>setConfirmarDesconexao(true)} disabled={!podeEditar}>Desconectar a Suzy</button>}
         </fieldset>
         {!podeEditar && <p>Peça ao administrador da empresa para configurar o WhatsApp.</p>}
       </section>
       {erroWhatsApp && <p role="alert">{erroWhatsApp}</p>}
       {sucessoWhatsApp && <p role="status">{sucessoWhatsApp}</p>}
+      {confirmarDesconexao && <div className="modal-desconectar" role="dialog" aria-modal="true" aria-labelledby="titulo-desconectar"><div>
+        <h2 id="titulo-desconectar">Você tem certeza que quer desconectar a Suzy?</h2>
+        <p>Ah, que pena que você quer desconectar. Nos conte por quê? Seu retorno ajuda a melhorar a Norden.</p>
+        <label>Seu feedback<textarea value={motivoDesconexao} maxLength={1000} onChange={e=>setMotivoDesconexao(e.target.value)} placeholder="Ex.: não estou usando agora, preciso de outra função…" /></label>
+        <div><button type="button" onClick={()=>{setConfirmarDesconexao(false);setMotivoDesconexao('');}} disabled={desconectando}>Voltar</button><button type="button" className="botao-confirmar-desconexao" onClick={desconectarWhatsApp} disabled={!motivoDesconexao.trim() || desconectando}>{desconectando ? 'Desconectando…' : 'Sim, desconectar a Suzy'}</button></div>
+      </div></div>}
       {/* Catálogo compartilhado da empresa: materiais/preços ficam disponíveis para futuros orçamentos. */}
       <CatalogoEstimativa somenteCatalogo somenteLeitura={!podeEditar} segmento={empresa.segmento} atividade={empresa.atividade} />
     </>}

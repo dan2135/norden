@@ -435,6 +435,7 @@
 .app-marca-logo { display:block; width:136px; height:auto; max-height:42px; object-fit:contain; object-position:left center; }
 .tela-carregamento-logo { display:block; width:56px; height:56px; margin:auto; border-radius:15px; object-fit:cover; }
 .app-shell[data-theme="dark"] .app-marca-logo { filter:brightness(0) invert(1); }
+.anexos-projeto{margin:20px 0;padding:18px;border:1px dashed #b9cae8;border-radius:10px;background:#f7faff}.anexos-projeto h3{margin-top:0}.anexos-projeto .aviso{margin:14px 0 0}.anexos-projeto .aviso p{margin:7px 0 0;white-space:pre-wrap}
 @media(max-width:760px) { .app-marca-logo { width:122px; max-height:38px; } }
 
 /* Navegação do painel: ícones consistentes e plano separado no fim da barra lateral. */

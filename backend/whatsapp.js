@@ -4,6 +4,7 @@
 const { analisarMensagem, complementarComIA, responder } = require('./coleta');
 const { analisarSolicitacao, responderSolicitacao } = require('./segmentos');
 const { validarTelefone, selecionarProjeto, obterCliente, historicoProjeto, erroHttp } = require('./projetos');
+const { analisarAnexo } = require('./anexos');
 
 function configurarWhatsApp(env = process.env) {
   // Configuração global/legada usada como fallback quando a empresa ainda não tem WhatsApp próprio salvo.
@@ -28,7 +29,7 @@ function configurarEmbeddedSignup(env = process.env) {
 }
 
 function mensagensDoWebhook(payload = {}) {
-  // A Meta pode enviar vários eventos no mesmo webhook; aqui ficam só mensagens de texto atendíveis.
+  // Aceita texto e mídias que a Suzy consegue transformar em contexto de projeto.
   const mensagens = [];
   for (const entry of payload.entry || []) {
     for (const change of entry.changes || []) {
@@ -37,6 +38,7 @@ function mensagensDoWebhook(payload = {}) {
       const displayPhoneNumber = String(value.metadata?.display_phone_number || '').trim();
       for (const msg of value.messages || []) {
         if (msg.type === 'text' && msg.text?.body) mensagens.push({ de: msg.from, texto: msg.text.body, id: msg.id, phoneNumberId, displayPhoneNumber });
+        if (['audio','image','document'].includes(msg.type) && msg[msg.type]?.id) mensagens.push({ de:msg.from, id:msg.id, phoneNumberId, displayPhoneNumber, tipo:msg.type, midiaId:msg[msg.type].id, mimeType:msg[msg.type].mime_type || '' });
       }
     }
   }
@@ -338,6 +340,35 @@ function registrarWhatsAppConfiguracoes(app, banco, rota) {
       throw erro;
     }
   }));
+  app.post('/api/whatsapp-configuracao/desconectar', rota(async (req, res) => {
+    if (!['proprietario', 'administrador', 'superadministrador'].includes(req.marcenaria.papel)) throw erroHttp(403, 'Somente administradores podem desconectar o WhatsApp.');
+    const motivo = String(req.body?.motivo || '').trim();
+    if (!motivo || motivo.length > 1000) throw erroHttp(400, 'Conte em poucas palavras por que deseja desconectar a Suzy.');
+    const db = await banco.connect();
+    try {
+      await db.query('BEGIN');
+      await db.query('INSERT INTO whatsapp_desconexoes (marcenaria_id,motivo) VALUES ($1,$2)', [req.marcenaria.id,motivo]);
+      await db.query("UPDATE whatsapp_configuracoes SET ativo=FALSE,access_token='',atualizado_em=CURRENT_TIMESTAMP WHERE marcenaria_id=$1", [req.marcenaria.id]);
+      await db.query('COMMIT');
+    } catch (erro) { await db.query('ROLLBACK'); throw erro; } finally { db.release(); }
+    res.json({ mensagem:'A Suzy foi desconectada deste WhatsApp. Você poderá conectar novamente quando quiser.' });
+  }));
+}
+
+async function baixarMidiaWhatsApp(midiaId, config, consultar = fetch) {
+  // A Meta entrega primeiro um identificador; o arquivo é baixado em seguida com o token da empresa.
+  const cabecalho = { Authorization:`Bearer ${config.token}` };
+  let metadados;
+  try {
+    const resposta = await consultar(`https://graph.facebook.com/${config.apiVersion}/${midiaId}`, { headers:cabecalho, signal:AbortSignal.timeout(15000) });
+    if (!resposta.ok) throw new Error(); metadados = await resposta.json();
+    const arquivo = await consultar(metadados.url, { headers:cabecalho, signal:AbortSignal.timeout(30000) });
+    const tamanho = Number(arquivo.headers.get('content-length') || 0);
+    if (!arquivo.ok || tamanho > 5 * 1024 * 1024) throw new Error();
+    const conteudo = Buffer.from(await arquivo.arrayBuffer());
+    if (!conteudo.length || conteudo.length > 5 * 1024 * 1024) throw new Error();
+    return { tipo:String(metadados.mime_type || arquivo.headers.get('content-type') || '').split(';')[0].toLowerCase(), conteudo:conteudo.toString('base64') };
+  } catch { throw erroHttp(502, 'Não foi possível baixar o anexo enviado pelo WhatsApp.'); }
 }
 
 async function responderMensagem({ banco, extrair, logger, telefone, texto, empresa }) {
@@ -403,7 +434,7 @@ function registrarWhatsApp(app, banco, rota, { extrair, logger = console } = {})
     const config = configurarWhatsApp();
     const mensagens = mensagensDoWebhook(req.body);
     const resumo = resumoWebhook(req.body);
-    logger.log('[WHATSAPP] webhook recebido', JSON.stringify({ ...resumo, mensagens_texto: mensagens.length }));
+    logger.log('[WHATSAPP] webhook recebido', JSON.stringify({ ...resumo, mensagens_recebidas: mensagens.length }));
     if (!mensagens.length) {
       logger.log('[WHATSAPP] sem mensagem de texto para processar', JSON.stringify(resumo));
       return res.json({ recebido: true, mensagens: 0 });
@@ -412,7 +443,14 @@ function registrarWhatsApp(app, banco, rota, { extrair, logger = console } = {})
       const empresa = await resolverEmpresaWhatsApp(banco, config, mensagem.phoneNumberId);
       logger.log('[WHATSAPP] empresa selecionada', JSON.stringify({ id: empresa.id, nome: empresa.nome, slug: empresa.slug, phone_number_id: mensagem.phoneNumberId || empresa.whatsapp?.phoneNumberId || '' }));
       logger.log('[WHATSAPP] processando mensagem', JSON.stringify({ de: mascararTelefone(mensagem.de), empresa_id: empresa.id }));
-      const resposta = await responderMensagem({ banco, extrair, logger, telefone: mensagem.de, texto: mensagem.texto, empresa });
+      let texto = mensagem.texto;
+      if (mensagem.midiaId) {
+        const midia = await baixarMidiaWhatsApp(mensagem.midiaId, empresa.whatsapp || config);
+        const nome = mensagem.tipo === 'audio' ? 'áudio do WhatsApp' : mensagem.tipo === 'image' ? 'imagem do WhatsApp' : 'documento do WhatsApp';
+        const resumoAnexo = await analisarAnexo({ nome, tipo:midia.tipo, conteudo:midia.conteudo });
+        texto = `${nome}:\n${resumoAnexo}`;
+      }
+      const resposta = await responderMensagem({ banco, extrair, logger, telefone: mensagem.de, texto, empresa });
       await enviarWhatsApp(mensagem.de, resposta, empresa.whatsapp || config);
       logger.log('[WHATSAPP] resposta enviada', JSON.stringify({ para: mascararTelefone(mensagem.de), empresa_id: empresa.id }));
     }

@@ -31,6 +31,8 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
   const [ficha, setFicha] = useState({ carregando: false, erro: '', dados: null });
   const tituloFicha = useRef(null);
   const origemFicha = useRef(null);
+  const arquivoRef = useRef(null);
+  const [anexoEstado, setAnexoEstado] = useState({ enviando:false, erro:'', resumo:'' });
 
   useEffect(() => {
     // Ao abrir/atualizar o painel, carrega resumo, listas ativas e lixeiras em paralelo.
@@ -86,6 +88,19 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
   function filtrar(setter, valor) { setter(valor); setPagina(1); }
   function limpar() { setBusca(''); setCliente(''); setCategoria(''); setPagina(1); }
   function projetosDoCliente(id) { limpar(); setCliente(String(id)); setAba('projetos'); fecharFicha(); }
+
+  async function analisarArquivo(event) {
+    const arquivo = event.target.files?.[0]; event.target.value = '';
+    if (!arquivo || !selecionado) return;
+    const aceitos = ['audio/mpeg','audio/mp4','audio/ogg','audio/wav','audio/webm','image/jpeg','image/png','image/webp','application/pdf'];
+    if (!aceitos.includes(arquivo.type) || arquivo.size > 5 * 1024 * 1024) { setAnexoEstado({ enviando:false, resumo:'', erro:'Envie áudio, imagem ou PDF de até 5 MB.' }); return; }
+    setAnexoEstado({ enviando:true, resumo:'', erro:'' });
+    try {
+      const base64 = await new Promise((resolve,reject)=>{ const leitor=new FileReader(); leitor.onload=()=>resolve(String(leitor.result).split(',')[1]); leitor.onerror=reject; leitor.readAsDataURL(arquivo); });
+      const resultado = await requisicao(`/projetos/${selecionado}/anexos/analisar`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ nome:arquivo.name, tipo:arquivo.type, conteudo:base64 }) });
+      setAnexoEstado({ enviando:false, erro:'', resumo:resultado.resumo }); setAtualizacao(v=>v+1);
+    } catch (erro) { setAnexoEstado({ enviando:false, resumo:'', erro:erro.message }); }
+  }
 
   async function moverCliente(item, restaurar = false) {
     // Arquivar cliente preserva projetos e mensagens; exclusão definitiva exige outro fluxo de confirmação.
@@ -228,6 +243,7 @@ export default function Painel({ visivel, segmento = 'marcenaria' }) {
           {p.situacao.pendencias.length > 0 && <section className="aviso"><h3>Aguardando confirmação</h3><ul>{p.situacao.pendencias.map((texto, i) => <li key={i}>{texto}</li>)}</ul></section>}
           {p.situacao.faltantes.length > 0 && <p className="nota">Falta informar: {p.situacao.faltantes.join(', ')}.</p>}
           <p className="nota">Criado: {formatarData(p.criado_em)}<br />Atualizado: {formatarData(p.atualizado_em)}</p>
+          <section className="anexos-projeto"><h3>Áudio, imagem ou PDF</h3><p className="nota">Envie um anexo para a Suzy resumir. Revise as informações antes de usar no orçamento.</p><input ref={arquivoRef} className="somente-leitor" type="file" accept="audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,image/jpeg,image/png,image/webp,application/pdf" onChange={analisarArquivo}/><button className="botao-secundario" type="button" disabled={anexoEstado.enviando} onClick={()=>arquivoRef.current?.click()}>{anexoEstado.enviando ? 'Lendo anexo…' : 'Anexar áudio, imagem ou PDF'}</button>{anexoEstado.erro && <p className="aviso erro" role="alert">{anexoEstado.erro}</p>}{anexoEstado.resumo && <div className="aviso sucesso"><strong>Resumo para revisão</strong><p>{anexoEstado.resumo}</p></div>}</section>
           <Orcamento key={p.id} projeto={p} aoSalvar={() => setAtualizacao(v => v + 1)} />
           <h3>Histórico da conversa</h3>
           {/* Balões do histórico: cliente à direita, Suzy à esquerda, para leitura parecida com chat. */}

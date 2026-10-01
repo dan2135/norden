@@ -33,7 +33,8 @@ app.locals.origensPermitidas = origens;
 if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
 app.use(cors({ credentials: true, origin: (origem, callback) => callback(null, !origem || origens.includes(origem)) }));
 app.use('/api', protegerOrigem(origens));
-app.use(express.json({ limit: '100kb' }));
+// Anexos de projeto são enviados como base64 e têm limite próprio de 5 MB na rota de análise.
+app.use(express.json({ limit: '8mb' }));
 
 // Expõe somente o build público; arquivos privados permanecem fora desta pasta.
 if (process.env.SERVE_FRONTEND === 'true') {
@@ -93,6 +94,7 @@ registrarPainel(app, banco, rota);
 registrarOrcamentos(app, banco, rota);
 registrarEstimativa(app, banco, rota);
 registrarAssinaturasAsaas(app, banco, rota);
+require('./anexos').registrarAnexos(app, banco, rota);
 require('./configuracao-empresa').registrarConfiguracaoEmpresa(app, banco, rota);
 
 app.get("/api/projetos", rota(async (req, res) => {
