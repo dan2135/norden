@@ -20,6 +20,10 @@ const exemplosAtividade = {
   outros: 'Ex.: serralheria, comércio, manutenção, instalação, produção sob medida…',
 };
 const whatsappInicial = { numero: '', waba_id: '', phone_number_id: '', access_token: '', api_version: 'v25.0', ativo: true, configurado: false };
+const modelosPorSegmento = {
+  marcenaria:['Tipo de móvel','Ambiente','Medidas aproximadas'], serralheria:['Tipo de serviço','Local da instalação','Medidas aproximadas'],
+  comercio:['Produto procurado','Quantidade','Preferência do cliente'], servicos:['Tipo de serviço','Endereço','Melhor horário'], outros:['Tipo de serviço','Local do atendimento','Melhor horário'],
+};
 let facebookSdkPromise = null;
 
 function mensagemWhatsApp(erro) {
@@ -193,7 +197,7 @@ function aguardarOAuthMeta(url, state) {
   });
 }
 
-export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
+export default function ConfiguracaoEmpresa({ aoSalvar, aoConcluirOnboarding, podeEditar }) {
   // Estados do perfil da empresa, configuração de WhatsApp e mensagens de retorno de cada formulário.
   const [empresa, setEmpresa] = useState(null);
   const [whatsapp, setWhatsapp] = useState(whatsappInicial);
@@ -211,11 +215,18 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
   const [ramosPersonalizados, setRamosPersonalizados] = useState([]);
   const [automacoes, setAutomacoes] = useState({ campos:[], lembrete:{ativo:false,horas_espera:24} });
   const [salvandoAutomacoes, setSalvandoAutomacoes] = useState(false);
+  const [onboardingAtivo, setOnboardingAtivo] = useState(false);
+  const [etapaOnboarding, setEtapaOnboarding] = useState(1);
   const embeddedInfoRef = useRef({});
   useEffect(() => {
     // Perfil principal da empresa: nome, ramo, atividade e data de configuração inicial.
     let cancelado = false;
-    requisicao('/empresa-configuracao').then(({empresa}) => { if (!cancelado) setEmpresa(empresa); }).catch(e => { if (!cancelado) setErro(e.message); });
+    requisicao('/empresa-configuracao').then(({empresa}) => {
+      if (!cancelado) {
+        setEmpresa(empresa);
+        if (!empresa.configurada_em) setOnboardingAtivo(true);
+      }
+    }).catch(e => { if (!cancelado) setErro(e.message); });
     return () => { cancelado = true; };
   }, [tentativa]);
   useEffect(() => {
@@ -264,7 +275,11 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
     setOcupado(true); setErro(''); setSucesso('');
     try {
       const resultado = await requisicao('/empresa-configuracao', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(empresa) });
-      setEmpresa(resultado.empresa); aoSalvar(resultado.empresa); setSucesso('Empresa configurada. Você já pode preparar os materiais abaixo e iniciar suas conversas.');
+      setEmpresa(resultado.empresa); aoSalvar(resultado.empresa);
+      if (onboardingAtivo) {
+        setEtapaOnboarding(2);
+        setSucesso('Perfil salvo. Agora escolha como a Suzy organiza os atendimentos.');
+      } else setSucesso('Empresa configurada. Você já pode preparar os materiais abaixo e iniciar suas conversas.');
     } catch (erro) { setErro(erro.message); } finally { setOcupado(false); }
   }
   async function conectarWhatsAppMeta() {
@@ -328,30 +343,47 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
       setWhatsapp(whatsappInicial); setConfirmarDesconexao(false); setMotivoDesconexao(''); setSucessoWhatsApp(resultado.mensagem);
     } catch (erro) { setErroWhatsApp(erro.message); } finally { setDesconectando(false); }
   }
-  async function salvarAutomacoes() { setSalvandoAutomacoes(true); try { await requisicao('/automacoes',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(automacoes)}); setSucesso('Campos e lembretes salvos.'); } catch(e){setErro(e.message);} finally{setSalvandoAutomacoes(false);} }
+  async function salvarAutomacoes() {
+    setSalvandoAutomacoes(true);
+    try {
+      await requisicao('/automacoes',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(automacoes)});
+      if (onboardingAtivo) { setEtapaOnboarding(3); setSucesso('Organização salva. Agora você pode conectar o WhatsApp.'); }
+      else setSucesso('Campos e lembretes salvos.');
+    } catch(e){setErro(e.message);} finally{setSalvandoAutomacoes(false);}
+  }
   return <section className="configuracao-empresa">
     {/* Cabeçalho explica o objetivo da tela: preparar o negócio antes de receber clientes pelo WhatsApp. */}
     <header><p>SEU NEGÓCIO, DO SEU JEITO</p><h1>Minha empresa</h1><p>Defina com o que você trabalha e deixe seus materiais prontos antes da primeira conversa.</p></header>
     {erro && <p role="alert">{erro}</p>}
     {!empresa && (erro ? <button onClick={() => { setErro(''); setTentativa(v=>v+1); }}>Tentar novamente</button> : <p>Carregando configurações…</p>)}
     {empresa && <>
-      {!empresa.configurada_em && <p className="configuracao-boas-vindas">Vamos preparar sua empresa? Revise o ramo de atividade, salve seu perfil e cadastre os materiais que usa. Você pode voltar aqui sempre que precisar.</p>}
+      {onboardingAtivo && <section className="onboarding" aria-label="Etapas da configuração inicial">
+        <p className="configuracao-boas-vindas">Vamos preparar sua empresa em poucos passos. Você poderá alterar tudo depois.</p>
+        <ol>
+          <li className={etapaOnboarding === 1 ? 'atual' : etapaOnboarding > 1 ? 'concluida' : ''}><span>1</span>Perfil</li>
+          <li className={etapaOnboarding === 2 ? 'atual' : etapaOnboarding > 2 ? 'concluida' : ''}><span>2</span>Atendimento</li>
+          <li className={etapaOnboarding === 3 ? 'atual' : etapaOnboarding > 3 ? 'concluida' : ''}><span>3</span>WhatsApp</li>
+          <li className={etapaOnboarding === 4 ? 'atual' : ''}><span>4</span>Pronto</li>
+        </ol>
+      </section>}
       {/* Perfil da empresa: define ramo e exemplos usados depois no catálogo e na coleta da Suzy. */}
-      <form onSubmit={salvar}>
+      {(!onboardingAtivo || etapaOnboarding === 1) && <form onSubmit={salvar}>
         <fieldset disabled={ocupado || !podeEditar}>
           <legend>Perfil da empresa</legend>
           <label>Nome da empresa<input required maxLength={120} value={empresa.nome} onChange={e=>setEmpresa({...empresa,nome:e.target.value})}/></label>
           <label>Ramo de atividade<select value={empresa.segmento} onChange={e=>setEmpresa({...empresa,segmento:e.target.value})}>{ramos.map(([valor,nome])=><option key={valor} value={valor}>{nome}</option>)}</select></label>
           <label>{empresa.segmento === 'outros' ? 'Qual é o ramo da sua empresa?' : 'Com o que você trabalha?'}<input required maxLength={200} list={empresa.segmento === 'outros' ? 'ramos-personalizados-configuracao' : undefined} placeholder={exemplosAtividade[empresa.segmento] || exemplosAtividade.outros} value={empresa.atividade} onChange={e=>setEmpresa({...empresa,atividade:e.target.value})}/></label>
           <label>Horários de funcionamento<textarea maxLength={1000} value={empresa.horarios_atendimento || ''} onChange={e=>setEmpresa({...empresa,horarios_atendimento:e.target.value})} placeholder={'Ex.: Segunda a sexta, das 8h às 18h.\nSábado, das 8h às 12h.\nDomingo fechado.'}/><small>Essas informações ajudam a equipe e a Suzy a orientar o cliente.</small></label>
+          <label>Serviços ou produtos principais<textarea maxLength={1500} value={empresa.servicos || ''} onChange={e=>setEmpresa({...empresa,servicos:e.target.value})} placeholder="Ex.: móveis planejados, instalação de painéis e reparos."/><small>Ajuda a Suzy a entender os pedidos desde a primeira mensagem.</small></label>
+          <label>Como a Suzy deve conversar?<select value={empresa.personalidade_suzy || 'profissional'} onChange={e=>setEmpresa({...empresa,personalidade_suzy:e.target.value})}><option value="profissional">Profissional e clara</option><option value="acolhedora">Acolhedora e próxima</option><option value="direta">Direta e objetiva</option></select></label>
           {empresa.segmento === 'outros' && <><datalist id="ramos-personalizados-configuracao">{ramosPersonalizados.map(r=><option key={r.chave} value={r.nome} />)}</datalist>{ramosPersonalizados.length>0 && <div className="sugestoes-ramos"><span>Já cadastrados:</span>{ramosPersonalizados.slice(0,6).map(r=><button type="button" key={r.chave} onClick={()=>setEmpresa({...empresa,segmento:'outros',atividade:r.nome})}>{r.nome}</button>)}</div>}</>}
           <button type="submit">{ocupado ? 'Salvando…' : 'Salvar perfil da empresa'}</button>
         </fieldset>
         {!podeEditar && <p>Peça ao administrador da empresa para alterar o perfil.</p>}
-      </form>
+      </form>}
       {sucesso && <p role="status">{sucesso}</p>}
       {/* WhatsApp da empresa: o fluxo oficial da Meta salva os dados necessários sem expor etapas técnicas. */}
-      <section>
+      {(!onboardingAtivo || etapaOnboarding === 3) && <section>
         <fieldset disabled={conectandoMeta || !podeEditar}>
           <legend>WhatsApp da empresa</legend>
           <p>Conecte o número comercial da empresa para receber as conversas no painel.</p>
@@ -366,12 +398,14 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
           </div>
           {whatsapp.configurado && <p className="nota-whatsapp" role="status">WhatsApp conectado. As novas conversas chegarão neste painel.</p>}
           {whatsapp.configurado && <button type="button" className="botao-desconectar-whatsapp" onClick={()=>setConfirmarDesconexao(true)} disabled={!podeEditar}>Desconectar a Suzy</button>}
+          {onboardingAtivo && <button type="button" className="botao-pular-onboarding" onClick={()=>setEtapaOnboarding(4)}>Configurar WhatsApp depois</button>}
         </fieldset>
         {!podeEditar && <p>Peça ao administrador da empresa para configurar o WhatsApp.</p>}
-      </section>
+      </section>}
       {erroWhatsApp && <p role="alert">{erroWhatsApp}</p>}
       {sucessoWhatsApp && <p role="status">{sucessoWhatsApp}</p>}
-      <section><fieldset disabled={!podeEditar || salvandoAutomacoes}><legend>Organização do atendimento</legend><p>Crie campos que a Suzy deve considerar e escolha se quer lembrar clientes que pararam de responder.</p><div className="campos-personalizados">{automacoes.campos.map((campo,i)=><div key={i}><input value={campo.nome} maxLength={80} placeholder="Ex.: Endereço da obra" onChange={e=>setAutomacoes({...automacoes,campos:automacoes.campos.map((c,index)=>index===i?{...c,nome:e.target.value}:c)})}/><label className="checkbox-config"><input type="checkbox" checked={campo.obrigatorio} onChange={e=>setAutomacoes({...automacoes,campos:automacoes.campos.map((c,index)=>index===i?{...c,obrigatorio:e.target.checked}:c)})}/>Obrigatório</label><button type="button" onClick={()=>setAutomacoes({...automacoes,campos:automacoes.campos.filter((_,index)=>index!==i)})}>Remover</button></div>)}</div><button type="button" onClick={()=>setAutomacoes({...automacoes,campos:[...automacoes.campos,{nome:'',obrigatorio:false}]})} disabled={automacoes.campos.length>=12}>+ Campo personalizado</button><label className="checkbox-config"><input type="checkbox" checked={automacoes.lembrete.ativo} onChange={e=>setAutomacoes({...automacoes,lembrete:{...automacoes.lembrete,ativo:e.target.checked}})}/>Lembrar cliente que parou de responder</label><label>Enviar lembrete após<select value={automacoes.lembrete.horas_espera} onChange={e=>setAutomacoes({...automacoes,lembrete:{...automacoes.lembrete,horas_espera:Number(e.target.value)}})}><option value={24}>24 horas</option><option value={48}>48 horas</option><option value={72}>72 horas</option></select></label><button type="button" onClick={salvarAutomacoes}>{salvandoAutomacoes?'Salvando…':'Salvar organização do atendimento'}</button></fieldset></section>
+      {(!onboardingAtivo || etapaOnboarding === 2) && <section><fieldset disabled={!podeEditar || salvandoAutomacoes}><legend>Organização do atendimento</legend><p>Crie campos que a Suzy deve considerar e escolha se quer lembrar clientes que pararam de responder.</p><button type="button" className="usar-modelo" onClick={()=>setAutomacoes({...automacoes,campos:(modelosPorSegmento[empresa.segmento] || modelosPorSegmento.outros).map(nome=>({nome,obrigatorio:false}))})}>Usar campos sugeridos para este ramo</button><div className="campos-personalizados">{automacoes.campos.map((campo,i)=><div key={i}><input value={campo.nome} maxLength={80} placeholder="Ex.: Endereço da obra" onChange={e=>setAutomacoes({...automacoes,campos:automacoes.campos.map((c,index)=>index===i?{...c,nome:e.target.value}:c)})}/><label className="checkbox-config"><input type="checkbox" checked={campo.obrigatorio} onChange={e=>setAutomacoes({...automacoes,campos:automacoes.campos.map((c,index)=>index===i?{...c,obrigatorio:e.target.checked}:c)})}/>Obrigatório</label><button type="button" onClick={()=>setAutomacoes({...automacoes,campos:automacoes.campos.filter((_,index)=>index!==i)})}>Remover</button></div>)}</div><button type="button" onClick={()=>setAutomacoes({...automacoes,campos:[...automacoes.campos,{nome:'',obrigatorio:false}]})} disabled={automacoes.campos.length>=12}>+ Campo personalizado</button><label className="checkbox-config"><input type="checkbox" checked={automacoes.lembrete.ativo} onChange={e=>setAutomacoes({...automacoes,lembrete:{...automacoes.lembrete,ativo:e.target.checked}})}/>Lembrar cliente que parou de responder</label><label>Enviar lembrete após<select value={automacoes.lembrete.horas_espera} onChange={e=>setAutomacoes({...automacoes,lembrete:{...automacoes.lembrete,horas_espera:Number(e.target.value)}})}><option value={24}>24 horas</option><option value={48}>48 horas</option><option value={72}>72 horas</option></select></label><button type="button" onClick={salvarAutomacoes}>{salvandoAutomacoes?'Salvando…':'Salvar organização do atendimento'}</button></fieldset></section>}
+      {onboardingAtivo && etapaOnboarding === 4 && <section className="onboarding-finalizado"><h2>Configuração inicial concluída</h2><p>Seu perfil e a organização dos atendimentos já estão prontos. Você pode conectar o WhatsApp e cadastrar materiais quando quiser em “Minha empresa”.</p><button type="button" onClick={()=>{ setOnboardingAtivo(false); aoConcluirOnboarding?.(); }}>Ir para o painel</button><button type="button" className="botao-pular-onboarding" onClick={()=>setOnboardingAtivo(false)}>Continuar configurando</button></section>}
       {confirmarDesconexao && <div className="modal-desconectar" role="dialog" aria-modal="true" aria-labelledby="titulo-desconectar"><div>
         <h2 id="titulo-desconectar">Você tem certeza que quer desconectar a Suzy?</h2>
         <p>Ah, que pena que você quer desconectar. Nos conte por quê? Seu retorno ajuda a melhorar a Norden.</p>
@@ -379,7 +413,7 @@ export default function ConfiguracaoEmpresa({ aoSalvar, podeEditar }) {
         <div><button type="button" onClick={()=>{setConfirmarDesconexao(false);setMotivoDesconexao('');}} disabled={desconectando}>Voltar</button><button type="button" className="botao-confirmar-desconexao" onClick={desconectarWhatsApp} disabled={!motivoDesconexao.trim() || desconectando}>{desconectando ? 'Desconectando…' : 'Sim, desconectar a Suzy'}</button></div>
       </div></div>}
       {/* Catálogo compartilhado da empresa: materiais/preços ficam disponíveis para futuros orçamentos. */}
-      <CatalogoEstimativa somenteCatalogo somenteLeitura={!podeEditar} segmento={empresa.segmento} atividade={empresa.atividade} />
+      {(!onboardingAtivo || etapaOnboarding === 4) && <CatalogoEstimativa somenteCatalogo somenteLeitura={!podeEditar} segmento={empresa.segmento} atividade={empresa.atividade} />}
     </>}
   </section>;
 }

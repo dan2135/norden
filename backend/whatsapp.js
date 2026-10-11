@@ -94,7 +94,7 @@ async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp(), pho
   const numeroRecebido = String(phoneNumberId || '').trim();
   if (numeroRecebido) {
     const resultado = await banco.query(
-      `SELECT m.id,m.nome,m.slug,m.segmento,m.atividade,'administrador' AS papel,
+      `SELECT m.id,m.nome,m.slug,m.segmento,m.atividade,m.horarios_atendimento,m.servicos,m.personalidade_suzy,'administrador' AS papel,
         w.access_token AS whatsapp_token,w.phone_number_id AS whatsapp_phone_number_id,w.api_version AS whatsapp_api_version
        FROM whatsapp_configuracoes w
        JOIN marcenarias m ON m.id=w.marcenaria_id
@@ -105,8 +105,8 @@ async function resolverEmpresaWhatsApp(banco, config = configurarWhatsApp(), pho
     if (config.phoneNumberId && numeroRecebido !== config.phoneNumberId) throw erroHttp(503, 'Número do WhatsApp não vinculado a nenhuma empresa.');
   }
   const resultado = config.marcenariaId
-    ? await banco.query("SELECT id,nome,slug,segmento,atividade,'administrador' AS papel FROM marcenarias WHERE id=$1 AND ativa=TRUE", [config.marcenariaId])
-    : await banco.query("SELECT id,nome,slug,segmento,atividade,'administrador' AS papel FROM marcenarias WHERE slug=$1 AND ativa=TRUE ORDER BY id LIMIT 1", [config.marcenariaSlug]);
+    ? await banco.query("SELECT id,nome,slug,segmento,atividade,horarios_atendimento,servicos,personalidade_suzy,'administrador' AS papel FROM marcenarias WHERE id=$1 AND ativa=TRUE", [config.marcenariaId])
+    : await banco.query("SELECT id,nome,slug,segmento,atividade,horarios_atendimento,servicos,personalidade_suzy,'administrador' AS papel FROM marcenarias WHERE slug=$1 AND ativa=TRUE ORDER BY id LIMIT 1", [config.marcenariaSlug]);
   const empresa = resultado.rows[0];
   if (!empresa) throw erroHttp(503, 'Empresa do WhatsApp não configurada.');
   empresa.whatsapp = config;

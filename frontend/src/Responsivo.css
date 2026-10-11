@@ -27,7 +27,7 @@
   .app-navegacao { display:grid; grid-template-columns:minmax(0,1fr) 44px; gap:10px; padding:12px; }
   .app-marca { gap:10px; }
   .app-marca strong { display:block; }
-  .app-navegacao nav { grid-column:1/-1; grid-row:2; display:grid; grid-template-columns:1fr 1.4fr 1fr; width:100%; margin:0; gap:4px; }
+  .app-navegacao nav { grid-column:1/-1; grid-row:2; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; margin:0; gap:4px; }
   .app-navegacao nav button { justify-content:center; padding:10px 6px; min-height:44px; font-size:13px; }
   .app-navegacao nav button > span { display:none; }
   .app-usuario { display:block; grid-column:2; grid-row:1; margin:0; width:44px; }

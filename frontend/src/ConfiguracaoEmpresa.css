@@ -27,7 +27,19 @@
 .configuracao-empresa .material-catalogo { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .configuracao-empresa .material-catalogo>div:first-child { grid-column:1/-1; }
 .configuracao-boas-vindas { padding:16px; border-left:4px solid #5175de; background:var(--chat-soft,#f1f5ff); }
-@media(max-width:650px) { .configuracao-empresa .material-catalogo { grid-template-columns:1fr; }.configuracao-empresa fieldset { padding:16px; }.meta-connect-card { align-items:stretch; flex-direction:column; }.meta-connect-card button { white-space:normal; } }
+.onboarding { margin:24px 0; padding:18px; border:1px solid #b8c8ee; border-radius:12px; background:var(--chat-surface,#fff); }
+.onboarding .configuracao-boas-vindas { margin:0 0 16px; }
+.onboarding ol { display:flex; gap:8px; padding:0; margin:0; list-style:none; }
+.onboarding li { display:flex; flex:1; align-items:center; gap:8px; color:#64748b; font-size:13px; }
+.onboarding li span { display:grid; place-items:center; width:26px; height:26px; border:1px solid #94a3b8; border-radius:50%; font-weight:700; }
+.onboarding li.atual { color:#1d4ed8; font-weight:700; }
+.onboarding li.atual span,.onboarding li.concluida span { background:#2563eb; border-color:#2563eb; color:#fff; }
+.onboarding li.concluida { color:#2563eb; }
+.onboarding-finalizado { margin:24px 0; padding:28px; border:1px solid #b8c8ee; border-radius:12px; background:var(--chat-soft,#f1f5ff); }
+.onboarding-finalizado h2 { margin-top:0; }
+.botao-pular-onboarding { margin-left:12px; background:transparent !important; border-color:#94a3b8 !important; }
+.usar-modelo { margin:0 0 14px; color:#1d4ed8; border-color:#9db7ef !important; background:#f4f7ff !important; }
+@media(max-width:650px) { .configuracao-empresa .material-catalogo { grid-template-columns:1fr; }.configuracao-empresa fieldset { padding:16px; }.meta-connect-card { align-items:stretch; flex-direction:column; }.meta-connect-card button { white-space:normal; }.onboarding ol { flex-wrap:wrap; }.onboarding li { flex-basis:45%; }.botao-pular-onboarding { margin:12px 0 0; } }
 
 /* Modo escuro da tela Minha empresa. Mantém fundo, textos e campos no mesmo tema. */
 .app-shell[data-theme="dark"] .configuracao-empresa{

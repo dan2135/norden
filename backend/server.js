@@ -85,6 +85,7 @@ const autenticar = registrarAuth(app, banco, rota);
 app.use('/api', autenticarInjetado || autenticar);
 require('./feedback').registrarFeedbackAdmin(app, banco, rota);
 registrarMarcenarias(app, banco, rota);
+require('./equipe').aceitarConvite(app, banco, rota);
 app.use('/api', (req,res,next) => resolverMarcenaria(req,res,next,banco));
 registrarWhatsAppConfiguracoes(app, banco, rota);
 registrarLixeira(app, banco, rota);
@@ -98,6 +99,8 @@ registrarAssinaturasAsaas(app, banco, rota);
 require('./anexos').registrarAnexos(app, banco, rota);
 require('./automacoes').registrarAutomacoes(app, banco, rota);
 require('./configuracao-empresa').registrarConfiguracaoEmpresa(app, banco, rota);
+require('./relatorios').registrarRelatorios(app, banco, rota);
+require('./equipe').registrarEquipe(app, banco, rota);
 
 app.get("/api/projetos", rota(async (req, res) => {
   // Lista projetos de um telefone dentro da empresa ativa, sem misturar dados entre empresas.

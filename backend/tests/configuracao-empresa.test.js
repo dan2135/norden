@@ -7,7 +7,13 @@ const { validarConfiguracao } = require('../configuracao-empresa');
 
 test('valida configuração inicial da empresa', () => {
   const dados = validarConfiguracao({ nome:'  Norden  ', segmento:'servicos', atividade:'  Assistência técnica e instalação  ' });
-  assert.deepEqual(dados, { nome:'Norden', segmento:'servicos', atividade:'Assistência técnica e instalação' });
+  assert.deepEqual(dados, { nome:'Norden', segmento:'servicos', atividade:'Assistência técnica e instalação', horarios_atendimento:'', servicos:'', personalidade_suzy:'profissional' });
+});
+
+test('guarda serviços e tom de atendimento escolhidos pela empresa', () => {
+  const dados = validarConfiguracao({ nome:'Norden', segmento:'servicos', atividade:'Instalação', servicos:'Instalação e manutenção', personalidade_suzy:'direta' });
+  assert.equal(dados.servicos, 'Instalação e manutenção');
+  assert.equal(dados.personalidade_suzy, 'direta');
 });
 
 test('exige atividade da empresa para liberar a configuração', () => {

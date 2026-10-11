@@ -31,7 +31,7 @@ export default function LandingPage() {
         <div className="lp-hero-copy"><p className="lp-eyebrow"><span className="lp-mini-icon" aria-hidden="true">✳</span> GESTÃO PARA QUEM ATENDE PELO WHATSAPP</p>
           <h1>Do atendimento<br/>ao orçamento,<br/><em>tudo em ordem.</em></h1>
           <p className="lp-intro">A Norden reúne conversas, clientes, projetos e orçamentos para sua empresa acompanhar cada pedido com clareza.</p>
-          <div className="lp-hero-actions"><a className="lp-button" href={whatsappConhecer} target="_blank" rel="noreferrer">Quero conhecer a Norden <span aria-hidden="true">↗</span></a><a className="lp-text-link" href="#como-funciona">Veja como funciona <span aria-hidden="true">↓</span></a></div>
+          <div className="lp-hero-actions"><a className="lp-button" href="/?tela=demo">Ver demonstração <span aria-hidden="true">↗</span></a><a className="lp-text-link" href="#como-funciona">Veja como funciona <span aria-hidden="true">↓</span></a></div>
           <p className="lp-caption">Conheça a plataforma antes de decidir continuar.</p>
         </div>
         <div className="lp-preview" aria-label="Prévia ilustrativa da organização de um projeto">
@@ -56,6 +56,6 @@ export default function LandingPage() {
       </div><p className="lp-plan-disclaimer">Você conhece a plataforma primeiro. Antes de qualquer cobrança, a Norden apresenta as condições e pede sua confirmação.</p></div></section>
       <section className="lp-final lp-container"><p className="lp-eyebrow">VAMOS ORGANIZAR O PRÓXIMO PASSO?</p><h2>Mais espaço para<br/>o seu negócio acontecer.</h2><a className="lp-button" href={whatsappConhecer} target="_blank" rel="noreferrer">Falar com a Norden <span aria-hidden="true">↗</span></a></section>
     </main>
-    <footer className="lp-footer lp-container"><a className="lp-brand" href="/" aria-label="Norden início"><img src={marcaNorden} alt="Norden" /></a><p>Gestão, WhatsApp e atendimento inteligente em uma rotina mais clara.</p><div><a href={entrar}>Entrar</a><a href={registrar}>Criar conta</a><a href="#planos">Planos</a></div><div className="lp-footer-contact"><a href={`mailto:${contatoNorden.email}?subject=${encodeURIComponent('Contato Norden')}`}>E-mail de contato</a><a href={`https://wa.me/${contatoNorden.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp comercial</a></div><small>© {new Date().getFullYear()} Norden.</small></footer>
+    <footer className="lp-footer lp-container"><a className="lp-brand" href="/" aria-label="Norden início"><img src={marcaNorden} alt="Norden" /></a><p>Gestão, WhatsApp e atendimento inteligente em uma rotina mais clara.</p><div><a href={entrar}>Entrar</a><a href={registrar}>Criar conta</a><a href="#planos">Planos</a><a href="/?tela=ajuda">Ajuda</a></div><div className="lp-footer-contact"><a href={`mailto:${contatoNorden.email}?subject=${encodeURIComponent('Contato Norden')}`}>E-mail de contato</a><a href={`https://wa.me/${contatoNorden.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp comercial</a></div><small>© {new Date().getFullYear()} Norden.</small></footer>
   </div>;
 }

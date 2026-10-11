@@ -12,6 +12,8 @@ import TrocarSenha from './TrocarSenha';
 import ConfiguracaoEmpresa from './ConfiguracaoEmpresa';
 import Assinatura from './Assinatura';
 import FeedbackDesconexao from './FeedbackDesconexao';
+import GestaoEmpresa from './GestaoEmpresa';
+import { Ajuda, Demonstracao } from './Publicas';
 import { useTema } from './tema';
 import AvisoCookies from './AvisoCookies';
 import { lerPreferencia, salvarPreferencia } from './privacidade';
@@ -25,6 +27,7 @@ function IconeMenu({ tipo }) {
     painel: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
     empresa: <><path d="M4 21V5h16v16"/><path d="M8 9h2M14 9h2M8 13h2M14 13h2M10 21v-4h4v4"/></>,
     plano: <><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M8.5 12h7M12 8.5v7"/></>,
+    gestao: <><path d="M4 20V10M12 20V4M20 20v-7"/><path d="M2 20h20"/></>,
   };
   return <span className="app-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[tipo]}</svg></span>;
 }
@@ -34,8 +37,10 @@ export default function App() {
   const parametros = new URLSearchParams(window.location.search);
   const callbackMeta = parametros.has('code') && parametros.get('state')?.startsWith('norden-meta-');
   if (callbackMeta || parametros.get('tela') === 'meta-callback') return <CallbackMetaOAuth parametros={parametros} />;
-  const acessar = ['login','cadastro','painel'].includes(parametros.get('tela')) || parametros.has('confirmar') || parametros.has('redefinir');
-  return acessar ? <><Aplicacao /><AvisoCookies /></> : <><LandingPage /><AvisoCookies /></>;
+  if (parametros.get('tela') === 'demo') return <Demonstracao />;
+  if (parametros.get('tela') === 'ajuda') return <Ajuda />;
+  const acessar = ['login','cadastro','painel'].includes(parametros.get('tela')) || parametros.has('confirmar') || parametros.has('redefinir') || parametros.has('convite');
+  return acessar ? <><Aplicacao convite={parametros.get('convite')} /><AvisoCookies /></> : <><LandingPage /><AvisoCookies /></>;
 }
 
 function CallbackMetaOAuth({ parametros }) {
@@ -56,7 +61,7 @@ function CallbackMetaOAuth({ parametros }) {
   return <div className="tela-carregamento"><img className="tela-carregamento-logo" src={perfilNorden} alt="" /><p>{erro ? `A Meta recusou a conexão: ${erro}` : 'Conexão recebida. Você já pode voltar para a Norden…'}</p></div>;
 }
 
-function Aplicacao() {
+function Aplicacao({ convite }) {
   // Coordena o usuário autenticado e a empresa ativa; trocar empresa recarrega seu contexto.
   const [temaEscuro] = useTema();
   const [aba, setAba] = useState('painel');
@@ -107,6 +112,12 @@ function Aplicacao() {
       .catch(erro => { if (!cancelado) setErroEmpresa(erro.message); });
     return () => { cancelado = true; };
   }, [sessao?.id, sessao?.trocar_senha, marcenariaId]);
+  useEffect(() => {
+    if (!convite || !sessao?.id) return;
+    requisicao('/equipe/convites/aceitar', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token:convite}) })
+      .then(() => requisicao('/auth/sessao').then(entrar).then(() => { window.history.replaceState({}, '', '/?tela=painel'); setErroEmpresa('Convite aceito. Você já pode acessar a empresa.'); }))
+      .catch(erro => setErroEmpresa(erro.message));
+  }, [convite, sessao?.id]);
   async function criarMarcenaria(event) {
     // Cria outra empresa para o mesmo usuário; o backend valida acesso e evita nomes/slug duplicados.
     event.preventDefault();
@@ -138,6 +149,7 @@ function Aplicacao() {
       <nav aria-label="Navegação principal">
         <button aria-pressed={aba === 'painel'} onClick={() => setAba('painel')}><IconeMenu tipo="painel" />Painel</button>
         <button aria-pressed={aba === 'empresa'} onClick={() => setAba('empresa')}><IconeMenu tipo="empresa" />Minha empresa</button>
+        <button aria-pressed={aba === 'gestao'} onClick={() => setAba('gestao')}><IconeMenu tipo="gestao" />Gestão</button>
         <span className="app-nav-spacer" aria-hidden="true" />
         <button aria-pressed={aba === 'plano'} onClick={() => setAba('plano')}><IconeMenu tipo="plano" />Meu plano</button>
         {sessao.superadministrador && <button aria-pressed={aba === 'feedback'} onClick={() => setAba('feedback')}><IconeMenu tipo="painel" />Feedback</button>}
@@ -164,6 +176,7 @@ function Aplicacao() {
         <div hidden={aba !== 'empresa'}>
           {aba === 'empresa' && <ConfiguracaoEmpresa
             podeEditar={podeConfigurarEmpresa}
+            aoConcluirOnboarding={() => setAba('painel')}
             aoSalvar={empresa => {
               setErroEmpresa('');
               setMarcenarias(lista => lista.map(item => String(item.id) === String(empresa.id) ? { ...item, ...empresa } : item));
@@ -171,6 +184,7 @@ function Aplicacao() {
           />}
         </div>
         <div hidden={aba !== 'plano'}>{aba === 'plano' && <Assinatura podeEditar={podeConfigurarEmpresa} />}</div>
+        <div hidden={aba !== 'gestao'}>{aba === 'gestao' && <GestaoEmpresa podeEditar={podeConfigurarEmpresa} />}</div>
         <div hidden={aba !== 'feedback'}>{aba === 'feedback' && sessao.superadministrador && <FeedbackDesconexao />}</div>
       </div>}
       <Rodape />
