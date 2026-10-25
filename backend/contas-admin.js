@@ -26,12 +26,22 @@ function registrarContasAdmin(app, banco, rota) {
       const alvo = (await db.query('SELECT id,email,superadministrador FROM usuarios WHERE id=$1 FOR UPDATE', [id])).rows[0];
       if (!alvo) throw erroHttp(404, 'Conta não encontrada.');
       if (alvo.superadministrador) throw erroHttp(403, 'Contas de administrador geral são protegidas contra exclusão.');
+      // Trava as empresas antes de remover os vínculos para tratar exclusões concorrentes.
+      const empresas = (await db.query(`SELECT m.id FROM marcenarias m
+        JOIN membros_marcenaria mm ON mm.marcenaria_id=m.id
+        WHERE mm.usuario_id=$1 ORDER BY m.id FOR UPDATE OF m`, [id])).rows.map(m => m.id);
       // Sessões, tokens e vínculos são removidos por ON DELETE CASCADE.
       await db.query('DELETE FROM convites_equipe WHERE criado_por=$1 OR lower(email)=lower($2)', [id, alvo.email]);
       await db.query('DELETE FROM emails_saida WHERE lower(destinatario)=lower($1)', [alvo.email]);
       await db.query('DELETE FROM usuarios WHERE id=$1', [id]);
+      const desativadas = (await db.query(`UPDATE marcenarias m SET ativa=FALSE
+        WHERE m.id=ANY($1::int[]) AND m.slug<>'principal' AND m.ativa=TRUE
+        AND NOT EXISTS (SELECT 1 FROM membros_marcenaria mm
+          JOIN usuarios u ON u.id=mm.usuario_id
+          WHERE mm.marcenaria_id=m.id AND mm.ativo=TRUE AND u.ativo=TRUE)
+        RETURNING m.id`, [empresas])).rows.map(m => m.id);
       await db.query('COMMIT');
-      res.json({ mensagem: 'Conta apagada permanentemente. O CPF/CNPJ pode ser usado em um novo cadastro.' });
+      res.json({ mensagem: 'Conta apagada permanentemente. Empresas sem outros usuários ativos foram retiradas do seletor. O CPF/CNPJ pode ser usado em um novo cadastro.', empresas_desativadas: desativadas });
     } catch (erro) { await db.query('ROLLBACK'); throw erro; } finally { db.release(); }
   }));
 }

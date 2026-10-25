@@ -67,7 +67,11 @@ test('contas: correção preserva CPF, revoga links antigos e exclusão exige ad
     });
     await t.test('remove identidade, sessões, tokens e convites; libera documento e preserva empresa', async () => {
       await db.query('INSERT INTO convites_equipe(marcenaria_id,email,papel,token_hash,expira_em,criado_por) VALUES ($1,$2,$3,$4,NOW()+INTERVAL \'1 day\',$5)', [empresa, 'convidado@example.com', 'atendente', createHash('sha256').update(tag).digest('hex'), usuario.id]);
-      await chamar(`/admin/usuarios/${usuario.id}`, { senha }, 200, administrativa, 'DELETE');
+      const exclusao = await chamar(`/admin/usuarios/${usuario.id}`, { senha }, 200, administrativa, 'DELETE');
+      assert.deepEqual(exclusao.empresas_desativadas.map(String), [String(empresa)]);
+      assert.equal((await db.query('SELECT ativa FROM marcenarias WHERE id=$1', [empresa])).rows[0].ativa, false);
+      const listaEmpresas = await chamar('/marcenarias', undefined, 200, administrativa, 'GET');
+      assert.equal(listaEmpresas.marcenarias.some(m => String(m.id) === String(empresa)), false);
       for (const tabela of ['usuarios', 'sessoes', 'tokens_usuario', 'membros_marcenaria']) {
         const campo = tabela === 'usuarios' ? 'id' : 'usuario_id';
         assert.equal((await db.query(`SELECT count(*)::int AS n FROM ${tabela} WHERE ${campo}=$1`, [usuario.id])).rows[0].n, 0);
@@ -78,6 +82,26 @@ test('contas: correção preserva CPF, revoga links antigos e exclusão exige ad
       await chamar('/auth/sessao', undefined, 401, comum, 'GET');
       await chamar('/auth/login', { identificador: certo, senha }, 401);
       await chamar('/auth/cadastro', { nome: 'Pessoa QA', email: certo, senha, documento: '52998224725', empresa: `Nova ${tag}`, segmento: 'servicos' }, 201);
+    });
+    await t.test('preserva empresa compartilhada até excluir o último usuário ativo', async () => {
+      const ids = [];
+      for (let i=0;i<2;i++) ids.push((await db.query('INSERT INTO usuarios(nome,email,senha_hash) VALUES ($1,$2,$3) RETURNING id', ['Equipe', `equipe-${i}-${tag}@example.com`, hash])).rows[0].id);
+      const compartilhada = (await db.query('INSERT INTO marcenarias(nome,slug) VALUES ($1,$2) RETURNING id', ['Equipe', `equipe-${tag}`])).rows[0].id;
+      for (const id of ids) await db.query("INSERT INTO membros_marcenaria(usuario_id,marcenaria_id,papel) VALUES ($1,$2,'atendente')", [id, compartilhada]);
+      const primeira = await chamar(`/admin/usuarios/${ids[0]}`, { senha }, 200, administrativa, 'DELETE');
+      assert.deepEqual(primeira.empresas_desativadas, []);
+      assert.equal((await db.query('SELECT ativa FROM marcenarias WHERE id=$1', [compartilhada])).rows[0].ativa, true);
+      const ultima = await chamar(`/admin/usuarios/${ids[1]}`, { senha }, 200, administrativa, 'DELETE');
+      assert.deepEqual(ultima.empresas_desativadas.map(String), [String(compartilhada)]);
+    });
+    await t.test('migração corrige empresas órfãs antigas e preserva principal e empresas com membros', async () => {
+      const orfa = (await db.query('INSERT INTO marcenarias(nome,slug) VALUES ($1,$2) RETURNING id', ['Órfã', `orfa-${tag}`])).rows[0].id;
+      const sql = require('node:fs').readFileSync(require('node:path').join(__dirname, '../migrations/026-empresas-sem-conta.sql'), 'utf8');
+      await db.query(sql);
+      await db.query(sql);
+      assert.equal((await db.query('SELECT ativa FROM marcenarias WHERE id=$1', [orfa])).rows[0].ativa, false);
+      assert.equal((await db.query("SELECT ativa FROM marcenarias WHERE slug='principal'")).rows[0].ativa, true);
+      assert.equal((await db.query('SELECT m.ativa FROM marcenarias m JOIN membros_marcenaria mm ON mm.marcenaria_id=m.id JOIN usuarios u ON u.id=mm.usuario_id WHERE u.email=$1', [certo])).rows[0].ativa, true);
     });
     await t.test('limita tentativas de correção por endereço de rede', async () => {
       let bloqueado = false;

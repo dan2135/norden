@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { requisicao } from './api';
 import './ContasUsuarios.css';
 
-export default function ContasUsuarios() {
+export default function ContasUsuarios({ aoExcluirConta }) {
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState('');
   const [pagina, setPagina] = useState(1);
@@ -38,7 +38,7 @@ export default function ContasUsuarios() {
       </li>)}</ul>
       <div className="contas-paginacao"><button disabled={pagina === 1} onClick={() => { setPagina(p => p - 1); atualizar(); }}>Anterior</button><span>Página {pagina}</span><button disabled={!estado.proxima_pagina} onClick={() => { setPagina(p => p + 1); atualizar(); }}>Próxima</button></div>
     </>}
-    {alvo && <ExcluirConta usuario={alvo} aoFechar={() => setAlvo(null)} aoExcluir={texto => { setAlvo(null); setMensagem(texto); atualizar(); }} />}
+    {alvo && <ExcluirConta usuario={alvo} aoFechar={() => setAlvo(null)} aoExcluir={texto => { setAlvo(null); setMensagem(texto); atualizar(); aoExcluirConta?.(); }} />}
   </section>;
 }
 
@@ -63,7 +63,7 @@ function ExcluirConta({ usuario, aoFechar, aoExcluir }) {
     <form onSubmit={excluir}>
       <h2 id="conta-exclusao-titulo">Apagar conta permanentemente?</h2>
       <p><strong>{usuario.nome} · {usuario.email}</strong></p>
-      <p id="conta-exclusao-impacto">Serão apagados o cadastro, e-mail, senha protegida, CPF/CNPJ, sessões, vínculos de acesso, tokens, convites e e-mails armazenados desta conta. O CPF/CNPJ ficará livre para novo cadastro. Empresas, clientes e projetos serão preservados. Esta ação não pode ser desfeita.</p>
+      <p id="conta-exclusao-impacto">Serão apagados o cadastro, e-mail, senha protegida, CPF/CNPJ, sessões, vínculos de acesso, tokens, convites e e-mails armazenados desta conta. O CPF/CNPJ ficará livre para novo cadastro. Empresas sem outros usuários ativos sairão do seletor. Os dados de empresas, clientes e projetos serão preservados. Esta ação não pode ser desfeita.</p>
       <label>Senha da sua conta administrativa<input type="password" autoComplete="current-password" required maxLength={200} disabled={ocupado} value={senha} onChange={e => setSenha(e.target.value)} /></label>
       {erro && <p role="alert">{erro}</p>}
       <div className="acoes-cliente"><button type="button" disabled={ocupado} onClick={aoFechar}>Cancelar</button><button className="botao-excluir-cliente" disabled={ocupado || !senha}>{ocupado ? 'Apagando…' : 'Apagar conta definitivamente'}</button></div>
