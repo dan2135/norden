@@ -145,13 +145,23 @@ function registrarAuth(app, banco, rota) {
     } catch(erro){await db.query('ROLLBACK');if(erro.code==='23505')throw erroHttp(409,'Este e-mail ou CPF/CNPJ já está cadastrado.');throw erro;}finally{db.release();}
   }));
 
+  require('./correcao-email').registrarCorrecaoEmail(app, banco, rota, { validarDocumento, conferirSenha });
+
   app.post('/api/auth/confirmar-email', rota(async(req,res)=>{
     const token=String(req.body?.token||'');
-    const resultado=await banco.query(`UPDATE usuarios u SET email_confirmado=TRUE FROM tokens_usuario t
-      WHERE t.token_hash=$1 AND t.usuario_id=u.id AND t.tipo='confirmar_email' AND t.usado_em IS NULL AND t.expira_em>CURRENT_TIMESTAMP RETURNING u.id`,[hashToken(token)]);
-    if(!resultado.rows[0]) throw erroHttp(400,'Link de confirmação inválido ou expirado.');
-    await banco.query("UPDATE tokens_usuario SET usado_em=CURRENT_TIMESTAMP WHERE token_hash=$1",[hashToken(token)]);
-    res.json({mensagem:'E-mail confirmado. Você já pode entrar.'});
+    const db=await banco.connect();
+    try {
+      await db.query('BEGIN');
+      // Compartilha o lock da correção para impedir confirmação pelo endereço antigo.
+      const usuario=(await db.query(`SELECT u.id FROM usuarios u JOIN tokens_usuario t ON t.usuario_id=u.id
+        WHERE t.token_hash=$1 AND t.tipo='confirmar_email' AND t.usado_em IS NULL AND t.expira_em>NOW() AND u.ativo=TRUE FOR UPDATE OF u`,[hashToken(token)])).rows[0];
+      const valido=usuario && (await db.query("SELECT 1 FROM tokens_usuario WHERE token_hash=$1 AND usado_em IS NULL AND expira_em>NOW()",[hashToken(token)])).rows.length;
+      if(!valido) throw erroHttp(400,'Link de confirmação inválido ou expirado.');
+      await db.query('UPDATE usuarios SET email_confirmado=TRUE WHERE id=$1',[usuario.id]);
+      await db.query("UPDATE tokens_usuario SET usado_em=NOW() WHERE usuario_id=$1 AND tipo='confirmar_email' AND usado_em IS NULL",[usuario.id]);
+      await db.query('COMMIT');
+      res.json({mensagem:'E-mail confirmado. Você já pode entrar.'});
+    } catch(erro) { await db.query('ROLLBACK'); throw erro; } finally { db.release(); }
   }));
 
   app.post('/api/auth/reenviar-confirmacao', rota(async(req,res)=>{

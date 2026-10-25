@@ -39,3 +39,13 @@ E-mail já usado por outra conta causa conflito e reverte a operação; não apa
 - `frontend/src/TrocarSenha.jsx`: formulário de senha definitiva, compatível com claro/escuro.
 
 Esta implementação não cria uma conta automaticamente nem altera credenciais reais. Configure e execute o provisionamento somente quando desejar ativar o acesso.
+
+## Contas de usuários na demo
+
+Na branch `codex/demo-gratuita`, o **administrador geral** encontra **Contas de usuários** no menu. É possível buscar por nome/e-mail e usar **Apagar conta**. A confirmação exige a senha do administrador e a proteção também existe na API; proprietários e administradores de empresa não têm essa permissão. A própria conta e outras contas de administrador geral são protegidas.
+
+A exclusão é definitiva: remove cadastro, e-mail, hash de senha, documento, sessões, tokens, vínculos, convites enviados/recebidos e mensagens armazenadas para o endereço da conta. O CPF/CNPJ fica disponível para novo cadastro. Empresas, clientes, projetos e dados comerciais permanecem; a operação não cancela assinaturas nem remove mensagens já entregues por provedores externos.
+
+Antes de criar o cadastro, o formulário pede **É este e-mail mesmo?**. Para corrigir um endereço digitado errado após o cadastro, use **Cadastrei o e-mail errado** no login/cadastro. Informe CPF/CNPJ, senha cadastrada e repita o novo e-mail. A correção só funciona enquanto o endereço não foi confirmado, preserva a mesma empresa e documento, invalida os links anteriores e envia uma nova confirmação ao endereço corrigido. Há limite de tentativas por IP e intervalo entre correções; contas já confirmadas devem usar o suporte administrativo.
+
+Validação dos novos fluxos, em um banco de testes isolado já migrado: `TEST_DATABASE=1 node --test tests/contas-usuarios.test.js` dentro de `backend`.

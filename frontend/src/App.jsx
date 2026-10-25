@@ -12,6 +12,7 @@ import TrocarSenha from './TrocarSenha';
 import ConfiguracaoEmpresa from './ConfiguracaoEmpresa';
 import Assinatura from './Assinatura';
 import FeedbackDesconexao from './FeedbackDesconexao';
+import ContasUsuarios from './ContasUsuarios';
 import GestaoEmpresa from './GestaoEmpresa';
 import { Ajuda, Demonstracao } from './Publicas';
 import { useTema } from './tema';
@@ -152,6 +153,7 @@ function Aplicacao({ convite }) {
         <button aria-pressed={aba === 'gestao'} onClick={() => setAba('gestao')}><IconeMenu tipo="gestao" />Gestão</button>
         <span className="app-nav-spacer" aria-hidden="true" />
         <button aria-pressed={aba === 'plano'} onClick={() => setAba('plano')}><IconeMenu tipo="plano" />Meu plano</button>
+        {sessao.superadministrador && <button aria-pressed={aba === 'usuarios'} onClick={() => setAba('usuarios')}><IconeMenu tipo="empresa" />Contas de usuários</button>}
         {sessao.superadministrador && <button aria-pressed={aba === 'feedback'} onClick={() => setAba('feedback')}><IconeMenu tipo="painel" />Feedback</button>}
       </nav>
       <div className="app-usuario"><span>{sessao.nome?.slice(0,1).toUpperCase()}</span><div><strong>{sessao.nome}</strong><small>{sessao.email}</small></div><button onClick={sair} title="Sair">↪</button></div>
@@ -185,6 +187,7 @@ function Aplicacao({ convite }) {
         </div>
         <div hidden={aba !== 'plano'}>{aba === 'plano' && <Assinatura podeEditar={podeConfigurarEmpresa} />}</div>
         <div hidden={aba !== 'gestao'}>{aba === 'gestao' && <GestaoEmpresa podeEditar={podeConfigurarEmpresa} />}</div>
+        <div hidden={aba !== 'usuarios'}>{aba === 'usuarios' && sessao.superadministrador && <ContasUsuarios />}</div>
         <div hidden={aba !== 'feedback'}>{aba === 'feedback' && sessao.superadministrador && <FeedbackDesconexao />}</div>
       </div>}
       <Rodape />

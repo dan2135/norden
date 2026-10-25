@@ -38,3 +38,5 @@
 /* Marca oficial Norden. */
 .login-marca img { display:block; width:155px; height:auto; max-height:52px; object-fit:contain; object-position:left center; }
 html[data-theme="dark"] .login-marca img { filter:brightness(0) invert(1); }
+
+.login-revisao{border:1px solid #315de8;border-radius:12px;padding:16px;margin:16px 0;overflow-wrap:anywhere}.login-revisao p{margin:10px 0}.login-revisao button{font:inherit;padding:8px 12px;cursor:pointer}
