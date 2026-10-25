@@ -119,6 +119,16 @@ function Aplicacao({ convite }) {
       .then(() => requisicao('/auth/sessao').then(entrar).then(() => { window.history.replaceState({}, '', '/?tela=painel'); setErroEmpresa('Convite aceito. Você já pode acessar a empresa.'); }))
       .catch(erro => setErroEmpresa(erro.message));
   }, [convite, sessao?.id]);
+  async function atualizarEmpresas() {
+    try {
+      const { marcenarias: lista } = await requisicao('/marcenarias');
+      setMarcenarias(lista);
+      if (!lista.some(m => String(m.id) === marcenariaId)) {
+        const escolhida = lista.find(m => m.slug === 'principal') || lista[0];
+        trocarMarcenaria(escolhida ? String(escolhida.id) : '');
+      }
+    } catch (erro) { setErroEmpresa(erro.message); }
+  }
   async function criarMarcenaria(event) {
     // Cria outra empresa para o mesmo usuário; o backend valida acesso e evita nomes/slug duplicados.
     event.preventDefault();
@@ -187,7 +197,7 @@ function Aplicacao({ convite }) {
         </div>
         <div hidden={aba !== 'plano'}>{aba === 'plano' && <Assinatura podeEditar={podeConfigurarEmpresa} />}</div>
         <div hidden={aba !== 'gestao'}>{aba === 'gestao' && <GestaoEmpresa podeEditar={podeConfigurarEmpresa} />}</div>
-        <div hidden={aba !== 'usuarios'}>{aba === 'usuarios' && sessao.superadministrador && <ContasUsuarios />}</div>
+        <div hidden={aba !== 'usuarios'}>{aba === 'usuarios' && sessao.superadministrador && <ContasUsuarios aoExcluirConta={atualizarEmpresas} />}</div>
         <div hidden={aba !== 'feedback'}>{aba === 'feedback' && sessao.superadministrador && <FeedbackDesconexao />}</div>
       </div>}
       <Rodape />
